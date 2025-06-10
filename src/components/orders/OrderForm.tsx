@@ -207,6 +207,14 @@ export default function OrderForm({
         return line;
       })
     }));
+    
+    // Clear orderLines error when user starts typing in registration field
+    if ('registration' in data && data.registration && errors.orderLines) {
+      setErrors(prev => ({
+        ...prev,
+        orderLines: false
+      }));
+    }
   };
 
   const handleOrderLineDelete = (id: string) => {
@@ -396,17 +404,22 @@ export default function OrderForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      // Check specific error for order lines
-      if (!order.orderLines.some(line => line.registration.trim() !== "")) {
-        toast({
-          variant: "destructive",
-          title: "Error de validación",
-          description: "Debe añadirse al menos una línea de pedido con Matrícula 89",
-        });
-        return;
-      }
+    // Check specific error for order lines first
+    if (!order.orderLines.some(line => line.registration.trim() !== "")) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Debe añadirse al menos una línea de pedido",
+      });
       
+      setErrors(prev => ({
+        ...prev,
+        orderLines: true
+      }));
+      return;
+    }
+    
+    if (!validateForm()) {
       toast({
         variant: "destructive",
         title: "Error de validación",
@@ -830,7 +843,7 @@ export default function OrderForm({
                 Líneas de Pedido
                 {errors.orderLines && (
                   <span className="text-red-500 text-sm ml-2 font-normal">
-                    * Se requiere al menos una línea de pedido
+                    * Debe añadirse al menos una línea de pedido
                   </span>
                 )}
               </h2>
@@ -872,7 +885,9 @@ export default function OrderForm({
                         handleOrderLineUpdate(line.id, { registration: value });
                       }}
                       placeholder="89654014"
-                      className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                      className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
+                        errors.orderLines && !line.registration.trim() ? 'border-red-500' : ''
+                      }`}
                     />
                     
                     <Input
