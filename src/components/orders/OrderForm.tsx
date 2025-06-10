@@ -225,6 +225,26 @@ export default function OrderForm({
   };
 
   const addOrderLine = () => {
+    // Check if there are any existing lines with empty registration
+    const hasEmptyRegistration = order.orderLines.some(line => !line.registration.trim());
+    
+    if (hasEmptyRegistration) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "No pueden haber lineas vacias",
+      });
+      
+      // Set orderLines error to highlight the problematic lines
+      setErrors(prev => ({
+        ...prev,
+        orderLines: true
+      }));
+      
+      return; // Don't add the new line
+    }
+    
+    // If all existing lines have registration, add the new line
     setOrder(prev => ({
       ...prev,
       orderLines: [...prev.orderLines, {
