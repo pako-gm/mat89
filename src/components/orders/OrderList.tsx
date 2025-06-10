@@ -96,7 +96,7 @@ export default function OrderList() {
   const handleNewOrder = () => {
     const nextOrderNumber = generateNextOrderNumber();
     const emptyOrder = {
-      id: "",
+      id: crypto.randomUUID(),
       orderNumber: nextOrderNumber,
       warehouse: "ALM141", // Default warehouse
       supplierId: "",
@@ -110,7 +110,7 @@ export default function OrderList() {
       shipmentDocumentation: [],
       changeHistory: [],
       orderLines: [{
-        id: "",
+        id: crypto.randomUUID(),
         registration: "",
         partDescription: "",
         quantity: 1,
