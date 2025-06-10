@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit2, Trash2, X } from "lucide-react";
+import { Edit2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface OrderDetailsProps {
@@ -52,15 +52,6 @@ export default function OrderDetails({
             >
               <Trash2 className="h-4 w-4" />
               <span className="sr-only">Eliminar</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8 rounded-full"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Cerrar</span>
             </Button>
           </div>
         </DialogHeader>
