@@ -14,7 +14,7 @@ export interface Database {
           id: string
           num_pedido: string
           alm_envia: string
-          razon_social: string
+          supplier: string
           vehiculo: string
           garantia: boolean
           informacion_nc: string | null
@@ -30,7 +30,7 @@ export interface Database {
           id?: string
           num_pedido: string
           alm_envia: string
-          razon_social: string
+          supplier: string
           vehiculo: string
           garantia?: boolean
           informacion_nc?: string | null
@@ -46,7 +46,7 @@ export interface Database {
           id?: string
           num_pedido?: string
           alm_envia?: string
-          razon_social?: string
+          supplier?: string
           vehiculo?: string
           garantia?: boolean
           informacion_nc?: string | null

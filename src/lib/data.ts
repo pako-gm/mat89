@@ -146,7 +146,7 @@ export const saveOrder = async (order: Order) => {
         id: order.id,
         num_pedido: order.orderNumber,
         alm_envia: order.warehouse,
-        razon_social: order.supplier,
+        supplier: order.supplier,
         vehiculo: order.vehicle,
         garantia: order.warranty,
         informacion_nc: order.nonConformityReport,
@@ -210,7 +210,7 @@ export const saveOrder = async (order: Order) => {
 
 export const getOrders = async () => {
   try {
-    // Fixed query to remove the join with suppliers table since supplier name is stored directly in razon_social
+    // Fixed query to use supplier column instead of razon_social
     const { data: orders, error: ordersError } = await supabase
       .from('tbl_pedidos_rep')
       .select(`
@@ -228,7 +228,7 @@ export const getOrders = async () => {
       id: order.id,
       orderNumber: order.num_pedido,
       warehouse: order.alm_envia,
-      supplier: order.razon_social, // Using razon_social directly instead of joining with suppliers table
+      supplier: order.supplier, // Using supplier column directly
       vehicle: order.vehiculo,
       warranty: order.garantia,
       nonConformityReport: order.informacion_nc,
@@ -270,7 +270,7 @@ export const deleteOrder = async (orderId: string) => {
 };
 
 export const getReceptions = async (): Promise<Reception[]> => {
-  // Fixed query to remove the join with suppliers table since supplier name is stored directly in razon_social
+  // Fixed query to use supplier column instead of razon_social
   const { data: orders, error } = await supabase
     .from('tbl_pedidos_rep')
     .select(`
@@ -286,7 +286,7 @@ export const getReceptions = async (): Promise<Reception[]> => {
   return orders.map(order => ({
     id: order.id,
     orderNumber: order.num_pedido,
-    supplier: order.razon_social, // Using razon_social directly instead of joining with suppliers table
+    supplier: order.supplier, // Using supplier column directly
     warehouse: order.alm_envia,
     shipmentDate: order.fecha_envio,
     status: 'Pendiente',
