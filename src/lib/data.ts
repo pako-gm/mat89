@@ -173,7 +173,7 @@ export const saveOrder = async (order: Order) => {
           pedido_id: order.id,
           matriculas: line.registration,
           descripcion: line.partDescription,
-          nenv: line.quantity,
+          nenv: parseInt(String(line.quantity), 10) || 1,
           nsenv: line.serialNumber
         }))
       );
