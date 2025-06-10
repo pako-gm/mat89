@@ -226,7 +226,7 @@ export default function OrderForm({
 
   const addOrderLine = () => {
     // Check if there are any existing lines with empty registration
-    const hasEmptyRegistration = order.orderLines.some(line => !(line.registration || '').trim());
+    const hasEmptyRegistration = order.orderLines.some(line => !line.registration.trim());
     
     if (hasEmptyRegistration) {
       toast({
@@ -353,7 +353,7 @@ export default function OrderForm({
 
   const validateForm = () => {
     // Check if there's at least one order line with a registration
-    const hasValidOrderLine = order.orderLines.some(line => (line.registration || '').trim() !== "");
+    const hasValidOrderLine = order.orderLines.some(line => line.registration.trim() !== "");
     
     const newErrors = {
       supplier: !order.supplierId,
@@ -425,7 +425,7 @@ export default function OrderForm({
     e.preventDefault();
     
     // Check specific error for order lines first
-    if (!order.orderLines.some(line => (line.registration || '').trim() !== "")) {
+    if (!order.orderLines.some(line => line.registration.trim() !== "")) {
       toast({
         variant: "destructive",
         title: "Error de validación",
@@ -906,7 +906,7 @@ export default function OrderForm({
                       }}
                       placeholder="89654014"
                       className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
-                        errors.orderLines && !(line.registration || '').trim() ? 'border-red-500' : ''
+                        errors.orderLines && !line.registration.trim() ? 'border-red-500' : ''
                       }`}
                     />
                     
