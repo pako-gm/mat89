@@ -1,14 +1,10 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
-import { signOut, getUserRole } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
+import { getUserRole } from "@/lib/auth";
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,15 +15,6 @@ export default function Layout() {
     
     fetchUserRole();
   }, []);
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Sesión cerrada",
-      description: "Ha cerrado sesión correctamente",
-    });
-    navigate("/login");
-  };
 
   return (
     <div className="flex h-screen w-full">
@@ -42,15 +29,6 @@ export default function Layout() {
                 Rol: <span className="font-medium">{userRole}</span>
               </span>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="text-gray-700"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar sesión
-            </Button>
           </div>
         </div>
         <div className="p-6 w-full">

@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Search, ClipboardList, PackageCheck, Users, Factory, Package, FileSearch, Database } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { signOut } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarItemProps {
   icon?: React.ReactNode;
@@ -31,54 +34,57 @@ const SidebarItem = ({ icon, label, path, active }: SidebarItemProps) => {
 };
 
 export default function Sidebar() {
-  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { toast } = useToast();
   const currentPath = window.location.pathname;
+  const [userEmail, setUserEmail] = useState<string>("");
   
-  const handleBlur = () => {
-    setSearchQuery("");
-    navigate('/pedidos');
-  };
-  
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          setUserEmail(user.email);
+        }
+      } catch (error) {
+        console.error("Error getting user:", error);
+      }
+    };
     
-    if (value) {
-      navigate(`/pedidos?search=${encodeURIComponent(value)}`);
-    } else {
-      navigate('/pedidos');
-    }
+    getCurrentUser();
+  }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Sesión cerrada",
+      description: "Ha cerrado sesión correctamente",
+    });
+    navigate("/login");
   };
   
   return (
     <div className="flex flex-col h-full border-r bg-white">
       <div className="p-6">
-        <h2 className="text-2xl font-medium tracking-tight">
-          <span className="text-[#4C4C4C]">Mat</span>
-          <span className="text-[#91268F]">89</span>
-        </h2>
-        <p className="text-xs text-[#787878]">© F.G.M. 2025</p>
+        <div className="flex items-center justify-between w-full">
+          <h2 className="text-2xl font-medium tracking-tight">
+            <span className="text-[#4C4C4C]">Mat</span>
+            <span className="text-[#91268F]">89</span>
+          </h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleSignOut}
+            className="text-gray-700 hover:bg-gray-100 h-8 px-2"
+          >
+            <LogOut className="h-4 w-4 mr-1" />
+            <span className="text-xs">Cerrar sesión</span>
+          </Button>
+        </div>
       </div>
       
-      <div className="px-3 py-2">
-        <h3 className="mb-2 px-4 text-sm font-medium text-[#4C4C4C]">
-          Menu
-        </h3>
+      <div className="px-3 py-2 flex-1">
         <div className="space-y-1">
-          <div className="px-3 py-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-[#787878]" />
-              <Input
-                type="text"
-                placeholder="Buscar pedido..."
-                value={searchQuery}
-                onChange={handleSearch}
-                onBlur={handleBlur}
-                className="pl-8 h-9 text-sm bg-gray-50 border-gray-200 focus:bg-white"
-              />
-            </div>
-          </div>
           <SidebarItem 
             icon={<ClipboardList className="h-4 w-4" />}
             label="Pedidos" 
@@ -90,12 +96,6 @@ export default function Sidebar() {
             label="Recepciones" 
             path="/recepciones" 
             active={currentPath === "/recepciones"}
-          />
-          <SidebarItem 
-            icon={<Users className="h-4 w-4" />}
-            label="Contactos" 
-            path="/contactos" 
-            active={currentPath === "/contactos"}
           />
           <SidebarItem 
             icon={<Factory className="h-4 w-4" />}
@@ -122,6 +122,18 @@ export default function Sidebar() {
             active={currentPath === "/datos-capturados"}
           />
         </div>
+      </div>
+
+      {/* User section at bottom */}
+      <div className="flex flex-col items-center p-4 border-t border-gray-200 mt-auto">
+        <img 
+          src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400"
+          alt="Usuario"
+          className="w-16 h-16 rounded-full object-cover mb-2"
+        />
+        <p className="text-sm font-medium text-gray-700 text-center break-all">
+          {userEmail || "usuario@mat89.com"}
+        </p>
       </div>
     </div>
   );
