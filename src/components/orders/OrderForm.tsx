@@ -324,12 +324,15 @@ export default function OrderForm({
   };
 
   const validateForm = () => {
+    // Check if there's at least one order line with a registration
+    const hasValidOrderLine = order.orderLines.some(line => line.registration.trim() !== "");
+    
     const newErrors = {
       supplier: !order.supplierId,
       vehicle: !order.vehicle,
       dismantleDate: !order.dismantleDate,
       shipmentDate: !order.shipmentDate,
-      orderLines: order.orderLines.length === 0
+      orderLines: !hasValidOrderLine
     };
     
     setErrors(newErrors);
@@ -395,11 +398,11 @@ export default function OrderForm({
     
     if (!validateForm()) {
       // Check specific error for order lines
-      if (order.orderLines.length === 0) {
+      if (!order.orderLines.some(line => line.registration.trim() !== "")) {
         toast({
           variant: "destructive",
           title: "Error de validación",
-          description: "Tienes que añadir al menos una línea de pedido",
+          description: "Debe añadirse al menos una línea de pedido con Matrícula 89",
         });
         return;
       }
@@ -847,7 +850,7 @@ export default function OrderForm({
                   <Label className="text-sm font-medium"><span className="text-red-500">*</span> Matrícula 89</Label>
                   <Label className="text-sm font-medium">Descripción Pieza</Label>
                   <Label className="text-sm font-medium"><span className="text-red-500">*</span> Cant.</Label>
-                  <Label className="text-sm font-medium"><span className="text-red-500">*</span> Num. Serie</Label>
+                  <Label className="text-sm font-medium">Num. Serie</Label>
                   <div className="w-[72px]">
                     <span></span>
                   </div>
