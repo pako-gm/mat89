@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit2, Trash2, X } from "lucide-react";
+import { Edit2, X } from "lucide-react";
 import { format } from "date-fns";
 
 interface OrderDetailsProps {
@@ -10,15 +10,13 @@ interface OrderDetailsProps {
   open: boolean;
   onClose: () => void;
   onEdit: () => void;
-  onDelete: () => void;
 }
 
 export default function OrderDetails({ 
   order, 
   open, 
   onClose, 
-  onEdit,
-  onDelete
+  onEdit
 }: OrderDetailsProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "--";
@@ -43,15 +41,6 @@ export default function OrderDetails({
             >
               <Edit2 className="h-4 w-4" />
               <span className="sr-only">Editar</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={onDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Eliminar</span>
             </Button>
             <Button 
               variant="outline" 

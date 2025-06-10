@@ -352,7 +352,6 @@ export default function OrderList() {
           open={!!selectedOrder && !isEditing}
           onClose={handleCloseDetails}
           onEdit={handleEditOrder}
-          onDelete={() => setOrderToDelete(selectedOrder.id)}
         />
       )}
 
