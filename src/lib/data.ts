@@ -210,10 +210,12 @@ export const saveOrder = async (order: Order) => {
 
 export const getOrders = async () => {
   try {
+    // Modified query to join with suppliers table and get supplier name
     const { data: orders, error: ordersError } = await supabase
       .from('tbl_pedidos_rep')
       .select(`
         *,
+        tbl_proveedores!inner(nombre),
         tbl_ln_pedidos_rep (*),
         tbl_historico_cambios (*)
       `)
@@ -227,7 +229,7 @@ export const getOrders = async () => {
       id: order.id,
       orderNumber: order.num_pedido,
       warehouse: order.alm_envia,
-      supplier: order.razon_social,
+      supplier: order.tbl_proveedores.nombre, // Now using supplier name instead of ID
       vehicle: order.vehiculo,
       warranty: order.garantia,
       nonConformityReport: order.informacion_nc,
@@ -269,10 +271,12 @@ export const deleteOrder = async (orderId: string) => {
 };
 
 export const getReceptions = async (): Promise<Reception[]> => {
+  // Modified query to join with suppliers table and get supplier name
   const { data: orders, error } = await supabase
     .from('tbl_pedidos_rep')
     .select(`
       *,
+      tbl_proveedores!inner(nombre),
       tbl_ln_pedidos_rep (*)
     `)
     .order('created_at', { ascending: false });
@@ -284,7 +288,7 @@ export const getReceptions = async (): Promise<Reception[]> => {
   return orders.map(order => ({
     id: order.id,
     orderNumber: order.num_pedido,
-    supplier: order.razon_social,
+    supplier: order.tbl_proveedores.nombre, // Now using supplier name instead of ID
     warehouse: order.alm_envia,
     shipmentDate: order.fecha_envio,
     status: 'Pendiente',
