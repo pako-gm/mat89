@@ -71,7 +71,10 @@ export default function OrderForm({
     shipmentDocumentation: initialOrder.shipmentDocumentation || [],
     changeHistory: initialOrder.changeHistory || [],
     orderLines: initialOrder.orderLines?.length > 0 
-      ? initialOrder.orderLines 
+      ? initialOrder.orderLines.map(line => ({
+          ...line,
+          quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+        }))
       : [{
           id: uuidv4(),
           registration: "",
@@ -190,9 +193,18 @@ export default function OrderForm({
   const handleOrderLineUpdate = (id: string, data: Partial<OrderLine>) => {
     setOrder(prev => ({
       ...prev,
-      orderLines: prev.orderLines.map(line => 
-        line.id === id ? { ...line, ...data } : line
-      )
+      orderLines: prev.orderLines.map(line => {
+        if (line.id === id) {
+          const updatedLine = { ...line, ...data };
+          // Ensure quantity is always a valid number
+          if ('quantity' in data) {
+            const quantity = typeof data.quantity === 'number' ? data.quantity : parseInt(String(data.quantity), 10);
+            updatedLine.quantity = isNaN(quantity) || quantity < 1 ? 1 : quantity;
+          }
+          return updatedLine;
+        }
+        return line;
+      })
     }));
   };
 
@@ -398,6 +410,12 @@ export default function OrderForm({
     
     try {
       let updatedOrder = { ...order };
+      
+      // Ensure all order lines have valid quantities before saving
+      updatedOrder.orderLines = updatedOrder.orderLines.map(line => ({
+        ...line,
+        quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+      }));
       
       if (!isEditing) {
         const now = new Date();
@@ -849,11 +867,11 @@ export default function OrderForm({
                     <Input
                       name="quantity"
                       type="number"
-                      min="0"
+                      min="1"
                       value={line.quantity}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1;
-                        handleOrderLineUpdate(line.id, { quantity: value });
+                        const value = parseInt(e.target.value, 10);
+                        handleOrderLineUpdate(line.id, { quantity: isNaN(value) || value < 1 ? 1 : value });
                       }}
                       placeholder="1"
                       className="h-9 border-[#4C4C4C] focus:border-[#91268F]"
