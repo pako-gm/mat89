@@ -69,11 +69,6 @@ export default function OrderDetails({
           <div className="border rounded-lg bg-gray-50 overflow-hidden">
             <div className="p-6 bg-gray-900 text-white">
               <h2 className="text-2xl font-semibold">Pedido: {order.orderNumber}</h2>
-              <div className="flex gap-4 mt-2 text-sm text-gray-300">
-                <div>Almacén: {order.warehouse}</div>
-                <div>Vehículo: {order.vehicle}</div>
-                <div>Fecha Envío: {formatDate(order.shipmentDate)}</div>
-              </div>
             </div>
             
             <div className="p-6 grid grid-cols-2 gap-x-12 gap-y-6">
