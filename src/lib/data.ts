@@ -146,7 +146,7 @@ export const saveOrder = async (order: Order) => {
         id: order.id,
         num_pedido: order.orderNumber,
         alm_envia: order.warehouse,
-        supplier: order.supplier,
+        proveedor_id: order.supplierId,
         vehiculo: order.vehicle,
         garantia: order.warranty,
         informacion_nc: order.nonConformityReport,
@@ -210,11 +210,12 @@ export const saveOrder = async (order: Order) => {
 
 export const getOrders = async () => {
   try {
-    // Fixed query to use supplier column instead of razon_social
+    // Query with join to get supplier name
     const { data: orders, error: ordersError } = await supabase
       .from('tbl_pedidos_rep')
       .select(`
         *,
+        tbl_proveedores!inner(nombre),
         tbl_ln_pedidos_rep (*),
         tbl_historico_cambios (*)
       `)
@@ -228,7 +229,8 @@ export const getOrders = async () => {
       id: order.id,
       orderNumber: order.num_pedido,
       warehouse: order.alm_envia,
-      supplier: order.supplier, // Using supplier column directly
+      supplierId: order.proveedor_id,
+      supplierName: order.tbl_proveedores.nombre,
       vehicle: order.vehiculo,
       warranty: order.garantia,
       nonConformityReport: order.informacion_nc,
@@ -270,11 +272,12 @@ export const deleteOrder = async (orderId: string) => {
 };
 
 export const getReceptions = async (): Promise<Reception[]> => {
-  // Fixed query to use supplier column instead of razon_social
+  // Query with join to get supplier name
   const { data: orders, error } = await supabase
     .from('tbl_pedidos_rep')
     .select(`
       *,
+      tbl_proveedores!inner(nombre),
       tbl_ln_pedidos_rep (*)
     `)
     .order('created_at', { ascending: false });
@@ -286,7 +289,7 @@ export const getReceptions = async (): Promise<Reception[]> => {
   return orders.map(order => ({
     id: order.id,
     orderNumber: order.num_pedido,
-    supplier: order.supplier, // Using supplier column directly
+    supplier: order.tbl_proveedores.nombre,
     warehouse: order.alm_envia,
     shipmentDate: order.fecha_envio,
     status: 'Pendiente',

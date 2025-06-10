@@ -12,7 +12,8 @@ export interface Order {
   id: string;
   orderNumber: string;
   warehouse: string;
-  supplier: string;
+  supplierId: string;
+  supplierName: string;
   vehicle: string;
   warranty: boolean;
   nonConformityReport: string;

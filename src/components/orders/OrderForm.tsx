@@ -60,7 +60,8 @@ export default function OrderForm({
     id: initialOrder.id || uuidv4(),
     orderNumber: initialOrder.orderNumber || "",
     warehouse: initialOrder.warehouse || "ALM141",
-    supplier: initialOrder.supplier || "",
+    supplierId: initialOrder.supplierId || "",
+    supplierName: initialOrder.supplierName || "",
     vehicle: initialOrder.vehicle || "",
     warranty: initialOrder.warranty || false,
     nonConformityReport: initialOrder.nonConformityReport || "",
@@ -158,6 +159,20 @@ export default function OrderForm({
       }));
       return;
     }
+    
+    if (name === "supplier") {
+      // Find the selected supplier to get both ID and name
+      const selectedSupplier = suppliers.find(s => s.id === value);
+      if (selectedSupplier) {
+        setOrder(prev => ({
+          ...prev,
+          supplierId: selectedSupplier.id,
+          supplierName: selectedSupplier.name
+        }));
+      }
+      return;
+    }
+    
     setOrder(prev => ({
       ...prev,
       [name]: value
@@ -297,7 +312,7 @@ export default function OrderForm({
 
   const validateForm = () => {
     const newErrors = {
-      supplier: !order.supplier,
+      supplier: !order.supplierId,
       vehicle: !order.vehicle,
       dismantleDate: !order.dismantleDate,
       shipmentDate: !order.shipmentDate
@@ -485,17 +500,19 @@ export default function OrderForm({
                 )}
               </Label>
               <Select 
-                value={order.supplier} 
+                value={order.supplierId} 
                 onValueChange={(value) => handleSelectChange("supplier", value)}
               >
                 <SelectTrigger className={`h-9 border-[#4C4C4C] ${errors.supplier ? 'border-red-500' : ''}`}>
-                  <SelectValue placeholder="Seleccione un Proveedor" />
+                  <SelectValue placeholder="Seleccione un Proveedor">
+                    {order.supplierName || "Seleccione un Proveedor"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-[280px] overflow-y-auto">
                   {suppliers.map(supplier => (
                     <SelectItem 
                       key={supplier.id} 
-                      value={supplier.name}
+                      value={supplier.id}
                       className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
                     >
                       {supplier.name}

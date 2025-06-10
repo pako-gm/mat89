@@ -99,7 +99,8 @@ export default function OrderList() {
       id: "",
       orderNumber: nextOrderNumber,
       warehouse: "ALM141", // Default warehouse
-      supplier: "",
+      supplierId: "",
+      supplierName: "",
       vehicle: "",
       warranty: false,
       nonConformityReport: "",
@@ -126,7 +127,7 @@ export default function OrderList() {
     if (searchQuery) {
       const filtered = orders.filter(order => 
         order.orderNumber.toLowerCase().includes(searchQuery) ||
-        order.supplier.toLowerCase().includes(searchQuery) ||
+        order.supplierName.toLowerCase().includes(searchQuery) ||
         order.vehicle.toLowerCase().includes(searchQuery)
       ).sort((a, b) => {
         const seqA = parseInt(a.orderNumber.split('/')[2] || '0');
@@ -147,7 +148,7 @@ export default function OrderList() {
     if (value) {
       const filtered = orders.filter(order => 
         order.orderNumber.toLowerCase().includes(value.toLowerCase()) ||
-        order.supplier.toLowerCase().includes(value.toLowerCase()) ||
+        order.supplierName.toLowerCase().includes(value.toLowerCase()) ||
         order.vehicle.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredOrders(filtered);
@@ -277,7 +278,7 @@ export default function OrderList() {
                       {order.warehouse}
                     </span>
                   </TableCell>
-                  <TableCell>{order.supplier}</TableCell>
+                  <TableCell>{order.supplierName}</TableCell>
                   <TableCell>{order.vehicle}</TableCell>
                   <TableCell>
                     {new Date(order.shipmentDate).toLocaleDateString()}

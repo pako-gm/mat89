@@ -104,7 +104,7 @@ export default function OrderDetails({
                   
                   <div>
                     <div className="font-medium text-sm text-gray-500">Proveedor</div>
-                    <div>{order.supplier}</div>
+                    <div>{order.supplierName}</div>
                   </div>
                   
                   <div className="flex items-start">
