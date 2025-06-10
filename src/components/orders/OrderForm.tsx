@@ -495,7 +495,7 @@ export default function OrderForm({
                   {suppliers.map(supplier => (
                     <SelectItem 
                       key={supplier.id} 
-                      value={supplier.id}
+                      value={supplier.name}
                       className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
                     >
                       {supplier.name}
