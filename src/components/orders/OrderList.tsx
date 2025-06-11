@@ -118,7 +118,7 @@ export default function OrderList() {
       }]
     };
     setSelectedOrder(emptyOrder);
-    setIsEditing(true);
+    setIsEditing(false); // Changed from true to false for new orders
   };
 
   useEffect(() => {
@@ -362,7 +362,7 @@ export default function OrderList() {
           open={!!selectedOrder && isEditing}
           onClose={handleCloseDetails}
           onSave={handleSaveOrder}
-          isEditing={selectedOrder.id !== ""}
+          isEditing={isEditing} // Changed from selectedOrder.id !== "" to isEditing
         />
       )}
       
