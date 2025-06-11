@@ -171,7 +171,7 @@ export const saveOrder = async (order: Order) => {
         order.orderLines.map(line => ({
           id: line.id,
           pedido_id: order.id,
-          matriculas: line.registration,
+          matricula_89: line.registration || "",
           descripcion: line.partDescription,
           nenv: parseInt(String(line.quantity), 10) || 1,
           nsenv: line.serialNumber
@@ -240,7 +240,7 @@ export const getOrders = async () => {
       shipmentDocumentation: order.documentacion || [],
       orderLines: order.tbl_ln_pedidos_rep.map(line => ({
         id: line.id,
-        registration: line.matriculas,
+        registration: line.matricula_89 || "",
         partDescription: line.descripcion,
         quantity: line.nenv,
         serialNumber: line.nsenv
@@ -295,7 +295,7 @@ export const getReceptions = async (): Promise<Reception[]> => {
     status: 'Pendiente',
     orderLines: order.tbl_ln_pedidos_rep.map(line => ({
       id: line.id,
-      registration: line.matriculas,
+      registration: line.matricula_89 || "",
       partDescription: line.descripcion,
       quantity: line.nenv,
       serialNumber: line.nsenv

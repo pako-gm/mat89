@@ -63,7 +63,7 @@ export interface Database {
         Row: {
           id: string
           pedido_id: string
-          matriculas: string
+          matricula_89: string
           descripcion: string | null
           nenv: number
           nsenv: string | null
@@ -73,7 +73,7 @@ export interface Database {
         Insert: {
           id?: string
           pedido_id: string
-          matriculas: string
+          matricula_89: string
           descripcion?: string | null
           nenv?: number
           nsenv?: string | null
@@ -83,7 +83,7 @@ export interface Database {
         Update: {
           id?: string
           pedido_id?: string
-          matriculas?: string
+          matricula_89?: string
           descripcion?: string | null
           nenv?: number
           nsenv?: string | null
