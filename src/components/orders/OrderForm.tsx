@@ -57,44 +57,100 @@ export default function OrderForm({
   });
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const [order, setOrder] = useState<Order>({
-    id: initialOrder.id || uuidv4(),
-    orderNumber: initialOrder.orderNumber || "",
-    warehouse: initialOrder.warehouse || "ALM141",
-    supplierId: initialOrder.supplierId || "",
-    supplierName: initialOrder.supplierName || "",
-    vehicle: initialOrder.vehicle || "",
-    warranty: initialOrder.warranty || false,
-    nonConformityReport: initialOrder.nonConformityReport || "",
-    dismantleDate: initialOrder.dismantleDate || "",
-    shipmentDate: initialOrder.shipmentDate || "",
-    declaredDamage: initialOrder.declaredDamage || "",
-    shipmentDocumentation: initialOrder.shipmentDocumentation || [],
-    changeHistory: initialOrder.changeHistory || [],
-    orderLines: initialOrder.orderLines?.length > 0 
-      ? initialOrder.orderLines.map(line => ({
-          ...line,
-          quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
-        }))
-      : [{
-          id: uuidv4(),
-          registration: "",
-          partDescription: "",
-          quantity: 1,
-          serialNumber: ""
-        }]
+  // Initialize order state with proper defaults
+  const [order, setOrder] = useState<Order>(() => {
+    return {
+      id: initialOrder.id || uuidv4(),
+      orderNumber: initialOrder.orderNumber || "",
+      warehouse: initialOrder.warehouse || "ALM141",
+      supplierId: initialOrder.supplierId || "",
+      supplierName: initialOrder.supplierName || "",
+      vehicle: initialOrder.vehicle || "",
+      warranty: initialOrder.warranty || false,
+      nonConformityReport: initialOrder.nonConformityReport || "",
+      dismantleDate: initialOrder.dismantleDate || "",
+      shipmentDate: initialOrder.shipmentDate || "",
+      declaredDamage: initialOrder.declaredDamage || "",
+      shipmentDocumentation: initialOrder.shipmentDocumentation || [],
+      changeHistory: initialOrder.changeHistory || [],
+      orderLines: initialOrder.orderLines?.length > 0 
+        ? initialOrder.orderLines.map(line => ({
+            ...line,
+            quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+          }))
+        : [{
+            id: uuidv4(),
+            registration: "",
+            partDescription: "",
+            quantity: 1,
+            serialNumber: ""
+          }]
+    };
   });
+
+  // Reset form when order changes or dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      setOrder({
+        id: initialOrder.id || uuidv4(),
+        orderNumber: initialOrder.orderNumber || "",
+        warehouse: initialOrder.warehouse || "ALM141",
+        supplierId: initialOrder.supplierId || "",
+        supplierName: initialOrder.supplierName || "",
+        vehicle: initialOrder.vehicle || "",
+        warranty: initialOrder.warranty || false,
+        nonConformityReport: initialOrder.nonConformityReport || "",
+        dismantleDate: initialOrder.dismantleDate || "",
+        shipmentDate: initialOrder.shipmentDate || "",
+        declaredDamage: initialOrder.declaredDamage || "",
+        shipmentDocumentation: initialOrder.shipmentDocumentation || [],
+        changeHistory: initialOrder.changeHistory || [],
+        orderLines: initialOrder.orderLines?.length > 0 
+          ? initialOrder.orderLines.map(line => ({
+              ...line,
+              quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+            }))
+          : [{
+              id: uuidv4(),
+              registration: "",
+              partDescription: "",
+              quantity: 1,
+              serialNumber: ""
+            }]
+      });
+      
+      // Clear errors when opening
+      setErrors({
+        supplier: false,
+        vehicle: false,
+        dismantleDate: false,
+        shipmentDate: false,
+        orderLines: false
+      });
+      setAuthError(null);
+    }
+  }, [open, initialOrder, isEditing]);
 
   useEffect(() => {
     const loadSuppliers = async () => {
-      const data = await getSuppliers();
-      setSuppliers(data);
+      try {
+        const data = await getSuppliers();
+        setSuppliers(data);
+      } catch (error) {
+        console.error('Error loading suppliers:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los proveedores.",
+        });
+      }
     };
-    loadSuppliers();
     
-    // Check authentication on component mount
-    checkUserAuthentication();
-  }, []);
+    if (open) {
+      loadSuppliers();
+      checkUserAuthentication();
+    }
+  }, [open, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -143,10 +199,22 @@ export default function OrderForm({
       }));
       return;
     }
+
     setOrder(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Clear relevant errors when user starts typing
+    if (name === "vehicle" && errors.vehicle) {
+      setErrors(prev => ({ ...prev, vehicle: false }));
+    }
+    if (name === "dismantleDate" && errors.dismantleDate) {
+      setErrors(prev => ({ ...prev, dismantleDate: false }));
+    }
+    if (name === "shipmentDate" && errors.shipmentDate) {
+      setErrors(prev => ({ ...prev, shipmentDate: false }));
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -173,6 +241,11 @@ export default function OrderForm({
           supplierId: selectedSupplier.id,
           supplierName: selectedSupplier.name
         }));
+        
+        // Clear supplier error
+        if (errors.supplier) {
+          setErrors(prev => ({ ...prev, supplier: false }));
+        }
       }
       return;
     }
@@ -218,10 +291,12 @@ export default function OrderForm({
   };
 
   const handleOrderLineDelete = (id: string) => {
-    setOrder(prev => ({
-      ...prev,
-      orderLines: prev.orderLines.filter(line => line.id !== id)
-    }));
+    if (order.orderLines.length > 1) {
+      setOrder(prev => ({
+        ...prev,
+        orderLines: prev.orderLines.filter(line => line.id !== id)
+      }));
+    }
   };
 
   const addOrderLine = () => {
@@ -232,7 +307,7 @@ export default function OrderForm({
       toast({
         variant: "destructive",
         title: "Error de validación",
-        description: "No pueden haber lineas vacias",
+        description: "No pueden haber líneas vacías",
       });
       
       // Set orderLines error to highlight the problematic lines
@@ -357,7 +432,7 @@ export default function OrderForm({
     
     const newErrors = {
       supplier: !order.supplierId,
-      vehicle: !order.vehicle,
+      vehicle: !order.vehicle.trim(),
       dismantleDate: !order.dismantleDate,
       shipmentDate: !order.shipmentDate,
       orderLines: !hasValidOrderLine
@@ -376,21 +451,11 @@ export default function OrderForm({
       if (error) {
         console.error("Authentication error:", error);
         setAuthError("Error de autenticación: " + error.message);
-        toast({
-          variant: "destructive",
-          title: "Error de autenticación",
-          description: error.message,
-        });
         return false;
       }
       
       if (!data.user || !data.user.id) {
         setAuthError("No se ha podido verificar su sesión. Por favor, inicie sesión nuevamente.");
-        toast({
-          variant: "destructive",
-          title: "Error de autenticación",
-          description: "No se ha podido verificar su sesión. Por favor, inicie sesión nuevamente.",
-        });
         return false;
       }
       
@@ -399,11 +464,6 @@ export default function OrderForm({
       
       if (!hasPermission) {
         setAuthError("No tiene permisos suficientes para realizar esta acción.");
-        toast({
-          variant: "destructive",
-          title: "Error de permisos",
-          description: "Su rol actual no le permite editar o crear pedidos.",
-        });
         return false;
       }
       
@@ -412,32 +472,12 @@ export default function OrderForm({
       console.error("Error checking authentication:", error);
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";
       setAuthError("Error al verificar la autenticación: " + errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error de autenticación",
-        description: "No se ha podido verificar su sesión. Por favor, inicie sesión nuevamente.",
-      });
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check specific error for order lines first
-    if (!order.orderLines.some(line => line.registration.trim() !== "")) {
-      toast({
-        variant: "destructive",
-        title: "Error de validación",
-        description: "Debe añadirse al menos una línea de pedido",
-      });
-      
-      setErrors(prev => ({
-        ...prev,
-        orderLines: true
-      }));
-      return;
-    }
     
     if (!validateForm()) {
       toast({
@@ -465,51 +505,30 @@ export default function OrderForm({
         quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
       }));
       
-      if (!isEditing) {
-        const now = new Date();
-        updatedOrder = {
-          ...updatedOrder,
-          changeHistory: [
-            ...updatedOrder.changeHistory,
-            {
-              id: uuidv4(),
-              date: now.toISOString(),
-              user: "usuario@mat89.com",
-              description: `Creación pedido`
-            }
-          ]
-        };
-      } else {
-        // Add update comment
-        const now = new Date();
-        updatedOrder = {
-          ...updatedOrder,
-          changeHistory: [
-            ...updatedOrder.changeHistory,
-            {
-              id: uuidv4(),
-              date: now.toISOString(),
-              user: "usuario@mat89.com",
-              description: `Actualización de pedido`
-            }
-          ]
-        };
-      }
+      // Add history entry
+      const now = new Date();
+      const action = isEditing ? "Actualización de pedido" : "Creación pedido";
+      updatedOrder = {
+        ...updatedOrder,
+        changeHistory: [
+          ...updatedOrder.changeHistory,
+          {
+            id: uuidv4(),
+            date: now.toISOString(),
+            user: "usuario@mat89.com",
+            description: action
+          }
+        ]
+      };
       
       await saveOrder(updatedOrder);
-      toast({
-        title: isEditing ? "Pedido actualizado" : "Pedido creado",
-        description: isEditing 
-          ? "El pedido se ha actualizado correctamente" 
-          : "El pedido se ha creado correctamente",
-      });
       onSave();
+      
     } catch (error) {
       console.error("Error saving order:", error);
       let errorMessage = "No se pudo guardar el pedido. Por favor, inténtelo de nuevo.";
       
       if (error instanceof Error) {
-        // Use the specific error message if available
         errorMessage = error.message;
       }
       
@@ -589,7 +608,7 @@ export default function OrderForm({
             </div>
 
             <div>
-              <Label htmlFor="warehouse" className="text-sm mb-1">Almacen</Label>
+              <Label htmlFor="warehouse" className="text-sm mb-1">Almacén</Label>
               <Select 
                 value={order.warehouse} 
                 onValueChange={(value) => handleSelectChange("warehouse", value)}
@@ -678,7 +697,7 @@ export default function OrderForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="dismantleDate" className="text-sm mb-1">
-                * Fecha Desmonte
+                <span className="text-red-500">*</span> Fecha Desmonte
                 {errors.dismantleDate && (
                   <span className="text-red-500 text-xs ml-2">
                     {order.shipmentDate && order.dismantleDate > order.shipmentDate 
@@ -700,7 +719,7 @@ export default function OrderForm({
             
             <div>
               <Label htmlFor="shipmentDate" className="text-sm mb-1">
-                * Fecha Envío
+                <span className="text-red-500">*</span> Fecha Envío
                 {errors.shipmentDate && (
                   <span className="text-red-500 text-xs ml-2">
                     {order.dismantleDate && order.shipmentDate < order.dismantleDate

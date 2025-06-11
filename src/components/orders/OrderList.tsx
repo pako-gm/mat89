@@ -26,6 +26,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid";
 
 export default function OrderList() {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ export default function OrderList() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
   
   // Pagination state
@@ -93,10 +96,10 @@ export default function OrderList() {
     return `${defaultWarehouse}/${currentYear}/${(maxSequential + 1).toString().padStart(4, '0')}`;
   };
 
-  const handleNewOrder = () => {
+  const createEmptyOrder = (): Order => {
     const nextOrderNumber = generateNextOrderNumber();
-    const emptyOrder = {
-      id: crypto.randomUUID(),
+    return {
+      id: uuidv4(),
       orderNumber: nextOrderNumber,
       warehouse: "ALM141", // Default warehouse
       supplierId: "",
@@ -110,15 +113,21 @@ export default function OrderList() {
       shipmentDocumentation: [],
       changeHistory: [],
       orderLines: [{
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         registration: "",
         partDescription: "",
         quantity: 1,
         serialNumber: ""
       }]
     };
+  };
+
+  const handleNewOrder = () => {
+    const emptyOrder = createEmptyOrder();
     setSelectedOrder(emptyOrder);
-    setIsEditing(false); // Changed from true to false for new orders
+    setIsEditing(false); // This is a NEW order, not editing
+    setShowForm(true);
+    setShowDetails(false);
   };
 
   useEffect(() => {
@@ -197,31 +206,52 @@ export default function OrderList() {
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
+    setShowDetails(true);
+    setShowForm(false);
     setIsEditing(false);
   };
 
   const handleEditOrder = () => {
-    setIsEditing(true);
+    if (selectedOrder) {
+      setIsEditing(true); // This is EDITING an existing order
+      setShowDetails(false);
+      setShowForm(true);
+    }
   };
 
   const handleCloseDetails = () => {
+    setShowDetails(false);
+    setSelectedOrder(null);
+    setIsEditing(false);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
     setSelectedOrder(null);
     setIsEditing(false);
   };
 
   const handleSaveOrder = async () => {
     // Order saved successfully
+    const action = isEditing ? "actualizado" : "creado";
     toast({
-      title: "Pedido guardado",
-      description: "El pedido se ha guardado correctamente",
+      title: `Pedido ${action}`,
+      description: `El pedido se ha ${action} correctamente`,
     });
+    
+    // Close form and refresh data
+    setShowForm(false);
     setSelectedOrder(null);
     setIsEditing(false);
     
     // Refresh the orders list
-    const updatedOrders = await getOrders();
-    setOrders(updatedOrders);
-    setFilteredOrders(updatedOrders);
+    try {
+      const updatedOrders = await getOrders();
+      setOrders(updatedOrders);
+      setFilteredOrders(updatedOrders);
+    } catch (error) {
+      console.error('Error refreshing orders:', error);
+    }
   };
 
   return (
@@ -281,7 +311,7 @@ export default function OrderList() {
                   <TableCell>{order.supplierName}</TableCell>
                   <TableCell>{order.vehicle}</TableCell>
                   <TableCell>
-                    {new Date(order.shipmentDate).toLocaleDateString()}
+                    {order.shipmentDate ? new Date(order.shipmentDate).toLocaleDateString() : '--'}
                   </TableCell>
                 </TableRow>
               ))
@@ -346,23 +376,23 @@ export default function OrderList() {
         </div>
       )}
       
-      {selectedOrder && !isEditing && (
+      {selectedOrder && showDetails && (
         <OrderDetails
           order={selectedOrder}
-          open={!!selectedOrder && !isEditing}
+          open={showDetails}
           onClose={handleCloseDetails}
           onEdit={handleEditOrder}
           onDelete={() => setOrderToDelete(selectedOrder.id)}
         />
       )}
 
-      {selectedOrder && isEditing && (
+      {selectedOrder && showForm && (
         <OrderForm
           order={selectedOrder}
-          open={!!selectedOrder && isEditing}
-          onClose={handleCloseDetails}
+          open={showForm}
+          onClose={handleCloseForm}
           onSave={handleSaveOrder}
-          isEditing={isEditing} // Changed from selectedOrder.id !== "" to isEditing
+          isEditing={isEditing}
         />
       )}
       
