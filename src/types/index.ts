@@ -62,3 +62,14 @@ export interface Supplier {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface Material {
+  id: string;
+  registration: number; // matricula_89
+  description: string;
+  vehicleSeries?: string;
+  supplierId?: string;
+  supplierName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

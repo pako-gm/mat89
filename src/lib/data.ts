@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception } from "@/types";
+import { Order, Warehouse, Supplier, Reception, Material } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -122,6 +122,116 @@ export const deleteSupplier = async (id: string) => {
   }
 
   return true;
+};
+
+// Materials functions
+export const getAllMaterials = async (): Promise<Material[]> => {
+  const { data: materials, error } = await supabase
+    .from('tbl_materiales')
+    .select(`
+      *,
+      tbl_proveedores(nombre)
+    `)
+    .order('matricula_89', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching materials:', error);
+    return [];
+  }
+
+  return materials.map(material => ({
+    id: material.id,
+    registration: material.matricula_89,
+    description: material.descripcion,
+    vehicleSeries: material.serie_vehiculo,
+    supplierId: material.proveedor_id,
+    supplierName: material.tbl_proveedores?.nombre || '',
+    createdAt: material.created_at,
+    updatedAt: material.updated_at
+  }));
+};
+
+export const getMaterialById = async (id: string): Promise<Material | null> => {
+  const { data: material, error } = await supabase
+    .from('tbl_materiales')
+    .select(`
+      *,
+      tbl_proveedores(nombre)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching material:', error);
+    return null;
+  }
+
+  return {
+    id: material.id,
+    registration: material.matricula_89,
+    description: material.descripcion,
+    vehicleSeries: material.serie_vehiculo,
+    supplierId: material.proveedor_id,
+    supplierName: material.tbl_proveedores?.nombre || '',
+    createdAt: material.created_at,
+    updatedAt: material.updated_at
+  };
+};
+
+export const saveMaterial = async (material: Material): Promise<any> => {
+  const { data, error } = await supabase
+    .from('tbl_materiales')
+    .upsert({
+      id: material.id || uuidv4(),
+      matricula_89: material.registration,
+      descripcion: material.description,
+      serie_vehiculo: material.vehicleSeries,
+      proveedor_id: material.supplierId,
+      updated_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error saving material:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const deleteMaterial = async (id: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('tbl_materiales')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting material:', error);
+    throw error;
+  }
+
+  return true;
+};
+
+export const checkMaterialRegistrationExists = async (registration: number, excludeId?: string): Promise<boolean> => {
+  let query = supabase
+    .from('tbl_materiales')
+    .select('id')
+    .eq('matricula_89', registration);
+
+  if (excludeId) {
+    query = query.neq('id', excludeId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error checking material registration:', error);
+    return false;
+  }
+
+  return data && data.length > 0;
 };
 
 // Empty the sample orders array
