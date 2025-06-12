@@ -6,6 +6,17 @@ import { Supplier } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { deleteSupplier, getAllSuppliers } from "@/lib/data";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ProveedoresPage() {
   const { toast } = useToast();
@@ -14,6 +25,7 @@ export default function ProveedoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
 
   const handleAddSupplier = () => {
     setSelectedSupplier(null);
@@ -31,6 +43,40 @@ export default function ProveedoresPage() {
   const handleViewDetails = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
     setShowDetails(true);
+  };
+
+  const handleDeleteSupplier = () => {
+    if (selectedSupplier) {
+      setSupplierToDelete(selectedSupplier);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!supplierToDelete) return;
+    
+    try {
+      await deleteSupplier(supplierToDelete.id);
+      
+      toast({
+        title: "Proveedor eliminado",
+        description: "El proveedor ha sido eliminado correctamente",
+      });
+      
+      // Close details dialog and refresh list
+      setShowDetails(false);
+      setSelectedSupplier(null);
+      setRefreshTrigger(prev => prev + 1);
+      
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el proveedor. Por favor, inténtelo de nuevo.",
+      });
+    }
+    
+    setSupplierToDelete(null);
   };
 
   const handleSupplierSaved = () => {
@@ -72,6 +118,7 @@ export default function ProveedoresPage() {
           open={showDetails}
           onClose={handleCloseDetails}
           onEdit={() => handleEditSupplier(selectedSupplier)}
+          onDelete={handleDeleteSupplier}
         />
       )}
 
@@ -82,6 +129,28 @@ export default function ProveedoresPage() {
         onSave={handleSupplierSaved}
         isEditing={isEditing}
       />
+
+      <AlertDialog open={!!supplierToDelete} onOpenChange={() => setSupplierToDelete(null)}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl">Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              ¿Está seguro que desea eliminar este proveedor?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={handleConfirmDelete}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Supplier } from "@/types";
-import { Edit2, X, Mail, Phone, MapPin, User, ExternalLink, Calendar } from "lucide-react";
+import { Edit2, X, Mail, Phone, MapPin, User, ExternalLink, Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface SupplierDetailsProps {
@@ -9,13 +9,15 @@ interface SupplierDetailsProps {
   open: boolean;
   onClose: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
 export default function SupplierDetails({ 
   supplier, 
   open, 
   onClose, 
-  onEdit 
+  onEdit,
+  onDelete
 }: SupplierDetailsProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "--";
@@ -28,7 +30,7 @@ export default function SupplierDetails({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[70vw]">
+      <DialogContent className="max-w-[90vw]">
         <DialogHeader className="flex flex-row items-center justify-between">
           <DialogTitle className="text-xl">Detalles del Proveedor</DialogTitle>
           <div className="flex gap-2">
@@ -44,6 +46,15 @@ export default function SupplierDetails({
             <Button 
               variant="outline" 
               size="icon" 
+              className="h-8 w-8 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Eliminar</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
               className="h-8 w-8 rounded-full"
               onClick={onClose}
             >
@@ -53,10 +64,15 @@ export default function SupplierDetails({
           </div>
         </DialogHeader>
         
-        <div className="p-1">
+        <div className="p-1 max-h-[80vh] overflow-y-auto">
           <div className="border rounded-lg bg-gray-50 overflow-hidden">
             <div className="p-6 bg-gray-900 text-white">
               <h2 className="text-2xl font-semibold">{supplier.name}</h2>
+              <div className="flex gap-4 mt-2 text-sm text-gray-300">
+                <div>Tipo: {supplier.isExternal ? "Externo" : "Interno"}</div>
+                {supplier.city && <div>Ciudad: {supplier.city}</div>}
+                {supplier.phone && <div>Teléfono: {supplier.phone}</div>}
+              </div>
             </div>
             
             <div className="p-6 grid grid-cols-2 gap-x-12 gap-y-6">
@@ -113,7 +129,15 @@ export default function SupplierDetails({
                     <ExternalLink className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
                     <div>
                       <div className="font-medium text-sm text-gray-500">Tipo Proveedor</div>
-                      <div>{supplier.isExternal ? "Externo" : "Interno"}</div>
+                      <div className="flex items-center">
+                        <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs font-medium ${
+                          supplier.isExternal 
+                            ? 'text-[#FF0000] bg-red-50 border-red-200' 
+                            : 'text-[#008000] bg-green-50 border-green-200'
+                        }`}>
+                          {supplier.isExternal ? 'Externo' : 'Interno'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   
