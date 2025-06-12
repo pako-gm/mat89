@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Supplier } from "@/types";
-import { getAllSuppliers, deleteSupplier } from "@/lib/data";
+import { getAllSuppliers } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, User } from "lucide-react";
+import { Mail, Phone, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,16 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface SupplierListProps {
   onViewDetails: (supplier: Supplier) => void;
@@ -35,7 +25,6 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const { toast } = useToast();
   const suppliersPerPage = 10;
 
@@ -93,39 +82,6 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, supplier: Supplier) => {
-    e.stopPropagation();
-    setSupplierToDelete(supplier);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!supplierToDelete) return;
-    
-    try {
-      await deleteSupplier(supplierToDelete.id);
-      
-      toast({
-        title: "Proveedor eliminado",
-        description: "El proveedor ha sido eliminado correctamente",
-      });
-      
-      // Update the suppliers list without fetching again
-      const updatedSuppliers = suppliers.filter(s => s.id !== supplierToDelete.id);
-      setSuppliers(updatedSuppliers);
-      setFilteredSuppliers(updatedSuppliers);
-      
-    } catch (error) {
-      console.error("Error deleting supplier:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo eliminar el proveedor. Por favor, inténtelo de nuevo.",
-      });
-    }
-    
-    setSupplierToDelete(null);
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-4 border-b border-gray-200">
@@ -144,12 +100,12 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-medium w-[30%]">Nombre Empresa</TableHead>
+              <TableHead className="font-medium w-[25%]">Nombre Empresa</TableHead>
               <TableHead className="font-medium w-[15%]">Ciudad</TableHead>
               <TableHead className="font-medium w-[15%]">Teléfono</TableHead>
               <TableHead className="font-medium w-[20%]">Email</TableHead>
               <TableHead className="font-medium w-[15%]">Contacto Principal</TableHead>
-              <TableHead className="font-medium w-[5%]"></TableHead>
+              <TableHead className="font-medium w-[10%]">Prov. Externo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -166,34 +122,16 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
               currentSuppliers.map((supplier) => (
                 <TableRow 
                   key={supplier.id} 
-                  className="hover:bg-gray-50 transition-colors"
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => onViewDetails(supplier)}
                 >
-                  <TableCell 
-                    className="font-medium cursor-pointer flex items-center"
-                    onClick={() => onViewDetails(supplier)}
-                  >
+                  <TableCell className="font-medium">
                     <span>{supplier.name}</span>
-                    {supplier.isExternal && (
-                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-red-50 text-[#FF0000] font-medium">
-                        SI
-                      </span>
-                    )}
-                    {supplier.isExternal === false && (
-                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-green-50 text-[#008000] font-medium">
-                        NO
-                      </span>
-                    )}
                   </TableCell>
-                  <TableCell 
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(supplier)}
-                  >
+                  <TableCell>
                     {supplier.city || "--"}
                   </TableCell>
-                  <TableCell
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(supplier)}
-                  >
+                  <TableCell>
                     {supplier.phone ? (
                       <div className="flex items-center">
                         <Phone className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
@@ -203,10 +141,7 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
                       "--"
                     )}
                   </TableCell>
-                  <TableCell
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(supplier)}
-                  >
+                  <TableCell>
                     {supplier.email ? (
                       <div className="flex items-center">
                         <Mail className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
@@ -218,10 +153,7 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
                       "--"
                     )}
                   </TableCell>
-                  <TableCell
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(supplier)}
-                  >
+                  <TableCell>
                     {supplier.contactPerson ? (
                       <div className="flex items-center">
                         <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
@@ -231,17 +163,14 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
                       "--"
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-[30px] w-[30px] p-0 text-[#FF0000] hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
-                      onClick={(e) => handleDeleteClick(e, supplier)}
-                    >
-                      <Trash2 className="h-5 w-5" />
-                      <span className="sr-only">Eliminar</span>
-                    </Button>
+                  <TableCell>
+                    <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs font-medium ${
+                      supplier.isExternal 
+                        ? 'text-[#FF0000] bg-red-50 border-red-200' 
+                        : 'text-[#008000] bg-green-50 border-green-200'
+                    }`}>
+                      {supplier.isExternal ? 'Sí' : 'No'}
+                    </span>
                   </TableCell>
                 </TableRow>
               ))
@@ -305,28 +234,6 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
           </div>
         </div>
       )}
-
-      <AlertDialog open={!!supplierToDelete} onOpenChange={() => setSupplierToDelete(null)}>
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600">
-              ¿Está seguro que desea eliminar este contacto?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-red-600 text-white hover:bg-red-700"
-              onClick={handleConfirmDelete}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
