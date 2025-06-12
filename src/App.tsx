@@ -4,6 +4,7 @@ import Layout from "@/components/layout/Layout";
 import OrdersPage from "@/pages/OrdersPage";
 import ReceptionsPage from "@/pages/ReceptionsPage";
 import ProveedoresPage from "@/pages/ProveedoresPage";
+import MaterialesPage from "@/pages/MaterialesPage";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { Toaster } from "@/components/ui/toaster";
@@ -64,6 +65,7 @@ function App() {
             <Route path="pedidos/:id" element={<OrdersPage />} />
             <Route path="recepciones" element={<ReceptionsPage />} />
             <Route path="proveedores" element={<ProveedoresPage />} />
+            <Route path="materiales" element={<MaterialesPage />} />
             {/* Add other routes here as they are developed */}
             <Route path="*" element={<Navigate to="/pedidos" replace />} />
           </Route>
