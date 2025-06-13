@@ -71,7 +71,6 @@ export default function MaterialDetails({
               <div className="flex gap-4 mt-2 text-sm text-gray-300">
                 <div>Descripción: {material.description}</div>
                 {material.vehicleSeries && <div>Serie: {material.vehicleSeries}</div>}
-                {material.supplierName && <div>Proveedor: {material.supplierName}</div>}
               </div>
             </div>
             
@@ -106,17 +105,6 @@ export default function MaterialDetails({
               </div>
               
               <div>
-                <h3 className="text-lg font-medium mb-3">Información del Proveedor</h3>
-                <div className="flex items-start">
-                  <Factory className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium text-sm text-gray-500">Proveedor Asociado</div>
-                    <div>{material.supplierName || "Sin proveedor asignado"}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
                 <h3 className="text-lg font-medium mb-3">Información del Sistema</h3>
                 <div className="space-y-3">
                   <div className="flex items-start">
@@ -137,16 +125,15 @@ export default function MaterialDetails({
                 </div>
               </div>
               
-              <div>
+              <div className="col-span-2">
                 <h3 className="text-lg font-medium mb-3">Información Adicional</h3>
                 <div className="bg-white border rounded-md p-3 min-h-[100px]">
                   <p className="text-sm text-gray-600">
                     Este material está registrado en el sistema con matrícula {material.registration}.
                     {material.vehicleSeries && ` Pertenece a la serie de vehículo ${material.vehicleSeries}.`}
-                    {material.supplierName && ` Está asociado al proveedor ${material.supplierName}.`}
                   </p>
                   
-                  {!material.vehicleSeries && !material.supplierName && (
+                  {!material.vehicleSeries && (
                     <p className="text-sm text-gray-500 mt-2">
                       No hay información adicional disponible para este material.
                     </p>

@@ -84,8 +84,7 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
         (material) =>
           material.registration.toString().includes(searchQuery) ||
           material.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (material.vehicleSeries && material.vehicleSeries.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (material.supplierName && material.supplierName.toLowerCase().includes(searchQuery.toLowerCase()))
+          (material.vehicleSeries && material.vehicleSeries.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -194,7 +193,7 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar por matrícula, descripción, serie o proveedor..."
+            placeholder="Buscar por matrícula, descripción o serie..."
             value={searchQuery}
             onChange={handleSearch}
             className="pl-10 h-9"
@@ -206,7 +205,7 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-medium w-[20%]">
+              <TableHead className="font-medium w-[25%]">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('registration')}
@@ -216,7 +215,7 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
                   {getSortIcon('registration')}
                 </Button>
               </TableHead>
-              <TableHead className="font-medium w-[35%]">
+              <TableHead className="font-medium w-[45%]">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('description')}
@@ -226,15 +225,14 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
                   {getSortIcon('description')}
                 </Button>
               </TableHead>
-              <TableHead className="font-medium w-[20%]">Serie Vehículo</TableHead>
-              <TableHead className="font-medium w-[20%]">Proveedor</TableHead>
+              <TableHead className="font-medium w-[25%]">Serie Vehículo</TableHead>
               <TableHead className="font-medium w-[5%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={4} className="text-center py-8">
                   <div className="flex justify-center items-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#91268F]"></div>
                     <span className="ml-2">Cargando materiales...</span>
@@ -265,12 +263,6 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
                   >
                     {material.vehicleSeries || "--"}
                   </TableCell>
-                  <TableCell
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(material)}
-                  >
-                    {material.supplierName || "--"}
-                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       type="button"
@@ -287,7 +279,7 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                   {searchQuery
                     ? "No se encontraron materiales que coincidan con la búsqueda"
                     : "No hay materiales registrados. Haga clic en 'Nuevo Material' para agregar uno."}

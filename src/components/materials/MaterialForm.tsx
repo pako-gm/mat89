@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Material } from "@/types";
-import { saveMaterial, getAllSuppliers, checkMaterialRegistrationExists } from "@/lib/data";
+import { saveMaterial, checkMaterialRegistrationExists } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import { 
@@ -14,13 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -42,7 +35,6 @@ export default function MaterialForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
-  const [suppliers, setSuppliers] = useState<{id: string; name: string}[]>([]);
   const [authError, setAuthError] = useState<string | null>(null);
   const [registrationStatus, setRegistrationStatus] = useState<{
     isValid: boolean;
@@ -65,26 +57,6 @@ export default function MaterialForm({
     supplierName: ""
   });
 
-  // Load suppliers
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        const data = await getAllSuppliers();
-        const supplierOptions = data.map(supplier => ({
-          id: supplier.id,
-          name: supplier.name
-        }));
-        setSuppliers(supplierOptions);
-      } catch (error) {
-        console.error("Error fetching suppliers:", error);
-      }
-    };
-    
-    if (open) {
-      fetchSuppliers();
-    }
-  }, [open]);
-
   useEffect(() => {
     if (material) {
       setFormData({
@@ -92,8 +64,8 @@ export default function MaterialForm({
         registration: material.registration || 0,
         description: material.description || "",
         vehicleSeries: material.vehicleSeries || "",
-        supplierId: material.supplierId || "",
-        supplierName: material.supplierName || ""
+        supplierId: "",
+        supplierName: ""
       });
     } else {
       setFormData({
@@ -205,17 +177,6 @@ export default function MaterialForm({
       setFormErrors(prev => ({
         ...prev,
         [name]: ""
-      }));
-    }
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    if (name === "supplier") {
-      const selectedSupplier = suppliers.find(s => s.id === value);
-      setFormData(prev => ({
-        ...prev,
-        supplierId: value,
-        supplierName: selectedSupplier?.name || ""
       }));
     }
   };
@@ -399,34 +360,6 @@ export default function MaterialForm({
             {formErrors.description && (
               <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>
             )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="supplier" className="text-sm font-medium">
-              Proveedor
-            </Label>
-            <Select 
-              value={formData.supplierId || ""} 
-              onValueChange={(value) => handleSelectChange("supplier", value)}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Seleccionar proveedor (opcional)">
-                  {formData.supplierName || "Seleccionar proveedor (opcional)"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px] overflow-y-auto">
-                <SelectItem value="">Sin proveedor</SelectItem>
-                {suppliers.map(supplier => (
-                  <SelectItem 
-                    key={supplier.id} 
-                    value={supplier.id}
-                    className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                  >
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           
           <DialogFooter className="mt-6">

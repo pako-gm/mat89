@@ -124,14 +124,11 @@ export const deleteSupplier = async (id: string) => {
   return true;
 };
 
-// Materials functions
+// Materials functions - UPDATED to be independent from suppliers
 export const getAllMaterials = async (): Promise<Material[]> => {
   const { data: materials, error } = await supabase
     .from('tbl_materiales')
-    .select(`
-      *,
-      tbl_proveedores(nombre)
-    `)
+    .select('*')
     .order('matricula_89', { ascending: true });
 
   if (error) {
@@ -144,8 +141,8 @@ export const getAllMaterials = async (): Promise<Material[]> => {
     registration: material.matricula_89,
     description: material.descripcion,
     vehicleSeries: material.serie_vehiculo,
-    supplierId: material.proveedor_id,
-    supplierName: material.tbl_proveedores?.nombre || '',
+    supplierId: material.supplier_id || '', // Campo opcional, no relacionado
+    supplierName: '', // Ya no se obtiene de la relación
     createdAt: material.created_at,
     updatedAt: material.updated_at
   }));
@@ -154,10 +151,7 @@ export const getAllMaterials = async (): Promise<Material[]> => {
 export const getMaterialById = async (id: string): Promise<Material | null> => {
   const { data: material, error } = await supabase
     .from('tbl_materiales')
-    .select(`
-      *,
-      tbl_proveedores(nombre)
-    `)
+    .select('*')
     .eq('id', id)
     .single();
 
@@ -171,24 +165,30 @@ export const getMaterialById = async (id: string): Promise<Material | null> => {
     registration: material.matricula_89,
     description: material.descripcion,
     vehicleSeries: material.serie_vehiculo,
-    supplierId: material.proveedor_id,
-    supplierName: material.tbl_proveedores?.nombre || '',
+    supplierId: material.supplier_id || '', // Campo opcional, no relacionado
+    supplierName: '', // Ya no se obtiene de la relación
     createdAt: material.created_at,
     updatedAt: material.updated_at
   };
 };
 
 export const saveMaterial = async (material: Material): Promise<any> => {
+  const materialData: any = {
+    id: material.id || uuidv4(),
+    matricula_89: material.registration,
+    descripcion: material.description,
+    serie_vehiculo: material.vehicleSeries,
+    updated_at: new Date().toISOString()
+  };
+
+  // Solo incluir supplier_id si existe y no está vacío
+  if (material.supplierId && material.supplierId.trim()) {
+    materialData.supplier_id = material.supplierId;
+  }
+
   const { data, error } = await supabase
     .from('tbl_materiales')
-    .upsert({
-      id: material.id || uuidv4(),
-      matricula_89: material.registration,
-      descripcion: material.description,
-      serie_vehiculo: material.vehicleSeries,
-      proveedor_id: material.supplierId,
-      updated_at: new Date().toISOString()
-    })
+    .upsert(materialData)
     .select()
     .single();
 

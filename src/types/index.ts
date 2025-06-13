@@ -68,8 +68,9 @@ export interface Material {
   registration: number; // matricula_89
   description: string;
   vehicleSeries?: string;
-  supplierId?: string;
-  supplierName?: string;
+  // Campos opcionales para referencia a proveedor (sin relación FK)
+  supplierId?: string; // Campo opcional de texto, sin constraint
+  supplierName?: string; // Campo calculado en frontend si es necesario
   createdAt?: string;
   updatedAt?: string;
 }
