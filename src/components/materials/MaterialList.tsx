@@ -8,7 +8,6 @@ import {
   ChevronRight, 
   ChevronsLeft, 
   ChevronsRight, 
-  Trash2, 
   ArrowUpDown,
   ArrowUp,
   ArrowDown
@@ -164,11 +163,6 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, material: Material) => {
-    e.stopPropagation();
-    setMaterialToDelete(material);
-  };
-
   const handleConfirmDelete = async () => {
     if (!materialToDelete) return;
     
@@ -244,14 +238,13 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
                   {getSortIcon('description')}
                 </Button>
               </TableHead>
-              <TableHead className="font-medium w-[25%]">Serie Vehículo</TableHead>
-              <TableHead className="font-medium w-[5%]"></TableHead>
+              <TableHead className="font-medium w-[30%]">Serie Vehículo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={3} className="text-center py-8">
                   <div className="flex justify-center items-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#91268F]"></div>
                     <span className="ml-2">Cargando materiales...</span>
@@ -262,43 +255,23 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
               currentMaterials.map((material) => (
                 <TableRow 
                   key={material.id} 
-                  className="hover:bg-gray-50 transition-colors"
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => onViewDetails(material)}
                 >
-                  <TableCell 
-                    className="font-medium cursor-pointer"
-                    onClick={() => onViewDetails(material)}
-                  >
+                  <TableCell className="font-medium">
                     {material.registration}
                   </TableCell>
-                  <TableCell 
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(material)}
-                  >
+                  <TableCell>
                     {material.description}
                   </TableCell>
-                  <TableCell
-                    className="cursor-pointer"
-                    onClick={() => onViewDetails(material)}
-                  >
+                  <TableCell>
                     {material.vehicleSeries || "--"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-[30px] w-[30px] p-0 text-[#FF0000] hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
-                      onClick={(e) => handleDeleteClick(e, material)}
-                    >
-                      <Trash2 className="h-5 w-5" />
-                      <span className="sr-only">Eliminar</span>
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={3} className="text-center py-8 text-gray-500">
                   {searchQuery
                     ? "No se encontraron materiales que coincidan con la búsqueda"
                     : "No hay materiales registrados. Haga clic en 'Nuevo Material' para agregar uno."}
