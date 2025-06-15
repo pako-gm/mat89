@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { Order, OrderLine } from "@/types";
@@ -6,7 +6,7 @@ import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
-import MaterialAutocompleteInput from "./MaterialAutocompleteInput";
+import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import { 
   Dialog, 
   DialogContent, 
@@ -55,7 +55,8 @@ export default function OrderForm({
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
     registration: string;
-  }>({ open: false, registration: "" });
+    lineId: string; // Agregar ID de línea para saber qué campo limpiar
+  }>({ open: false, registration: "", lineId: "" });
   const [errors, setErrors] = useState({
     supplier: false,
     vehicle: false,
@@ -64,6 +65,9 @@ export default function OrderForm({
     orderLines: false
   });
   const [authError, setAuthError] = useState<string | null>(null);
+  
+  // Referencias para los inputs de matrícula
+  const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
 
   // Initialize order state with proper defaults
   const [order, setOrder] = useState<Order>(() => {
@@ -324,16 +328,57 @@ export default function OrderForm({
   };
 
   // Nueva función para manejar material no encontrado
-  const handleMaterialNotFound = (registration: string) => {
+  const handleMaterialNotFound = (registration: string, lineId?: string) => {
+    // Encontrar el ID de línea si no se proporciona
+    let targetLineId = lineId;
+    if (!targetLineId) {
+      const targetLine = order.orderLines.find(line => line.registration === registration);
+      targetLineId = targetLine?.id || "";
+    }
+
     setMaterialNotFoundModal({
       open: true,
-      registration
+      registration,
+      lineId: targetLineId
     });
+  };
+
+  // Nueva función para manejar cancelación del modal
+  const handleMaterialNotFoundCancel = () => {
+    const { lineId } = materialNotFoundModal;
+    
+    // Limpiar el campo de matrícula de la línea específica
+    if (lineId) {
+      setOrder(prev => ({
+        ...prev,
+        orderLines: prev.orderLines.map(line => {
+          if (line.id === lineId) {
+            return {
+              ...line,
+              registration: "",
+              partDescription: ""
+            };
+          }
+          return line;
+        })
+      }));
+
+      // Devolver focus al input correspondiente
+      const inputRef = materialInputRefs.current.get(lineId);
+      if (inputRef) {
+        setTimeout(() => {
+          inputRef.focus();
+        }, 100);
+      }
+    }
+
+    // Cerrar el modal
+    setMaterialNotFoundModal({ open: false, registration: "", lineId: "" });
   };
 
   // Nueva función para redirigir a crear material
   const handleCreateMaterial = () => {
-    setMaterialNotFoundModal({ open: false, registration: "" });
+    setMaterialNotFoundModal({ open: false, registration: "", lineId: "" });
     // Cerrar el formulario actual y navegar a materiales
     onClose();
     navigate('/materiales', { 
@@ -350,6 +395,8 @@ export default function OrderForm({
         ...prev,
         orderLines: prev.orderLines.filter(line => line.id !== id)
       }));
+      // Limpiar referencia del input
+      materialInputRefs.current.delete(id);
     }
   };
 
@@ -966,11 +1013,18 @@ export default function OrderForm({
                   {order.orderLines.map(line => (
                     <div key={line.id} className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-center mb-2">
                       <MaterialAutocompleteInput
+                        ref={(ref) => {
+                          if (ref) {
+                            materialInputRefs.current.set(line.id, ref);
+                          } else {
+                            materialInputRefs.current.delete(line.id);
+                          }
+                        }}
                         value={line.registration}
                         onChange={(registration, description) => 
                           handleMaterialRegistrationChange(line.id, registration, description)
                         }
-                        onMaterialNotFound={handleMaterialNotFound}
+                        onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
                         placeholder="89654014"
                         className={errors.orderLines && !line.registration.trim() ? 'border-red-500' : ''}
                         error={errors.orderLines && !line.registration.trim()}
@@ -1062,8 +1116,9 @@ export default function OrderForm({
       <MaterialNotFoundModal
         open={materialNotFoundModal.open}
         registration={materialNotFoundModal.registration}
-        onClose={() => setMaterialNotFoundModal({ open: false, registration: "" })}
+        onClose={() => setMaterialNotFoundModal({ open: false, registration: "", lineId: "" })}
         onCreateMaterial={handleCreateMaterial}
+        onCancel={handleMaterialNotFoundCancel}
       />
     </>
   );

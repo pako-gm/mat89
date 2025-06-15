@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { searchMaterialsByRegistration, getMaterialByRegistration } from "@/lib/data";
 import { Material } from "@/types";
 
@@ -14,20 +13,40 @@ interface MaterialAutocompleteInputProps {
   error?: boolean;
 }
 
-export default function MaterialAutocompleteInput({
+export interface MaterialAutocompleteInputRef {
+  focus: () => void;
+  clear: () => void;
+}
+
+const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, MaterialAutocompleteInputProps>(({
   value,
   onChange,
   onMaterialNotFound,
   placeholder = "89654014",
   className = "",
   error = false
-}: MaterialAutocompleteInputProps) {
+}, ref) => {
   const [suggestions, setSuggestions] = useState<Material[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isValidating, setIsValidating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Exponer métodos para el componente padre
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus();
+    },
+    clear: () => {
+      onChange("");
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+      inputRef.current?.focus();
+    }
+  }));
 
   // Buscar sugerencias mientras el usuario escribe
   useEffect(() => {
@@ -62,6 +81,7 @@ export default function MaterialAutocompleteInput({
     const validateMaterial = async () => {
       // Solo validar si la matrícula tiene 8 dígitos y empieza con 89
       if (value.length === 8 && value.startsWith('89')) {
+        setIsValidating(true);
         try {
           const material = await getMaterialByRegistration(parseInt(value));
           if (!material) {
@@ -73,6 +93,8 @@ export default function MaterialAutocompleteInput({
           }
         } catch (error) {
           console.error('Error validating material:', error);
+        } finally {
+          setIsValidating(false);
         }
       }
     };
@@ -96,6 +118,7 @@ export default function MaterialAutocompleteInput({
     onChange(material.registration.toString(), material.description);
     setShowSuggestions(false);
     setSelectedIndex(-1);
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -125,6 +148,20 @@ export default function MaterialAutocompleteInput({
     }
   };
 
+  const handleFocus = () => {
+    if (suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    // Delay hiding suggestions to allow click
+    setTimeout(() => {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }, 150);
+  };
+
   // Scroll del elemento seleccionado
   useEffect(() => {
     if (selectedIndex >= 0 && suggestionRefs.current[selectedIndex]) {
@@ -143,14 +180,12 @@ export default function MaterialAutocompleteInput({
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-        onBlur={(e) => {
-          // Delay hiding suggestions to allow click
-          setTimeout(() => setShowSuggestions(false), 150);
-        }}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         placeholder={placeholder}
         className={`h-9 ${error ? 'border-red-500 focus:border-red-500' : 'border-[#4C4C4C] focus:border-[#91268F]'} ${className}`}
         maxLength={8}
+        autoComplete="off"
       />
       
       {showSuggestions && suggestions.length > 0 && (
@@ -187,11 +222,15 @@ export default function MaterialAutocompleteInput({
         </div>
       )}
       
-      {isLoading && (
+      {(isLoading || isValidating) && (
         <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#91268F] border-t-transparent"></div>
         </div>
       )}
     </div>
   );
-}
+});
+
+MaterialAutocompleteInput.displayName = "MaterialAutocompleteInput";
+
+export default MaterialAutocompleteInput;
