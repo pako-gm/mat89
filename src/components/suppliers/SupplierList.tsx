@@ -71,6 +71,16 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
     setSearchQuery(e.target.value);
   };
 
+  const clearFilter = () => {
+    setSearchQuery("");
+    setFilteredSuppliers(suppliers);
+    // Mantener el foco en el campo de búsqueda
+    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+    }
+  };
+
   const totalPages = Math.ceil(filteredSuppliers.length / suppliersPerPage);
   const indexOfLastSupplier = currentPage * suppliersPerPage;
   const indexOfFirstSupplier = indexOfLastSupplier - suppliersPerPage;
@@ -85,14 +95,23 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-4 border-b border-gray-200">
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por nombre, ciudad, teléfono o email..."
-            value={searchQuery}
-            onChange={handleSearch}
-            className="pl-10 h-9"
-          />
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar por nombre, ciudad, teléfono o email..."
+              value={searchQuery}
+              onChange={handleSearch}
+              className="pl-10 h-9"
+            />
+          </div>
+          <Button 
+            variant="outline" 
+            className="h-9 hover:bg-gray-50 transition-colors duration-200" 
+            onClick={clearFilter}
+          >
+            Borrar Filtro
+          </Button>
         </div>
       </div>
 
