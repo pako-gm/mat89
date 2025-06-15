@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Reception } from '@/types';
 import { getReceptions } from '@/lib/data';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -15,7 +14,6 @@ import {
 } from '@/components/ui/table';
 
 export default function ReceptionsPage() {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [receptions, setReceptions] = useState<Reception[]>([]);
   const [filteredReceptions, setFilteredReceptions] = useState<Reception[]>([]);
@@ -89,14 +87,6 @@ export default function ReceptionsPage() {
         </div>
         <Button variant="outline" className="h-9" onClick={clearFilter}>
           Borrar Filtro
-        </Button>
-        <Button
-          variant="outline"
-          className="h-9"
-          onClick={() => navigate('/pedidos')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver Atrás
         </Button>
       </div>
 
