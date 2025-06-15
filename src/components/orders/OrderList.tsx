@@ -170,6 +170,11 @@ export default function OrderList() {
   const clearFilter = () => {
     setSearchQuery("");
     setFilteredOrders(orders);
+    // Mantener el foco en el campo de búsqueda
+    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+    }
   };
 
   const handleDeleteOrder = async (orderId: string) => {
@@ -276,7 +281,11 @@ export default function OrderList() {
             className="pl-10 h-9"
           />
         </div>
-        <Button variant="outline" className="h-9" onClick={clearFilter}>
+        <Button 
+          variant="outline" 
+          className="h-9 hover:bg-gray-50 transition-colors duration-200" 
+          onClick={clearFilter}
+        >
           Borrar Filtro
         </Button>
       </div>
@@ -297,7 +306,7 @@ export default function OrderList() {
               currentOrders.map((order) => (
                 <TableRow 
                   key={order.id} 
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                   onClick={() => handleViewDetails(order)}
                 >
                   <TableCell className="font-medium">
