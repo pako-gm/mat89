@@ -307,7 +307,7 @@ export default function MaterialForm({
                     ? 'border-green-500 focus:border-green-500'
                     : ''
                 }`}
-                placeholder="89654014"
+                placeholder="89xxxxxx"
               />
               {formErrors.registration && (
                 <p className="text-xs text-red-500 mt-1">{formErrors.registration}</p>
@@ -340,7 +340,7 @@ export default function MaterialForm({
                 value={formData.vehicleSeries || ""}
                 onChange={handleChange}
                 className="h-9"
-                placeholder="252-058"
+                placeholder="ej: 447, 592"
               />
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function MaterialForm({
               value={formData.description}
               onChange={handleChange}
               className={`h-9 ${formErrors.description ? 'border-red-500 focus:border-red-500' : ''}`}
-              placeholder="PASTILLAS DE FRENO DELANTERAS"
+              placeholder="Descripcion Pieza de Maximo."
             />
             {formErrors.description && (
               <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>
