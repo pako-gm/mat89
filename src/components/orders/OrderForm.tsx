@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { useNavigate } from "react-router-dom";
 import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
+import MaterialNotFoundModal from "./MaterialNotFoundModal";
+import MaterialAutocompleteInput from "./MaterialAutocompleteInput";
 import { 
   Dialog, 
   DialogContent, 
@@ -42,12 +45,17 @@ export default function OrderForm({
   onSave,
   isEditing
 }: OrderFormProps) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [suppliers, setSuppliers] = useState<{id: string; name: string}[]>([]);
+  const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
+    open: boolean;
+    registration: string;
+  }>({ open: false, registration: "" });
   const [errors, setErrors] = useState({
     supplier: false,
     vehicle: false,
@@ -288,6 +296,52 @@ export default function OrderForm({
         orderLines: false
       }));
     }
+  };
+
+  // Nueva función para manejar la actualización de matrícula con autorrellenado
+  const handleMaterialRegistrationChange = (lineId: string, registration: string, description?: string) => {
+    setOrder(prev => ({
+      ...prev,
+      orderLines: prev.orderLines.map(line => {
+        if (line.id === lineId) {
+          return {
+            ...line,
+            registration,
+            partDescription: description || line.partDescription
+          };
+        }
+        return line;
+      })
+    }));
+
+    // Clear orderLines error when user starts typing in registration field
+    if (registration && errors.orderLines) {
+      setErrors(prev => ({
+        ...prev,
+        orderLines: false
+      }));
+    }
+  };
+
+  // Nueva función para manejar material no encontrado
+  const handleMaterialNotFound = (registration: string) => {
+    setMaterialNotFoundModal({
+      open: true,
+      registration
+    });
+  };
+
+  // Nueva función para redirigir a crear material
+  const handleCreateMaterial = () => {
+    setMaterialNotFoundModal({ open: false, registration: "" });
+    // Cerrar el formulario actual y navegar a materiales
+    onClose();
+    navigate('/materiales', { 
+      state: { 
+        newMaterial: true, 
+        registrationPreset: materialNotFoundModal.registration 
+      } 
+    });
   };
 
   const handleOrderLineDelete = (id: string) => {
@@ -543,472 +597,474 @@ export default function OrderForm({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Pedido" : "Nuevo Pedido"}
-          </DialogTitle>
-        </DialogHeader>
-        
-        {authError && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <p>{authError}</p>
-            <p className="text-sm mt-1">Para continuar, por favor intente:</p>
-            <ul className="list-disc text-sm ml-5">
-              <li>Cerrar sesión y volver a iniciar sesión</li>
-              <li>Verificar que su cuenta tenga los permisos necesarios</li>
-              <li>Contactar al administrador del sistema</li>
-            </ul>
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="orderNumber" className="text-sm mb-1">Num. Pedido</Label>
-              <Input
-                id="orderNumber"
-                name="orderNumber"
-                value={order.orderNumber}
-                readOnly
-                placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
-                className="h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed text-[#4C4C4C]"
-              />
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Editar Pedido" : "Nuevo Pedido"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {authError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <p>{authError}</p>
+              <p className="text-sm mt-1">Para continuar, por favor intente:</p>
+              <ul className="list-disc text-sm ml-5">
+                <li>Cerrar sesión y volver a iniciar sesión</li>
+                <li>Verificar que su cuenta tenga los permisos necesarios</li>
+                <li>Contactar al administrador del sistema</li>
+              </ul>
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="orderNumber" className="text-sm mb-1">Num. Pedido</Label>
+                <Input
+                  id="orderNumber"
+                  name="orderNumber"
+                  value={order.orderNumber}
+                  readOnly
+                  placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
+                  className="h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed text-[#4C4C4C]"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="supplier" className="text-sm mb-1">
+                  <span className="text-red-500">*</span> Razón Social
+                  {errors.supplier && (
+                    <span className="text-red-500 text-xs ml-2">Campo requerido</span>
+                  )}
+                </Label>
+                <Select 
+                  value={order.supplierId} 
+                  onValueChange={(value) => handleSelectChange("supplier", value)}
+                >
+                  <SelectTrigger className={`h-9 border-[#4C4C4C] ${errors.supplier ? 'border-red-500' : ''}`}>
+                    <SelectValue placeholder="Seleccione un Proveedor">
+                      {order.supplierName || "Seleccione un Proveedor"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[280px] overflow-y-auto">
+                    {suppliers.map(supplier => (
+                      <SelectItem 
+                        key={supplier.id} 
+                        value={supplier.id}
+                        className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
+                      >
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="warehouse" className="text-sm mb-1">Almacén</Label>
+                <Select 
+                  value={order.warehouse} 
+                  onValueChange={(value) => handleSelectChange("warehouse", value)}
+                  defaultValue="ALM141"
+                >
+                  <SelectTrigger className="h-9 border-[#4C4C4C]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map(warehouse => (
+                      <SelectItem key={warehouse.id} value={warehouse.code}>
+                        {warehouse.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="supplier" className="text-sm mb-1">
-                <span className="text-red-500">*</span> Razón Social
-                {errors.supplier && (
-                  <span className="text-red-500 text-xs ml-2">Campo requerido</span>
-                )}
-              </Label>
-              <Select 
-                value={order.supplierId} 
-                onValueChange={(value) => handleSelectChange("supplier", value)}
-              >
-                <SelectTrigger className={`h-9 border-[#4C4C4C] ${errors.supplier ? 'border-red-500' : ''}`}>
-                  <SelectValue placeholder="Seleccione un Proveedor">
-                    {order.supplierName || "Seleccione un Proveedor"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="max-h-[280px] overflow-y-auto">
-                  {suppliers.map(supplier => (
-                    <SelectItem 
-                      key={supplier.id} 
-                      value={supplier.id}
-                      className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                    >
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="vehicle" className="text-sm mb-1">
+                  <span className="text-red-500">*</span> Vehículo
+                  {errors.vehicle && (
+                    <span className="text-red-500 text-xs ml-2">Campo requerido</span>
+                  )}
+                </Label>
+                <Input
+                  id="vehicle"
+                  name="vehicle"
+                  value={order.vehicle.replace(/[^\d-]/g, '')}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/[^\d]/g, '');
+                    if (value.length > 3 && !value.includes('-')) {
+                      value = value.slice(0, 3) + '-' + value.slice(3);
+                    }
+                    if (value.length > 7) {
+                      value = value.slice(0, 7);
+                    }
+                    setOrder(prev => ({
+                      ...prev,
+                      vehicle: value
+                    }));
+                  }}
+                  onFocus={(e) => e.target.placeholder = ""}
+                  onBlur={(e) => e.target.placeholder = "252-058"}
+                  placeholder="252-058"
+                  className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.vehicle ? 'border-red-500' : ''}`}
+                />
+              </div>
+              
+              <div className="flex items-center justify-end space-x-2 pt-6">
+                <Label htmlFor="warranty" className="text-sm">Garantía</Label>
+                <Switch
+                  defaultChecked={false}
+                  id="warranty"
+                  checked={order.warranty}
+                  onCheckedChange={handleSwitchChange}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="nonConformityReport" className="text-sm mb-1">Informe No Conformidad</Label>
+                <Input
+                  disabled={!order.warranty}
+                  id="nonConformityReport"
+                  name="nonConformityReport"
+                  value={order.nonConformityReport.toUpperCase()}
+                  onChange={(e) => {
+                    if (order.warranty) {
+                      const value = e.target.value.toUpperCase();
+                      setOrder(prev => ({
+                        ...prev,
+                        nonConformityReport: value
+                      }));
+                    }
+                  }}
+                  onFocus={(e) => e.target.placeholder = ""}
+                  onBlur={(e) => e.target.placeholder = "Informe NC"}
+                  placeholder="Informe NC"
+                  className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${!order.warranty ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="warehouse" className="text-sm mb-1">Almacén</Label>
-              <Select 
-                value={order.warehouse} 
-                onValueChange={(value) => handleSelectChange("warehouse", value)}
-                defaultValue="ALM141"
-              >
-                <SelectTrigger className="h-9 border-[#4C4C4C]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map(warehouse => (
-                    <SelectItem key={warehouse.id} value={warehouse.code}>
-                      {warehouse.code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="dismantleDate" className="text-sm mb-1">
+                  <span className="text-red-500">*</span> Fecha Desmonte
+                  {errors.dismantleDate && (
+                    <span className="text-red-500 text-xs ml-2">
+                      {order.shipmentDate && order.dismantleDate > order.shipmentDate 
+                        ? "Debe ser anterior a la fecha de envío" 
+                        : "Campo requerido"}
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id="dismantleDate"
+                  name="dismantleDate"
+                  type="date"
+                  max={order.shipmentDate || undefined}
+                  value={order.dismantleDate}
+                  onChange={handleChange}
+                  className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.dismantleDate ? 'border-red-500' : ''}`}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="shipmentDate" className="text-sm mb-1">
+                  <span className="text-red-500">*</span> Fecha Envío
+                  {errors.shipmentDate && (
+                    <span className="text-red-500 text-xs ml-2">
+                      {order.dismantleDate && order.shipmentDate < order.dismantleDate
+                        ? "Debe ser posterior a la fecha de desmonte"
+                        : "Campo requerido"}
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id="shipmentDate"
+                  name="shipmentDate"
+                  type="date"
+                  min={order.dismantleDate || undefined}
+                  value={order.shipmentDate}
+                  onChange={handleChange}
+                  className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.shipmentDate ? 'border-red-500' : ''}`}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="vehicle" className="text-sm mb-1">
-                <span className="text-red-500">*</span> Vehículo
-                {errors.vehicle && (
-                  <span className="text-red-500 text-xs ml-2">Campo requerido</span>
-                )}
-              </Label>
-              <Input
-                id="vehicle"
-                name="vehicle"
-                value={order.vehicle.replace(/[^\d-]/g, '')}
-                onChange={(e) => {
-                  let value = e.target.value.replace(/[^\d]/g, '');
-                  if (value.length > 3 && !value.includes('-')) {
-                    value = value.slice(0, 3) + '-' + value.slice(3);
-                  }
-                  if (value.length > 7) {
-                    value = value.slice(0, 7);
-                  }
-                  setOrder(prev => ({
-                    ...prev,
-                    vehicle: value
-                  }));
-                }}
-                onFocus={(e) => e.target.placeholder = ""}
-                onBlur={(e) => e.target.placeholder = "252-058"}
-                placeholder="252-058"
-                className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.vehicle ? 'border-red-500' : ''}`}
-              />
-            </div>
-            
-            <div className="flex items-center justify-end space-x-2 pt-6">
-              <Label htmlFor="warranty" className="text-sm">Garantía</Label>
-              <Switch
-                defaultChecked={false}
-                id="warranty"
-                checked={order.warranty}
-                onCheckedChange={handleSwitchChange}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="nonConformityReport" className="text-sm mb-1">Informe No Conformidad</Label>
-              <Input
-                disabled={!order.warranty}
-                id="nonConformityReport"
-                name="nonConformityReport"
-                value={order.nonConformityReport.toUpperCase()}
-                onChange={(e) => {
-                  if (order.warranty) {
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="declaredDamage" className="text-sm mb-1">Avería Declarada</Label>
+                <Textarea
+                  id="declaredDamage"
+                  name="declaredDamage"
+                  value={order.declaredDamage.toUpperCase()}
+                  onChange={(e) => {
                     const value = e.target.value.toUpperCase();
                     setOrder(prev => ({
                       ...prev,
-                      nonConformityReport: value
+                      declaredDamage: value
                     }));
-                  }
-                }}
-                onFocus={(e) => e.target.placeholder = ""}
-                onBlur={(e) => e.target.placeholder = "Informe NC"}
-                placeholder="Informe NC"
-                className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${!order.warranty ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="dismantleDate" className="text-sm mb-1">
-                <span className="text-red-500">*</span> Fecha Desmonte
-                {errors.dismantleDate && (
-                  <span className="text-red-500 text-xs ml-2">
-                    {order.shipmentDate && order.dismantleDate > order.shipmentDate 
-                      ? "Debe ser anterior a la fecha de envío" 
-                      : "Campo requerido"}
-                  </span>
-                )}
-              </Label>
-              <Input
-                id="dismantleDate"
-                name="dismantleDate"
-                type="date"
-                max={order.shipmentDate || undefined}
-                value={order.dismantleDate}
-                onChange={handleChange}
-                className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.dismantleDate ? 'border-red-500' : ''}`}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="shipmentDate" className="text-sm mb-1">
-                <span className="text-red-500">*</span> Fecha Envío
-                {errors.shipmentDate && (
-                  <span className="text-red-500 text-xs ml-2">
-                    {order.dismantleDate && order.shipmentDate < order.dismantleDate
-                      ? "Debe ser posterior a la fecha de desmonte"
-                      : "Campo requerido"}
-                  </span>
-                )}
-              </Label>
-              <Input
-                id="shipmentDate"
-                name="shipmentDate"
-                type="date"
-                min={order.dismantleDate || undefined}
-                value={order.shipmentDate}
-                onChange={handleChange}
-                className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.shipmentDate ? 'border-red-500' : ''}`}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="declaredDamage" className="text-sm mb-1">Avería Declarada</Label>
-              <Textarea
-                id="declaredDamage"
-                name="declaredDamage"
-                value={order.declaredDamage.toUpperCase()}
-                onChange={(e) => {
-                  const value = e.target.value.toUpperCase();
-                  setOrder(prev => ({
-                    ...prev,
-                    declaredDamage: value
-                  }));
-                }}
-                onFocus={(e) => e.target.placeholder = ""}
-                onBlur={(e) => e.target.placeholder = "Apuntado en Tarjeta Identificativa"}
-                placeholder="Apuntado en Tarjeta Identificativa"
-                className="min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="shipmentDocumentation" className="text-sm mb-1">Documentación Envío</Label>
-              <div
-                className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${
-                  dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
-                } flex flex-col h-[100px]`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <input
-                  type="file"
-                  id="fileInput"
-                  multiple
-                  accept=".pdf,.jpeg,.jpg,.xlsx,.zip"
-                  onChange={handleFileSelect}
-                  className="hidden"
+                  }}
+                  onFocus={(e) => e.target.placeholder = ""}
+                  onBlur={(e) => e.target.placeholder = "Apuntado en Tarjeta Identificativa"}
+                  placeholder="Apuntado en Tarjeta Identificativa"
+                  className="min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
                 />
-                <label
-                  htmlFor="fileInput"
-                  className="flex flex-col items-center justify-center cursor-pointer h-full"
+              </div>
+              
+              <div>
+                <Label htmlFor="shipmentDocumentation" className="text-sm mb-1">Documentación Envío</Label>
+                <div
+                  className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${
+                    dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
+                  } flex flex-col h-[100px]`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
                 >
-                  <Upload className="h-4 w-4 text-gray-400" />
-                  <p className="text-xs text-gray-600 text-center mt-1">
-                    Arrastra y suelta aquí la documentación asociada al envío o{" "}
-                    <span className="text-[#91268F]">haga clic para seleccionar</span>
-                  </p>
-                  <p className="text-[10px] text-gray-500 text-center mt-0.5">
-                    Tipos permitidos: .pdf, .jpeg, .xlsx, .zip (máx. 4 archivos, 5 MB cada uno)
-                  </p>
-                </label>
+                  <input
+                    type="file"
+                    id="fileInput"
+                    multiple
+                    accept=".pdf,.jpeg,.jpg,.xlsx,.zip"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="fileInput"
+                    className="flex flex-col items-center justify-center cursor-pointer h-full"
+                  >
+                    <Upload className="h-4 w-4 text-gray-400" />
+                    <p className="text-xs text-gray-600 text-center mt-1">
+                      Arrastra y suelta aquí la documentación asociada al envío o{" "}
+                      <span className="text-[#91268F]">haga clic para seleccionar</span>
+                    </p>
+                    <p className="text-[10px] text-gray-500 text-center mt-0.5">
+                      Tipos permitidos: .pdf, .jpeg, .xlsx, .zip (máx. 4 archivos, 5 MB cada uno)
+                    </p>
+                  </label>
 
-                {order.shipmentDocumentation.length > 0 && (
-                  <div className="mt-2 space-y-1 overflow-y-auto">
-                    {order.shipmentDocumentation.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between bg-white p-1 rounded-md border text-[10px]"
-                      >
-                        <span className="truncate max-w-[200px]">{file}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(file)}
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                  {order.shipmentDocumentation.length > 0 && (
+                    <div className="mt-2 space-y-1 overflow-y-auto">
+                      {order.shipmentDocumentation.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-white p-1 rounded-md border text-[10px]"
                         >
-                          ×
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-4 items-start">
-            <div className="flex-1">
-              <Label htmlFor="changeHistory" className="text-sm mb-1">Histórico de Cambios</Label>
-              <div className="mt-1 border rounded-md h-[100px] overflow-y-auto bg-gray-50 p-2">
-                {order.changeHistory.length > 0 ? (
-                  order.changeHistory.map((item, i) => (
-                    <div key={i} className="text-xs py-1">
-                      <span className="font-medium">{new Date(item.date).toLocaleString()}</span> - 
-                      <span className="text-gray-600 ml-1">{item.description}</span>
+                          <span className="truncate max-w-[200px]">{file}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(file)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-gray-500 p-2">
-                    No hay cambios registrados
-                  </div>
-                )}
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsCommentOpen(true)}
-              className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-8 px-3 text-sm mt-7"
-            >
-              Insertar Comentario
-            </Button>
-          </div>
-          
-          {isCommentOpen && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-              <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                <h3 className="text-lg font-medium mb-4">Insertar Comentario</h3>
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Escriba su comentario aquí..."
-                  className="min-h-[100px] resize-none border-[#4C4C4C] focus:border-[#91268F]"
-                />
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCommentOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleAddComment}
-                    className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-                  >
-                    Guardar
-                  </Button>
+                  )}
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className={`text-lg font-medium ${errors.orderLines ? 'text-red-500' : ''}`}>
-                Líneas de Pedido
-                {errors.orderLines && (
-                  <span className="text-red-500 text-sm ml-2 font-normal">
-                    * Debe añadirse al menos una línea de pedido
-                  </span>
-                )}
-              </h2>
-              <Button 
+            <div className="flex gap-4 items-start">
+              <div className="flex-1">
+                <Label htmlFor="changeHistory" className="text-sm mb-1">Histórico de Cambios</Label>
+                <div className="mt-1 border rounded-md h-[100px] overflow-y-auto bg-gray-50 p-2">
+                  {order.changeHistory.length > 0 ? (
+                    order.changeHistory.map((item, i) => (
+                      <div key={i} className="text-xs py-1">
+                        <span className="font-medium">{new Date(item.date).toLocaleString()}</span> - 
+                        <span className="text-gray-600 ml-1">{item.description}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500 p-2">
+                      No hay cambios registrados
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button
                 type="button"
-                variant="outline" 
-                onClick={addOrderLine}
-                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                variant="outline"
+                onClick={() => setIsCommentOpen(true)}
+                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-8 px-3 text-sm mt-7"
               >
-                <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
+                Insertar Comentario
               </Button>
             </div>
             
-            <Card className={`border-gray-200 ${errors.orderLines ? 'border-red-500' : ''}`}>
-              <CardContent className="p-4">
-                <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 mb-2">
-                  <Label className="text-sm font-medium"><span className="text-red-500">*</span> Matrícula 89</Label>
-                  <Label className="text-sm font-medium">Descripción Pieza</Label>
-                  <Label className="text-sm font-medium"><span className="text-red-500">*</span> Cant.</Label>
-                  <Label className="text-sm font-medium">Num. Serie</Label>
-                  <div className="w-[72px]">
-                    <span></span>
+            {isCommentOpen && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                  <h3 className="text-lg font-medium mb-4">Insertar Comentario</h3>
+                  <Textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Escriba su comentario aquí..."
+                    className="min-h-[100px] resize-none border-[#4C4C4C] focus:border-[#91268F]"
+                  />
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCommentOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleAddComment}
+                      className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+                    >
+                      Guardar
+                    </Button>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {order.orderLines.map(line => (
-                  <div key={line.id} className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-center mb-2">
-                    <Input
-                      name="registration"
-                      value={line.registration}
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/[^\d]/g, '');
-                        // Only allow more digits if empty, starts with 89, or is still typing the first two digits
-                        if (value.length <= 2 || value.startsWith('89')) {
-                          value = value.slice(0, 8);
-                        } else {
-                          value = value.slice(0, 2);
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className={`text-lg font-medium ${errors.orderLines ? 'text-red-500' : ''}`}>
+                  Líneas de Pedido
+                  {errors.orderLines && (
+                    <span className="text-red-500 text-sm ml-2 font-normal">
+                      * Debe añadirse al menos una línea de pedido
+                    </span>
+                  )}
+                </h2>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={addOrderLine}
+                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                >
+                  <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
+                </Button>
+              </div>
+              
+              <Card className={`border-gray-200 ${errors.orderLines ? 'border-red-500' : ''}`}>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 mb-2">
+                    <Label className="text-sm font-medium"><span className="text-red-500">*</span> Matrícula 89</Label>
+                    <Label className="text-sm font-medium">Descripción Pieza</Label>
+                    <Label className="text-sm font-medium"><span className="text-red-500">*</span> Cant.</Label>
+                    <Label className="text-sm font-medium">Num. Serie</Label>
+                    <div className="w-[72px]">
+                      <span></span>
+                    </div>
+                  </div>
+
+                  {order.orderLines.map(line => (
+                    <div key={line.id} className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-center mb-2">
+                      <MaterialAutocompleteInput
+                        value={line.registration}
+                        onChange={(registration, description) => 
+                          handleMaterialRegistrationChange(line.id, registration, description)
                         }
-                        handleOrderLineUpdate(line.id, { registration: value });
-                      }}
-                      placeholder="89654014"
-                      className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
-                        errors.orderLines && !line.registration.trim() ? 'border-red-500' : ''
-                      }`}
-                    />
-                    
-                    <Input
-                      name="partDescription"
-                      value={line.partDescription}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase();
-                        handleOrderLineUpdate(line.id, { partDescription: value });
-                      }}
-                      placeholder="Descripción Pieza"
-                      className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
-                    />
-                    
-                    <Input
-                      name="quantity"
-                      type="number"
-                      min="1"
-                      value={line.quantity}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        handleOrderLineUpdate(line.id, { quantity: isNaN(value) || value < 1 ? 1 : value });
-                      }}
-                      placeholder="1"
-                      className="h-9 border-[#4C4C4C] focus:border-[#91268F]"
-                    />
-                    
-                    <Input
-                      name="serialNumber"
-                      value={line.serialNumber}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase();
-                        handleOrderLineUpdate(line.id, { serialNumber: value });
-                      }}
-                      placeholder="ST/3145874"
-                      className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
-                    />
-                    
-                    <div className="flex space-x-1">
-                      <Button 
-                        type="button"
-                        variant="ghost" 
-                        size="sm"
-                        className="p-0 h-8 w-8"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
+                        onMaterialNotFound={handleMaterialNotFound}
+                        placeholder="89654014"
+                        className={errors.orderLines && !line.registration.trim() ? 'border-red-500' : ''}
+                        error={errors.orderLines && !line.registration.trim()}
+                      />
                       
-                      {order.orderLines.length > 1 && (
+                      <Input
+                        name="partDescription"
+                        value={line.partDescription}
+                        onChange={(e) => {
+                          const value = e.target.value.toUpperCase();
+                          handleOrderLineUpdate(line.id, { partDescription: value });
+                        }}
+                        placeholder="Descripción Pieza"
+                        className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] bg-gray-100"
+                        readOnly
+                      />
+                      
+                      <Input
+                        name="quantity"
+                        type="number"
+                        min="1"
+                        value={line.quantity}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value, 10);
+                          handleOrderLineUpdate(line.id, { quantity: isNaN(value) || value < 1 ? 1 : value });
+                        }}
+                        placeholder="1"
+                        className="h-9 border-[#4C4C4C] focus:border-[#91268F]"
+                      />
+                      
+                      <Input
+                        name="serialNumber"
+                        value={line.serialNumber}
+                        onChange={(e) => {
+                          const value = e.target.value.toUpperCase();
+                          handleOrderLineUpdate(line.id, { serialNumber: value });
+                        }}
+                        placeholder="ST/3145874"
+                        className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                      />
+                      
+                      <div className="flex space-x-1">
                         <Button 
                           type="button"
                           variant="ghost" 
                           size="sm"
-                          className="p-0 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleOrderLineDelete(line.id)}
+                          className="p-0 h-8 w-8"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Check className="h-4 w-4" />
                         </Button>
-                      )}
+                        
+                        {order.orderLines.length > 1 && (
+                          <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="sm"
+                            className="p-0 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleOrderLineDelete(line.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-          
-          <DialogFooter className="mt-6">
-            <Button variant="outline" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-              disabled={loading || !!authError}
-            >
-              {loading && (
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-              )}
-              {isEditing ? "Actualizar Pedido" : "Guardar Pedido"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+            
+            <DialogFooter className="mt-6">
+              <Button variant="outline" type="button" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+                disabled={loading || !!authError}
+              >
+                {loading && (
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                )}
+                {isEditing ? "Actualizar Pedido" : "Guardar Pedido"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <MaterialNotFoundModal
+        open={materialNotFoundModal.open}
+        registration={materialNotFoundModal.registration}
+        onClose={() => setMaterialNotFoundModal({ open: false, registration: "" })}
+        onCreateMaterial={handleCreateMaterial}
+      />
+    </>
   );
 }

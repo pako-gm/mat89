@@ -172,6 +172,65 @@ export const getMaterialById = async (id: string): Promise<Material | null> => {
   };
 };
 
+// Nueva función: Buscar materiales por matrícula (para autorrellenado)
+export const searchMaterialsByRegistration = async (registrationQuery: string): Promise<Material[]> => {
+  if (!registrationQuery || registrationQuery.length < 2) {
+    return [];
+  }
+
+  const { data: materials, error } = await supabase
+    .from('tbl_materiales')
+    .select('*')
+    .ilike('matricula_89', `${registrationQuery}%`)
+    .order('matricula_89', { ascending: true })
+    .limit(10);
+
+  if (error) {
+    console.error('Error searching materials:', error);
+    return [];
+  }
+
+  return materials.map(material => ({
+    id: material.id,
+    registration: material.matricula_89,
+    description: material.descripcion,
+    vehicleSeries: material.serie_vehiculo,
+    supplierId: material.supplier_id || '',
+    supplierName: '',
+    createdAt: material.created_at,
+    updatedAt: material.updated_at
+  }));
+};
+
+// Nueva función: Obtener material por matrícula exacta
+export const getMaterialByRegistration = async (registration: number): Promise<Material | null> => {
+  const { data: material, error } = await supabase
+    .from('tbl_materiales')
+    .select('*')
+    .eq('matricula_89', registration)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No se encontró el registro
+      return null;
+    }
+    console.error('Error fetching material by registration:', error);
+    return null;
+  }
+
+  return {
+    id: material.id,
+    registration: material.matricula_89,
+    description: material.descripcion,
+    vehicleSeries: material.serie_vehiculo,
+    supplierId: material.supplier_id || '',
+    supplierName: '',
+    createdAt: material.created_at,
+    updatedAt: material.updated_at
+  };
+};
+
 export const saveMaterial = async (material: Material): Promise<any> => {
   const materialData: any = {
     id: material.id || uuidv4(),
