@@ -4,7 +4,7 @@ import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit2, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
-import { filterManualChangeHistory, formatChangeHistoryDate, formatUserName } from "@/lib/utils";
+import { filterManualChangeHistory, formatCompleteHistoryEntry } from "@/lib/utils";
 
 interface OrderDetailsProps {
   order: Order;
@@ -30,8 +30,9 @@ export default function OrderDetails({
     }
   };
 
-  // Filtrar solo comentarios manuales
-  const manualChangeHistory = filterManualChangeHistory(order.changeHistory);
+  // Filtrar solo comentarios manuales y ordenar cronológicamente
+  const manualChangeHistory = filterManualChangeHistory(order.changeHistory)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -146,44 +147,39 @@ export default function OrderDetails({
                 )}
               </div>
 
-              {manualChangeHistory.length > 0 && (
-                <div className="col-span-2">
-                  <h3 className="text-lg font-medium mb-3">
-                    Comentarios del Usuario
+              {/* Sección de comentarios manuales con formato específico */}
+              <div className="col-span-2">
+                <h3 className="text-lg font-medium mb-3">
+                  Histórico de Comentarios Manuales
+                  {manualChangeHistory.length > 0 && (
                     <span className="text-sm font-normal text-gray-500 ml-2">
                       ({manualChangeHistory.length} {manualChangeHistory.length === 1 ? 'comentario' : 'comentarios'})
                     </span>
-                  </h3>
-                  <div className="border rounded-md bg-gray-50 p-3 max-h-[200px] overflow-y-auto">
-                    {manualChangeHistory.map((change, index) => (
-                      <div key={index} className="py-2 border-b last:border-0">
-                        <div className="flex justify-between items-start text-sm mb-1">
-                          <span className="font-medium text-gray-700">
-                            {formatChangeHistoryDate(change.date)}
-                          </span>
-                          <span className="text-gray-500 text-xs">
-                            {formatUserName(change.user)}
-                          </span>
+                  )}
+                </h3>
+                <div className="border rounded-md bg-gray-50 p-4 max-h-[250px] overflow-y-auto">
+                  {manualChangeHistory.length > 0 ? (
+                    <div className="space-y-3">
+                      {manualChangeHistory.map((change, index) => (
+                        <div key={index} className="bg-white p-3 rounded border-l-4 border-l-[#91268F]">
+                          <div className="text-sm font-mono text-gray-800 leading-relaxed">
+                            {formatCompleteHistoryEntry(change)}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-800 leading-relaxed">
-                          {change.description}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-gray-500">
+                        No hay comentarios manuales registrados para este pedido.
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Los comentarios aparecerán aquí cuando los usuarios los agreguen manualmente.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {manualChangeHistory.length === 0 && (
-                <div className="col-span-2">
-                  <h3 className="text-lg font-medium mb-3">Comentarios del Usuario</h3>
-                  <div className="border rounded-md bg-gray-50 p-4 text-center">
-                    <p className="text-sm text-gray-500">
-                      No hay comentarios manuales registrados para este pedido.
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
               
               <div className="col-span-2">
                 <h3 className="text-lg font-medium mb-3">Líneas de Pedido</h3>

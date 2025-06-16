@@ -24,7 +24,12 @@ export function filterManualChangeHistory(changeHistory: Array<{
     /^Auto:/i,
     /^Automatic/i,
     /^Created\s+automatically/i,
-    /^Updated\s+automatically/i
+    /^Updated\s+automatically/i,
+    /^Modificación\s+líneas\s+pedido$/i,
+    /^Cambio\s+en\s+líneas$/i,
+    /^Líneas\s+actualizadas$/i,
+    /^Material\s+agregado$/i,
+    /^Material\s+eliminado$/i
   ];
 
   return changeHistory.filter(change => {
@@ -36,19 +41,22 @@ export function filterManualChangeHistory(changeHistory: Array<{
     // Filtrar entradas muy cortas que típicamente son automáticas
     const isTooShort = change.description.trim().length < 10;
     
+    // Filtrar comentarios que parecen ser del sistema (usuario SISTEMA)
+    const isSystemUser = /^(SISTEMA|system|auto)$/i.test(change.user.trim());
+    
     // Mantener solo comentarios que parecen ser manuales
-    return !hasAutomaticPattern && !isTooShort;
+    return !hasAutomaticPattern && !isTooShort && !isSystemUser;
   });
 }
 
-// Función para formatear fecha según especificación: DD/MM/YYYY - HH:MM
+// Función para formatear fecha según especificación: [DD/MM/YYYY HH:MM]
 export function formatChangeHistoryDate(dateString: string): string {
   try {
     const date = new Date(dateString);
     
     // Verificar que la fecha es válida
     if (isNaN(date.getTime())) {
-      return dateString; // Retornar original si no se puede parsear
+      return `[${dateString}]`; // Retornar original con corchetes si no se puede parsear
     }
     
     const day = date.getDate().toString().padStart(2, '0');
@@ -57,10 +65,10 @@ export function formatChangeHistoryDate(dateString: string): string {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     
-    return `${day}/${month}/${year} - ${hours}:${minutes}`;
+    return `[${day}/${month}/${year} ${hours}:${minutes}]`;
   } catch (error) {
     console.error('Error formatting date:', error);
-    return dateString; // Retornar original en caso de error
+    return `[${dateString}]`; // Retornar original con corchetes en caso de error
   }
 }
 
@@ -82,4 +90,16 @@ export function formatUserName(userEmail: string): string {
   }
   
   return userEmail;
+}
+
+// Nueva función para formatear una entrada completa del historial
+export function formatCompleteHistoryEntry(change: {
+  date: string;
+  user: string;
+  description: string;
+}): string {
+  const formattedDate = formatChangeHistoryDate(change.date);
+  const formattedUser = formatUserName(change.user);
+  
+  return `${formattedDate} - ${formattedUser}: ${change.description}`;
 }
