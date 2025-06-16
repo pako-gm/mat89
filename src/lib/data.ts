@@ -181,7 +181,8 @@ export const searchMaterialsByRegistration = async (registrationQuery: string): 
   const { data: materials, error } = await supabase
     .from('tbl_materiales')
     .select('*')
-    .ilike('matricula_89', `${registrationQuery}%`)
+    .filter('matricula_89', 'gte', parseInt(registrationQuery))
+    .filter('matricula_89', 'lt', parseInt(registrationQuery) + Math.pow(10, Math.max(0, 8 - registrationQuery.length)))
     .order('matricula_89', { ascending: true })
     .limit(10);
 

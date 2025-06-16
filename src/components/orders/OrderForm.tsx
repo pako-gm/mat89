@@ -332,7 +332,7 @@ export default function OrderForm({
     // Encontrar el ID de línea si no se proporciona
     let targetLineId = lineId;
     if (!targetLineId) {
-      const targetLine = order.orderLines.find(line => line.registration === registration);
+      const targetLine = order.orderLines.find(line => String(line.registration) === registration);
       targetLineId = targetLine?.id || "";
     }
 
@@ -402,7 +402,7 @@ export default function OrderForm({
 
   const addOrderLine = () => {
     // Check if there are any existing lines with empty registration
-    const hasEmptyRegistration = order.orderLines.some(line => !line.registration.trim());
+    const hasEmptyRegistration = order.orderLines.some(line => !String(line.registration).trim());
     
     if (hasEmptyRegistration) {
       toast({
@@ -529,7 +529,7 @@ export default function OrderForm({
 
   const validateForm = () => {
     // Check if there's at least one order line with a registration
-    const hasValidOrderLine = order.orderLines.some(line => line.registration.trim() !== "");
+    const hasValidOrderLine = order.orderLines.some(line => String(line.registration).trim() !== "");
     
     const newErrors = {
       supplier: !order.supplierId,
@@ -1020,14 +1020,14 @@ export default function OrderForm({
                             materialInputRefs.current.delete(line.id);
                           }
                         }}
-                        value={line.registration}
+                        value={String(line.registration)}
                         onChange={(registration, description) => 
                           handleMaterialRegistrationChange(line.id, registration, description)
                         }
                         onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
                         placeholder="89654014"
-                        className={errors.orderLines && !line.registration.trim() ? 'border-red-500' : ''}
-                        error={errors.orderLines && !line.registration.trim()}
+                        className={errors.orderLines && !String(line.registration).trim() ? 'border-red-500' : ''}
+                        error={errors.orderLines && !String(line.registration).trim()}
                       />
                       
                       <Input
