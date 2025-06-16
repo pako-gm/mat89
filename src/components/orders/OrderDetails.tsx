@@ -150,7 +150,7 @@ export default function OrderDetails({
               {/* Sección de comentarios manuales con formato específico */}
               <div className="col-span-2">
                 <h3 className="text-lg font-medium mb-3">
-                  Histórico de Comentarios Manuales
+                  Histórico de Comentarios
                   {manualChangeHistory.length > 0 && (
                     <span className="text-sm font-normal text-gray-500 ml-2">
                       ({manualChangeHistory.length} {manualChangeHistory.length === 1 ? 'comentario' : 'comentarios'})
