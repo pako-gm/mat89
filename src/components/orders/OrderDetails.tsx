@@ -4,6 +4,7 @@ import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit2, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
+import { filterManualChangeHistory, formatChangeHistoryDate, formatUserName } from "@/lib/utils";
 
 interface OrderDetailsProps {
   order: Order;
@@ -28,6 +29,9 @@ export default function OrderDetails({
       return dateString;
     }
   };
+
+  // Filtrar solo comentarios manuales
+  const manualChangeHistory = filterManualChangeHistory(order.changeHistory);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -142,19 +146,41 @@ export default function OrderDetails({
                 )}
               </div>
 
-              {order.changeHistory.length > 0 && (
+              {manualChangeHistory.length > 0 && (
                 <div className="col-span-2">
-                  <h3 className="text-lg font-medium mb-3">Histórico de Cambios</h3>
+                  <h3 className="text-lg font-medium mb-3">
+                    Comentarios del Usuario
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({manualChangeHistory.length} {manualChangeHistory.length === 1 ? 'comentario' : 'comentarios'})
+                    </span>
+                  </h3>
                   <div className="border rounded-md bg-gray-50 p-3 max-h-[200px] overflow-y-auto">
-                    {order.changeHistory.map((change, index) => (
-                      <div key={index} className="py-1.5 border-b last:border-0">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{formatDate(change.date)}</span>
-                          <span className="text-gray-500">{change.user}</span>
+                    {manualChangeHistory.map((change, index) => (
+                      <div key={index} className="py-2 border-b last:border-0">
+                        <div className="flex justify-between items-start text-sm mb-1">
+                          <span className="font-medium text-gray-700">
+                            {formatChangeHistoryDate(change.date)}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            {formatUserName(change.user)}
+                          </span>
                         </div>
-                        <div className="text-sm mt-0.5">{change.description}</div>
+                        <div className="text-sm text-gray-800 leading-relaxed">
+                          {change.description}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {manualChangeHistory.length === 0 && (
+                <div className="col-span-2">
+                  <h3 className="text-lg font-medium mb-3">Comentarios del Usuario</h3>
+                  <div className="border rounded-md bg-gray-50 p-4 text-center">
+                    <p className="text-sm text-gray-500">
+                      No hay comentarios manuales registrados para este pedido.
+                    </p>
                   </div>
                 </div>
               )}
