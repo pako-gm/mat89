@@ -5,6 +5,7 @@ import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
+import { filterManualChangeHistory, formatChangeHistoryDate, formatUserName } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import { 
@@ -435,18 +436,31 @@ export default function OrderForm({
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      setOrder(prev => ({
-        ...prev,
-        changeHistory: [
-          ...prev.changeHistory,
-          {
-            id: uuidv4(),
-            date: new Date().toISOString(),
-            user: "usuario@mat89.com",
-            description: newComment.trim()
-          }
-        ]
-      }));
+      // Obtener el email del usuario actual
+      const getCurrentUserEmail = async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          return user?.email || "usuario@mat89.com";
+        } catch (error) {
+          return "usuario@mat89.com";
+        }
+      };
+
+      getCurrentUserEmail().then(userEmail => {
+        setOrder(prev => ({
+          ...prev,
+          changeHistory: [
+            ...prev.changeHistory,
+            {
+              id: uuidv4(),
+              date: new Date().toISOString(),
+              user: userEmail,
+              description: newComment.trim()
+            }
+          ]
+        }));
+      });
+
       setNewComment("");
       setIsCommentOpen(false);
     }
@@ -606,21 +620,8 @@ export default function OrderForm({
         quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
       }));
       
-      // Add history entry
-      const now = new Date();
-      const action = isEditing ? "Actualización de pedido" : "Creación pedido";
-      updatedOrder = {
-        ...updatedOrder,
-        changeHistory: [
-          ...updatedOrder.changeHistory,
-          {
-            id: uuidv4(),
-            date: now.toISOString(),
-            user: "usuario@mat89.com",
-            description: action
-          }
-        ]
-      };
+      // NO añadir entrada automática al histórico - solo las entradas manuales se conservan
+      // Se elimina la lógica que agregaba "Creación pedido" o "Actualización de pedido"
       
       await saveOrder(updatedOrder);
       onSave();
@@ -642,6 +643,9 @@ export default function OrderForm({
       setLoading(false);
     }
   };
+
+  // Filtrar solo comentarios manuales para mostrar en el histórico
+  const manualChangeHistory = filterManualChangeHistory(order.changeHistory);
 
   return (
     <>
@@ -923,18 +927,34 @@ export default function OrderForm({
 
             <div className="flex gap-4 items-start">
               <div className="flex-1">
-                <Label htmlFor="changeHistory" className="text-sm mb-1">Histórico de Cambios</Label>
+                <Label htmlFor="changeHistory" className="text-sm mb-1">
+                  Comentarios del Usuario
+                  {manualChangeHistory.length > 0 && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      ({manualChangeHistory.length} {manualChangeHistory.length === 1 ? 'comentario' : 'comentarios'})
+                    </span>
+                  )}
+                </Label>
                 <div className="mt-1 border rounded-md h-[100px] overflow-y-auto bg-gray-50 p-2">
-                  {order.changeHistory.length > 0 ? (
-                    order.changeHistory.map((item, i) => (
-                      <div key={i} className="text-xs py-1">
-                        <span className="font-medium">{new Date(item.date).toLocaleString()}</span> - 
-                        <span className="text-gray-600 ml-1">{item.description}</span>
+                  {manualChangeHistory.length > 0 ? (
+                    manualChangeHistory.map((item, i) => (
+                      <div key={i} className="text-xs py-1 border-b last:border-0">
+                        <div className="flex justify-between items-start">
+                          <span className="font-medium text-gray-700">
+                            {formatChangeHistoryDate(item.date)}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            {formatUserName(item.user)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-800 mt-0.5 leading-relaxed">
+                          {item.description}
+                        </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-sm text-gray-500 p-2">
-                      No hay cambios registrados
+                      No hay comentarios registrados
                     </div>
                   )}
                 </div>
