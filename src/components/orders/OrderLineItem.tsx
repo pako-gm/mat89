@@ -59,8 +59,8 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
           onUpdate(orderLine.id, { registration: value });
         }}
         onFocus={(e) => e.target.placeholder = ""}
-        onBlur={(e) => e.target.placeholder = "89654014"}
-        placeholder="89654014"
+        onBlur={(e) => e.target.placeholder = "89xxxxxx"}
+        placeholder="89xxxxxx"
         className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
           !isRegistrationValid && orderLine.registration 
             ? 'border-red-500 focus:border-red-500 text-red-500' 
