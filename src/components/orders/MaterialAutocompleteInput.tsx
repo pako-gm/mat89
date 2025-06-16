@@ -22,7 +22,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   value,
   onChange,
   onMaterialNotFound,
-  placeholder = "89654014",
+  placeholder = "89xxxxxx",
   className = "",
   error = false
 }, ref) => {
