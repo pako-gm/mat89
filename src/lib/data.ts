@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception, Material } from "@/types";
+import { Order, Warehouse, Supplier, Reception, Material, MaterialReception } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -408,12 +408,14 @@ export const getOrders = async () => {
       shipmentDate: order.fecha_envio,
       declaredDamage: order.averia_declarada,
       shipmentDocumentation: order.documentacion || [],
+      estadoPedido: order.estado_pedido || 'PENDIENTE',
       orderLines: order.tbl_ln_pedidos_rep.map(line => ({
         id: line.id,
         registration: line.matricula_89 || "",
         partDescription: line.descripcion,
         quantity: line.nenv,
-        serialNumber: line.nsenv
+        serialNumber: line.nsenv,
+        estadoCompletado: line.estado_completado || false
       })),
       changeHistory: order.tbl_historico_cambios.map(change => ({
         id: change.id,
@@ -441,6 +443,118 @@ export const deleteOrder = async (orderId: string) => {
   return true;
 };
 
+// Reception functions
+export const getOrdersForReception = async (): Promise<Order[]> => {
+  try {
+    const { data: orders, error: ordersError } = await supabase
+      .from('tbl_pedidos_rep')
+      .select(`
+        *,
+        tbl_proveedores!inner(nombre),
+        tbl_ln_pedidos_rep (*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (ordersError) throw ordersError;
+
+    if (!orders) return [];
+
+    return orders.map(order => ({
+      id: order.id,
+      orderNumber: order.num_pedido,
+      warehouse: order.alm_envia,
+      supplierId: order.proveedor_id,
+      supplierName: order.tbl_proveedores.nombre,
+      vehicle: order.vehiculo,
+      warranty: order.garantia,
+      nonConformityReport: order.informacion_nc,
+      dismantleDate: order.fecha_desmonte,
+      shipmentDate: order.fecha_envio,
+      declaredDamage: order.averia_declarada,
+      shipmentDocumentation: order.documentacion || [],
+      estadoPedido: order.estado_pedido || 'PENDIENTE',
+      changeHistory: [],
+      orderLines: order.tbl_ln_pedidos_rep.map(line => ({
+        id: line.id,
+        registration: line.matricula_89 || "",
+        partDescription: line.descripcion,
+        quantity: line.nenv,
+        serialNumber: line.nsenv,
+        estadoCompletado: line.estado_completado || false
+      }))
+    }));
+  } catch (error) {
+    console.error('Error fetching orders for reception:', error);
+    return [];
+  }
+};
+
+export const getReceptionsByLineId = async (lineId: string): Promise<MaterialReception[]> => {
+  try {
+    const { data: receptions, error } = await supabase
+      .from('tbl_recepciones')
+      .select('*')
+      .eq('linea_pedido_id', lineId)
+      .order('fecha_recepcion', { ascending: false });
+
+    if (error) throw error;
+
+    return receptions.map(reception => ({
+      id: reception.id,
+      pedidoId: reception.pedido_id,
+      lineaPedidoId: reception.linea_pedido_id,
+      fechaRecepcion: reception.fecha_recepcion,
+      estadoRecepcion: reception.estado_recepcion,
+      nRec: reception.n_rec,
+      nsRec: reception.ns_rec || '',
+      observaciones: reception.observaciones || '',
+      createdAt: reception.created_at,
+      updatedAt: reception.updated_at
+    }));
+  } catch (error) {
+    console.error('Error fetching receptions:', error);
+    return [];
+  }
+};
+
+export const saveReception = async (reception: MaterialReception): Promise<any> => {
+  const { data, error } = await supabase
+    .from('tbl_recepciones')
+    .insert({
+      id: reception.id,
+      pedido_id: reception.pedidoId,
+      linea_pedido_id: reception.lineaPedidoId,
+      fecha_recepcion: reception.fechaRecepcion,
+      estado_recepcion: reception.estadoRecepcion,
+      n_rec: reception.nRec,
+      ns_rec: reception.nsRec,
+      observaciones: reception.observaciones
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error saving reception:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const deleteReception = async (receptionId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('tbl_recepciones')
+    .delete()
+    .eq('id', receptionId);
+
+  if (error) {
+    console.error('Error deleting reception:', error);
+    throw error;
+  }
+
+  return true;
+};
+
 export const getReceptions = async (): Promise<Reception[]> => {
   // Query with join to get supplier name
   const { data: orders, error } = await supabase
@@ -462,7 +576,7 @@ export const getReceptions = async (): Promise<Reception[]> => {
     supplier: order.tbl_proveedores.nombre,
     warehouse: order.alm_envia,
     shipmentDate: order.fecha_envio,
-    status: 'Pendiente',
+    status: order.estado_pedido === 'COMPLETADO' ? 'Completado' : 'Pendiente',
     orderLines: order.tbl_ln_pedidos_rep.map(line => ({
       id: line.id,
       registration: line.matricula_89 || "",

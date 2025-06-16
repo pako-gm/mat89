@@ -8,6 +8,19 @@ export interface Reception {
   orderLines: OrderLine[];
 }
 
+export interface MaterialReception {
+  id: string;
+  pedidoId: string;
+  lineaPedidoId: string;
+  fechaRecepcion: string;
+  estadoRecepcion: 'UTIL' | 'IRREPARABLE' | 'SIN ACTUACION' | 'OTROS';
+  nRec: number;
+  nsRec: string;
+  observaciones: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -23,6 +36,7 @@ export interface Order {
   shipmentDocumentation: string[];
   changeHistory: ChangeHistoryItem[];
   orderLines: OrderLine[];
+  estadoPedido?: 'PENDIENTE' | 'COMPLETADO';
   deleted?: boolean;
 }
 
@@ -32,6 +46,8 @@ export interface OrderLine {
   partDescription: string;
   quantity: number;
   serialNumber: string;
+  estadoCompletado?: boolean;
+  receptions?: MaterialReception[];
 }
 
 export interface ChangeHistoryItem {
