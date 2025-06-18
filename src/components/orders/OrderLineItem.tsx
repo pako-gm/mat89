@@ -17,7 +17,8 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
   
   const validateRegistration = (value: string): boolean => {
     if (!value) return true;
-    const isValid = value.startsWith('89');
+    // Debe tener exactamente 8 dígitos y empezar con 89
+    const isValid = value.length === 8 && value.startsWith('89');
     setIsRegistrationValid(value === "" || isValid);
     return isValid;
   };
@@ -42,25 +43,49 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
     onUpdate(orderLine.id, { [name]: numericValue });
   };
 
+  const handleRegistrationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d]/g, ''); // Solo números
+    
+    // Limitar a 8 dígitos
+    if (value.length > 8) {
+      value = value.slice(0, 8);
+    }
+    
+    // Si el usuario está escribiendo y no empieza con 89, forzar 89 al inicio
+    if (value.length > 0 && !value.startsWith('89')) {
+      if (value.length === 1) {
+        // Si escribieron solo un dígito, agregar 89 al inicio
+        value = '89' + value;
+      } else {
+        // Si están escribiendo y no empieza con 89, forzar 89 al inicio
+        value = '89' + value.slice(2);
+      }
+    }
+    
+    // Si están borrando y llegan debajo de 89, mantener 89
+    if (value.length < 2 && value.length > 0) {
+      value = '89';
+    }
+    
+    // Asegurar que no excedamos 8 dígitos después de agregar 89
+    if (value.length > 8) {
+      value = value.slice(0, 8);
+    }
+    
+    validateRegistration(value);
+    onUpdate(orderLine.id, { registration: value });
+  };
+
   return (
     <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-center mb-2">
       <Input
         name="registration"
-        value={orderLine.registration.replace(/[^\d]/g, '')}
-        onChange={(e) => {
-          let value = e.target.value.replace(/[^\d]/g, '');
-          // Only allow more digits if empty, starts with 89, or is still typing the first two digits
-          if (value.length <= 2 || value.startsWith('89')) {
-            value = value.slice(0, 8);
-          } else {
-            value = value.slice(0, 2);
-          }
-          validateRegistration(value);
-          onUpdate(orderLine.id, { registration: value });
-        }}
+        value={orderLine.registration}
+        onChange={handleRegistrationChange}
         onFocus={(e) => e.target.placeholder = ""}
         onBlur={(e) => e.target.placeholder = "89xxxxxx"}
         placeholder="89xxxxxx"
+        maxLength={8}
         className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
           !isRegistrationValid && orderLine.registration 
             ? 'border-red-500 focus:border-red-500 text-red-500' 

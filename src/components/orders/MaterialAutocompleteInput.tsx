@@ -111,6 +111,27 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
       inputValue = inputValue.slice(0, 8);
     }
     
+    // Si el usuario está escribiendo y no empieza con 89, forzar 89 al inicio
+    if (inputValue.length > 0 && !inputValue.startsWith('89')) {
+      if (inputValue.length === 1) {
+        // Si escribieron solo un dígito, agregar 89 al inicio
+        inputValue = '89' + inputValue;
+      } else {
+        // Si están escribiendo y no empieza con 89, forzar 89 al inicio
+        inputValue = '89' + inputValue.slice(2);
+      }
+    }
+    
+    // Si están borrando y llegan debajo de 89, mantener 89
+    if (inputValue.length < 2 && inputValue.length > 0) {
+      inputValue = '89';
+    }
+    
+    // Asegurar que no excedamos 8 dígitos después de agregar 89
+    if (inputValue.length > 8) {
+      inputValue = inputValue.slice(0, 8);
+    }
+    
     onChange(inputValue);
   };
 

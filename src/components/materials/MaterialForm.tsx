@@ -164,8 +164,15 @@ export default function MaterialForm({
     
     if (!formData.registration || formData.registration <= 0) {
       errors.registration = "La matrícula es obligatoria y debe ser mayor a 0";
-    } else if (registrationStatus.isDuplicate) {
-      errors.registration = "Esta matrícula ya existe";
+    } else {
+      const regStr = formData.registration.toString();
+      if (regStr.length !== 8) {
+        errors.registration = "La matrícula debe tener exactamente 8 dígitos";
+      } else if (!regStr.startsWith('89')) {
+        errors.registration = "La matrícula debe comenzar con 89";
+      } else if (registrationStatus.isDuplicate) {
+        errors.registration = "Esta matrícula ya existe";
+      }
     }
     
     if (!formData.description.trim()) {
@@ -180,8 +187,36 @@ export default function MaterialForm({
     const { name, value } = e.target;
     
     if (name === "registration") {
-      // Only allow positive integers
-      const numValue = parseInt(value) || 0;
+      // Remove any non-digit characters
+      let cleanValue = value.replace(/\D/g, '');
+      
+      // Limit to 8 digits
+      if (cleanValue.length > 8) {
+        cleanValue = cleanValue.slice(0, 8);
+      }
+      
+      // If user starts typing and it doesn't start with 89, prepend 89
+      if (cleanValue.length > 0 && !cleanValue.startsWith('89')) {
+        if (cleanValue.length === 1) {
+          // If they typed just one digit, prepend 89
+          cleanValue = '89' + cleanValue;
+        } else {
+          // If they're typing and it doesn't start with 89, force 89 at the beginning
+          cleanValue = '89' + cleanValue.slice(2);
+        }
+      }
+      
+      // If they're backspacing and get below 89, keep 89
+      if (cleanValue.length < 2) {
+        cleanValue = '89';
+      }
+      
+      // Ensure we don't exceed 8 digits after prepending 89
+      if (cleanValue.length > 8) {
+        cleanValue = cleanValue.slice(0, 8);
+      }
+      
+      const numValue = parseInt(cleanValue) || 0;
       setFormData(prev => ({
         ...prev,
         [name]: numValue
@@ -297,6 +332,14 @@ export default function MaterialForm({
     }
   };
 
+  // Format the registration display value
+  const getRegistrationDisplayValue = () => {
+    if (!formData.registration || formData.registration === 0) {
+      return '';
+    }
+    return formData.registration.toString();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -327,9 +370,8 @@ export default function MaterialForm({
               <Input
                 id="registration"
                 name="registration"
-                type="number"
-                min="1"
-                value={formData.registration || ""}
+                type="text"
+                value={getRegistrationDisplayValue()}
                 onChange={handleChange}
                 className={`h-9 ${
                   formErrors.registration || registrationStatus.isDuplicate 
@@ -339,6 +381,7 @@ export default function MaterialForm({
                     : ''
                 }`}
                 placeholder="89xxxxxx"
+                maxLength={8}
               />
               {formErrors.registration && (
                 <p className="text-xs text-red-500 mt-1">{formErrors.registration}</p>
