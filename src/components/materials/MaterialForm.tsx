@@ -373,7 +373,7 @@ export default function MaterialForm({
                   <SelectValue placeholder="Seleccione una serie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">-- Sin especificar --</SelectItem>
+                  <SelectItem value="__none__">-- Elige serie vehiculo --</SelectItem>
                   {vehicleSeriesOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
