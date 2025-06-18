@@ -203,9 +203,12 @@ export default function MaterialForm({
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    // Convert the special "__none__" value back to empty string
+    const actualValue = value === "__none__" ? "" : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: actualValue
     }));
   };
 
@@ -363,14 +366,14 @@ export default function MaterialForm({
                 Serie Vehículo
               </Label>
               <Select
-                value={formData.vehicleSeries || ""}
+                value={formData.vehicleSeries || "__none__"}
                 onValueChange={(value) => handleSelectChange("vehicleSeries", value)}
               >
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Seleccione una serie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- Sin especificar --</SelectItem>
+                  <SelectItem value="__none__">-- Sin especificar --</SelectItem>
                   {vehicleSeriesOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
