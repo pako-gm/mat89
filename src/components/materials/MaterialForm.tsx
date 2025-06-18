@@ -420,7 +420,7 @@ export default function MaterialForm({
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Seleccione una serie" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[160px] overflow-y-auto">
                   <SelectItem value="__none__">-- Elige serie vehiculo --</SelectItem>
                   {vehicleSeriesOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
