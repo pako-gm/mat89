@@ -334,7 +334,7 @@ export const saveOrder = async (order: Order) => {
       throw new Error(orderError.message);
     }
 
-    // Save order lines
+    // Save order lines using upsert
     const { error: linesError } = await supabase
       .from('tbl_ln_pedidos_rep')
       .upsert(
@@ -353,16 +353,22 @@ export const saveOrder = async (order: Order) => {
       throw new Error(linesError.message);
     }
 
-    // Save change history
+    // Save change history using upsert to prevent duplicates
     if (order.changeHistory.length > 0) {
       const { error: historyError } = await supabase
         .from('tbl_historico_cambios')
-        .insert(
+        .upsert(
           order.changeHistory.map(change => ({
+            id: change.id, // Include the ID for upsert to work correctly
             pedido_id: order.id,
             descripcion_cambio: change.description,
-            usuario: userData.user?.email || 'SISTEMA'
-          }))
+            usuario: change.user || userData.user?.email || 'SISTEMA',
+            // Don't override created_at if it exists (for existing comments)
+            ...(change.date ? { created_at: change.date } : {})
+          })),
+          {
+            onConflict: 'id' // Specify the conflict resolution column
+          }
         );
 
       if (historyError) {
