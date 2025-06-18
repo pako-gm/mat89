@@ -103,3 +103,49 @@ export function formatCompleteHistoryEntry(change: {
   
   return `${formattedDate} - ${formattedUser}: ${change.description}`;
 }
+
+// Nueva función para formato específico solicitado: [DD/MM/YYYY HH:mm] - nombreUsuario (email@dominio.com) # texto del comentario
+export function formatNewCommentStyle(change: {
+  date: string;
+  user: string;
+  description: string;
+}): string {
+  try {
+    const date = new Date(change.date);
+    
+    // Verificar que la fecha es válida
+    if (isNaN(date.getTime())) {
+      return `[${change.date}] - ${change.user} # ${change.description}`;
+    }
+    
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    const formattedDate = `[${day}/${month}/${year} ${hours}:${minutes}]`;
+    
+    // Extraer nombre de usuario y mantener email completo
+    let userName = '';
+    let fullEmail = change.user;
+    
+    if (change.user && change.user.includes('@')) {
+      const emailParts = change.user.split('@');
+      userName = emailParts[0]
+        .replace(/[._-]/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      fullEmail = change.user;
+    } else {
+      userName = change.user || 'Usuario';
+      fullEmail = change.user || 'usuario@mat89.com';
+    }
+    
+    return `${formattedDate} - ${userName} (${fullEmail}) # ${change.description}`;
+  } catch (error) {
+    console.error('Error formatting comment:', error);
+    return `[${change.date}] - ${change.user} # ${change.description}`;
+  }
+}

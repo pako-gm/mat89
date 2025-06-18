@@ -5,7 +5,7 @@ import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
-import { filterManualChangeHistory, formatChangeHistoryDate, formatUserName } from "@/lib/utils";
+import { filterManualChangeHistory, formatChangeHistoryDate, formatUserName, formatNewCommentStyle } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import { 
@@ -935,20 +935,12 @@ export default function OrderForm({
                     </span>
                   )}
                 </Label>
-                <div className="mt-1 border rounded-md h-[100px] overflow-y-auto bg-gray-50 p-2">
+                <div className="mt-1 border rounded-md h-[200px] overflow-y-auto bg-gray-50 p-2">
                   {manualChangeHistory.length > 0 ? (
                     manualChangeHistory.map((item, i) => (
                       <div key={i} className="text-xs py-1 border-b last:border-0">
-                        <div className="flex justify-between items-start">
-                          <span className="font-medium text-gray-700">
-                            {formatChangeHistoryDate(item.date)}
-                          </span>
-                          <span className="text-gray-500 text-xs">
-                            {formatUserName(item.user)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-800 mt-0.5 leading-relaxed">
-                          {item.description}
+                        <div className="text-xs text-gray-800 leading-relaxed break-words">
+                          {formatNewCommentStyle(item)}
                         </div>
                       </div>
                     ))
@@ -1045,7 +1037,7 @@ export default function OrderForm({
                           handleMaterialRegistrationChange(line.id, registration, description)
                         }
                         onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
-                        placeholder="89654014"
+                        placeholder="89xxxxxx"
                         className={errors.orderLines && !String(line.registration).trim() ? 'border-red-500' : ''}
                         error={errors.orderLines && !String(line.registration).trim()}
                       />
