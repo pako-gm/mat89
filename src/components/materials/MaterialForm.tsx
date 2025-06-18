@@ -14,6 +14,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -24,6 +31,20 @@ interface MaterialFormProps {
   onSave: () => void;
   isEditing: boolean;
 }
+
+// Vehicle series options in ascending order
+const vehicleSeriesOptions = [
+  { value: "252", label: "252" },
+  { value: "310", label: "310" },
+  { value: "319", label: "319" },
+  { value: "333", label: "333" },
+  { value: "447", label: "447" },
+  { value: "449", label: "449" },
+  { value: "470", label: "470" },
+  { value: "490", label: "490" },
+  { value: "592", label: "592" },
+  { value: "999", label: "999" }
+];
 
 export default function MaterialForm({ 
   open, 
@@ -181,6 +202,13 @@ export default function MaterialForm({
     }
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const checkUserAuthentication = async () => {
     try {
       setAuthError(null);
@@ -334,14 +362,22 @@ export default function MaterialForm({
               <Label htmlFor="vehicleSeries" className="text-sm font-medium">
                 Serie Vehículo
               </Label>
-              <Input
-                id="vehicleSeries"
-                name="vehicleSeries"
+              <Select
                 value={formData.vehicleSeries || ""}
-                onChange={handleChange}
-                className="h-9"
-                placeholder="ej: 447, 592"
-              />
+                onValueChange={(value) => handleSelectChange("vehicleSeries", value)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Seleccione una serie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">-- Sin especificar --</SelectItem>
+                  {vehicleSeriesOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
