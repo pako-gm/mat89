@@ -8,7 +8,7 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle, 
+  DialogTitle,
   DialogFooter 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -62,11 +62,13 @@ export default function MaterialForm({
     isDuplicate: boolean;
     isChecking: boolean;
     message: string;
+    startsWithWrong: boolean;
   }>({
     isValid: true,
     isDuplicate: false,
     isChecking: false,
-    message: ""
+    message: "",
+    startsWithWrong: false
   });
   
   const [formData, setFormData] = useState<Material>({
@@ -103,7 +105,8 @@ export default function MaterialForm({
       isValid: true,
       isDuplicate: false,
       isChecking: false,
-      message: ""
+      message: "",
+      startsWithWrong: false
     });
     setAuthError(null);
   }, [material, open]);
@@ -116,12 +119,27 @@ export default function MaterialForm({
           isValid: true,
           isDuplicate: false,
           isChecking: false,
-          message: ""
+          message: "",
+          startsWithWrong: false
         });
         return;
       }
 
-      setRegistrationStatus(prev => ({ ...prev, isChecking: true }));
+      const regStr = formData.registration.toString();
+      
+      // Check if starts with wrong digits
+      if (regStr.length > 0 && !regStr.startsWith('89')) {
+        setRegistrationStatus({
+          isValid: false,
+          isDuplicate: false,
+          isChecking: false,
+          message: "La matrícula debe comenzar por 89",
+          startsWithWrong: true
+        });
+        return;
+      }
+
+      setRegistrationStatus(prev => ({ ...prev, isChecking: true, startsWithWrong: false }));
 
       try {
         const isDuplicate = await checkMaterialRegistrationExists(
@@ -134,14 +152,16 @@ export default function MaterialForm({
             isValid: false,
             isDuplicate: true,
             isChecking: false,
-            message: "Esta matrícula ya existe en la base de datos."
+            message: "Esta matrícula ya existe en la base de datos.",
+            startsWithWrong: false
           });
         } else {
           setRegistrationStatus({
             isValid: true,
             isDuplicate: false,
             isChecking: false,
-            message: "Matrícula disponible."
+            message: "Matrícula disponible.",
+            startsWithWrong: false
           });
         }
       } catch (error) {
@@ -150,7 +170,8 @@ export default function MaterialForm({
           isValid: true,
           isDuplicate: false,
           isChecking: false,
-          message: ""
+          message: "",
+          startsWithWrong: false
         });
       }
     };
@@ -169,7 +190,7 @@ export default function MaterialForm({
       if (regStr.length !== 8) {
         errors.registration = "La matrícula debe tener exactamente 8 dígitos";
       } else if (!regStr.startsWith('89')) {
-        errors.registration = "La matrícula debe comenzar con 89";
+        errors.registration = "La matrícula debe comenzar por 89";
       } else if (registrationStatus.isDuplicate) {
         errors.registration = "Esta matrícula ya existe";
       }
@@ -195,25 +216,9 @@ export default function MaterialForm({
         cleanValue = cleanValue.slice(0, 8);
       }
       
-      // If user starts typing and it doesn't start with 89, prepend 89
-      if (cleanValue.length > 0 && !cleanValue.startsWith('89')) {
-        if (cleanValue.length === 1) {
-          // If they typed just one digit, prepend 89
-          cleanValue = '89' + cleanValue;
-        } else {
-          // If they're typing and it doesn't start with 89, force 89 at the beginning
-          cleanValue = '89' + cleanValue.slice(2);
-        }
-      }
-      
-      // If they're backspacing and get below 89, keep 89
-      if (cleanValue.length < 2) {
-        cleanValue = '89';
-      }
-      
-      // Ensure we don't exceed 8 digits after prepending 89
-      if (cleanValue.length > 8) {
-        cleanValue = cleanValue.slice(0, 8);
+      // If it doesn't start with 89 and has more than 2 digits, prevent further input
+      if (cleanValue.length > 2 && !cleanValue.startsWith('89')) {
+        cleanValue = cleanValue.slice(0, 2);
       }
       
       const numValue = parseInt(cleanValue) || 0;
@@ -374,9 +379,9 @@ export default function MaterialForm({
                 value={getRegistrationDisplayValue()}
                 onChange={handleChange}
                 className={`h-9 ${
-                  formErrors.registration || registrationStatus.isDuplicate 
-                    ? 'border-red-500 focus:border-red-500' 
-                    : registrationStatus.isValid && formData.registration > 0 && registrationStatus.message
+                  formErrors.registration || registrationStatus.startsWithWrong || registrationStatus.isDuplicate
+                    ? 'border-red-500 focus:border-red-500 text-red-500' 
+                    : registrationStatus.isValid && formData.registration > 0 && registrationStatus.message && !registrationStatus.startsWithWrong
                     ? 'border-green-500 focus:border-green-500'
                     : ''
                 }`}
@@ -390,11 +395,11 @@ export default function MaterialForm({
               {/* Registration status indicator */}
               {formData.registration > 0 && registrationStatus.message && (
                 <div className={`text-xs mt-1 flex items-center gap-1 ${
-                  registrationStatus.isDuplicate ? 'text-red-500' : 'text-green-600'
+                  registrationStatus.isDuplicate || registrationStatus.startsWithWrong ? 'text-red-500' : 'text-green-600'
                 }`}>
                   {registrationStatus.isChecking ? (
                     <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent"></div>
-                  ) : registrationStatus.isDuplicate ? (
+                  ) : (registrationStatus.isDuplicate || registrationStatus.startsWithWrong) ? (
                     <AlertCircle className="h-3 w-3" />
                   ) : (
                     <CheckCircle className="h-3 w-3" />
@@ -451,7 +456,7 @@ export default function MaterialForm({
             <Button 
               type="submit" 
               className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-              disabled={loading || !!authError || registrationStatus.isDuplicate || registrationStatus.isChecking}
+              disabled={loading || !!authError || registrationStatus.isDuplicate || registrationStatus.isChecking || registrationStatus.startsWithWrong}
             >
               {loading && (
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>

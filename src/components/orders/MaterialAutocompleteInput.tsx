@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { Input } from "@/components/ui/input";
-import { Check } from "lucide-react";
+import { Check, AlertCircle } from "lucide-react";
 import { searchMaterialsByRegistration, getMaterialByRegistration } from "@/lib/data";
 import { Material } from "@/types";
 
@@ -31,6 +31,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -44,6 +45,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
       setSuggestions([]);
       setShowSuggestions(false);
       setSelectedIndex(-1);
+      setValidationError("");
       inputRef.current?.focus();
     }
   }));
@@ -52,6 +54,13 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   useEffect(() => {
     const searchMaterials = async () => {
       if (value.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      // Solo buscar si empieza con 89
+      if (!value.startsWith('89')) {
         setSuggestions([]);
         setShowSuggestions(false);
         return;
@@ -76,12 +85,24 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
     return () => clearTimeout(timeoutId);
   }, [value]);
 
-  // Validar matrícula cuando el usuario termina de escribir
+  // Validar matrícula en tiempo real
   useEffect(() => {
+    if (value.length === 0) {
+      setValidationError("");
+      return;
+    }
+
+    if (value.length > 0 && !value.startsWith('89')) {
+      setValidationError("La matrícula debe comenzar por 89");
+      return;
+    }
+
+    // Validar matrícula cuando el usuario termina de escribir
     const validateMaterial = async () => {
       // Solo validar si la matrícula tiene 8 dígitos y empieza con 89
       if (value.length === 8 && value.startsWith('89')) {
         setIsValidating(true);
+        setValidationError("");
         try {
           const material = await getMaterialByRegistration(parseInt(value));
           if (!material) {
@@ -111,25 +132,9 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
       inputValue = inputValue.slice(0, 8);
     }
     
-    // Si el usuario está escribiendo y no empieza con 89, forzar 89 al inicio
-    if (inputValue.length > 0 && !inputValue.startsWith('89')) {
-      if (inputValue.length === 1) {
-        // Si escribieron solo un dígito, agregar 89 al inicio
-        inputValue = '89' + inputValue;
-      } else {
-        // Si están escribiendo y no empieza con 89, forzar 89 al inicio
-        inputValue = '89' + inputValue.slice(2);
-      }
-    }
-    
-    // Si están borrando y llegan debajo de 89, mantener 89
-    if (inputValue.length < 2 && inputValue.length > 0) {
-      inputValue = '89';
-    }
-    
-    // Asegurar que no excedamos 8 dígitos después de agregar 89
-    if (inputValue.length > 8) {
-      inputValue = inputValue.slice(0, 8);
+    // Si no empieza con 89 y tiene más de 2 dígitos, limitar a 2
+    if (inputValue.length > 2 && !inputValue.startsWith('89')) {
+      inputValue = inputValue.slice(0, 2);
     }
     
     onChange(inputValue);
@@ -139,6 +144,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
     onChange(material.registration.toString(), material.description);
     setShowSuggestions(false);
     setSelectedIndex(-1);
+    setValidationError("");
     inputRef.current?.focus();
   };
 
@@ -170,7 +176,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   };
 
   const handleFocus = () => {
-    if (suggestions.length > 0) {
+    if (suggestions.length > 0 && value.startsWith('89')) {
       setShowSuggestions(true);
     }
   };
@@ -193,6 +199,11 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
     }
   }, [selectedIndex]);
 
+  const hasValidationError = validationError || (error && value.length > 0 && !value.startsWith('89'));
+  const inputClass = hasValidationError 
+    ? 'border-red-500 focus:border-red-500 text-red-500' 
+    : 'border-[#4C4C4C] focus:border-[#91268F]';
+
   return (
     <div className="relative">
       <Input
@@ -204,12 +215,20 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`h-9 ${error ? 'border-red-500 focus:border-red-500' : 'border-[#4C4C4C] focus:border-[#91268F]'} ${className}`}
+        className={`h-9 ${inputClass} ${className}`}
         maxLength={8}
         autoComplete="off"
       />
       
-      {showSuggestions && suggestions.length > 0 && (
+      {/* Error message */}
+      {validationError && (
+        <div className="text-xs text-red-500 mt-1 flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" />
+          <span>{validationError}</span>
+        </div>
+      )}
+      
+      {showSuggestions && suggestions.length > 0 && value.startsWith('89') && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
           {suggestions.map((material, index) => (
             <div

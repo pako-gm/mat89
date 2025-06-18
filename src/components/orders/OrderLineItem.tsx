@@ -2,7 +2,7 @@ import { useState } from "react";
 import { OrderLine } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Check, Trash2 } from "lucide-react"; 
+import { Check, Trash2, AlertCircle } from "lucide-react"; 
 
 interface OrderLineItemProps {
   orderLine: OrderLine;
@@ -14,13 +14,36 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
   const [isChecked, setIsChecked] = useState(false);
   const [isRegistrationValid, setIsRegistrationValid] = useState(true);
   const [isQuantityValid, setIsQuantityValid] = useState(true);
+  const [registrationError, setRegistrationError] = useState<string>("");
   
   const validateRegistration = (value: string): boolean => {
-    if (!value) return true;
-    // Debe tener exactamente 8 dígitos y empezar con 89
-    const isValid = value.length === 8 && value.startsWith('89');
-    setIsRegistrationValid(value === "" || isValid);
-    return isValid;
+    if (!value) {
+      setRegistrationError("");
+      setIsRegistrationValid(true);
+      return true;
+    }
+    
+    if (value.length > 0 && !value.startsWith('89')) {
+      setRegistrationError("La matrícula debe comenzar por 89");
+      setIsRegistrationValid(false);
+      return false;
+    }
+    
+    if (value.length === 8 && value.startsWith('89')) {
+      setRegistrationError("");
+      setIsRegistrationValid(true);
+      return true;
+    }
+    
+    // Si está en proceso de escritura pero empieza con 89
+    if (value.startsWith('89')) {
+      setRegistrationError("");
+      setIsRegistrationValid(true);
+      return true;
+    }
+    
+    setIsRegistrationValid(false);
+    return false;
   };
 
   const validateQuantity = (value: number): boolean => {
@@ -51,25 +74,9 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
       value = value.slice(0, 8);
     }
     
-    // Si el usuario está escribiendo y no empieza con 89, forzar 89 al inicio
-    if (value.length > 0 && !value.startsWith('89')) {
-      if (value.length === 1) {
-        // Si escribieron solo un dígito, agregar 89 al inicio
-        value = '89' + value;
-      } else {
-        // Si están escribiendo y no empieza con 89, forzar 89 al inicio
-        value = '89' + value.slice(2);
-      }
-    }
-    
-    // Si están borrando y llegan debajo de 89, mantener 89
-    if (value.length < 2 && value.length > 0) {
-      value = '89';
-    }
-    
-    // Asegurar que no excedamos 8 dígitos después de agregar 89
-    if (value.length > 8) {
-      value = value.slice(0, 8);
+    // Si no empieza con 89 y tiene más de 2 dígitos, no permitir más caracteres
+    if (value.length > 2 && !value.startsWith('89')) {
+      value = value.slice(0, 2);
     }
     
     validateRegistration(value);
@@ -77,20 +84,28 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
   };
 
   return (
-    <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-center mb-2">
-      <Input
-        name="registration"
-        value={orderLine.registration}
-        onChange={handleRegistrationChange}
-        onFocus={(e) => e.target.placeholder = ""}
-        onBlur={(e) => e.target.placeholder = "89xxxxxx"}
-        placeholder="89xxxxxx"
-        maxLength={8}
-        className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
-          !isRegistrationValid && orderLine.registration 
-            ? 'border-red-500 focus:border-red-500 text-red-500' 
-            : ''}`}
-      />
+    <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-start mb-2">
+      <div>
+        <Input
+          name="registration"
+          value={orderLine.registration}
+          onChange={handleRegistrationChange}
+          onFocus={(e) => e.target.placeholder = ""}
+          onBlur={(e) => e.target.placeholder = "89xxxxxx"}
+          placeholder="89xxxxxx"
+          maxLength={8}
+          className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${
+            !isRegistrationValid || registrationError
+              ? 'border-red-500 focus:border-red-500 text-red-500' 
+              : ''}`}
+        />
+        {registrationError && (
+          <div className="text-xs text-red-500 mt-1 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            <span>{registrationError}</span>
+          </div>
+        )}
+      </div>
       
       <Input
         name="partDescription"
@@ -128,7 +143,7 @@ export default function OrderLineItem({ orderLine, onDelete, onUpdate }: OrderLi
         className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
       />
       
-      <div className="flex space-x-1">
+      <div className="flex space-x-1 items-start pt-1">
         <Button 
           type="button"
           variant="ghost" 
