@@ -104,7 +104,7 @@ export function formatCompleteHistoryEntry(change: {
   return `${formattedDate} - ${formattedUser}: ${change.description}`;
 }
 
-// Nueva función para formato específico solicitado: [DD/MM/YYYY HH:mm] - nombreUsuario (email@dominio.com) # texto del comentario
+// Función para formato específico solicitado: [DD/MM/YYYY HH:MM] - usuario@dominio.com # texto del comentario
 export function formatNewCommentStyle(change: {
   date: string;
   user: string;
@@ -126,24 +126,10 @@ export function formatNewCommentStyle(change: {
     
     const formattedDate = `[${day}/${month}/${year} ${hours}:${minutes}]`;
     
-    // Extraer nombre de usuario y mantener email completo
-    let userName = '';
-    let fullEmail = change.user;
+    // Usar directamente el email del usuario sin extraer el nombre
+    const userEmail = change.user || 'usuario@mat89.com';
     
-    if (change.user && change.user.includes('@')) {
-      const emailParts = change.user.split('@');
-      userName = emailParts[0]
-        .replace(/[._-]/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-      fullEmail = change.user;
-    } else {
-      userName = change.user || 'Usuario';
-      fullEmail = change.user || 'usuario@mat89.com';
-    }
-    
-    return `${formattedDate} - ${userName} (${fullEmail}) # ${change.description}`;
+    return `${formattedDate} - ${userEmail} # ${change.description}`;
   } catch (error) {
     console.error('Error formatting comment:', error);
     return `[${change.date}] - ${change.user} # ${change.description}`;
