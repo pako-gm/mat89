@@ -418,15 +418,15 @@ export default function ReceptionManagement() {
               {/* Line Info */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-medium mb-2">Información de la Línea</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 grid-rows-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium">Matrícula:</span> {selectedLine.registration}
                   </div>
                   <div>
-                    <span className="font-medium">Descripción:</span> {selectedLine.partDescription}
+                    <span className="font-medium">Cantidad Enviada:</span> {selectedLine.quantity}
                   </div>
                   <div>
-                    <span className="font-medium">Cantidad Enviada:</span> {selectedLine.quantity}
+                    <span className="font-medium">Descripción:</span> {selectedLine.partDescription}
                   </div>
                   <div>
                     <span className="font-medium">Total Recibido:</span> {getTotalReceived(selectedLine)}
