@@ -85,16 +85,16 @@ export default function ConsultaPage() {
 
     const query = searchQuery.toLowerCase();
     const filtered = consultationData.filter(record =>
-      record.numPedido.toLowerCase().includes(query) ||
-      record.mat89.toLowerCase().includes(query) ||
-      record.proveedor.toLowerCase().includes(query) ||
-      record.descripcion.toLowerCase().includes(query) ||
-      record.vehiculo.toLowerCase().includes(query) ||
-      record.fechaEnvio.includes(query) ||
-      (record.numSerieEnv && record.numSerieEnv.toLowerCase().includes(query)) ||
-      (record.fechaRecepc && record.fechaRecepc.includes(query)) ||
-      (record.numSerieRec && record.numSerieRec.toLowerCase().includes(query)) ||
-      (record.estadoRecepc && record.estadoRecepc.toLowerCase().includes(query))
+      String(record.numPedido || '').toLowerCase().includes(query) ||
+      String(record.mat89 || '').toLowerCase().includes(query) ||
+      String(record.proveedor || '').toLowerCase().includes(query) ||
+      String(record.descripcion || '').toLowerCase().includes(query) ||
+      String(record.vehiculo || '').toLowerCase().includes(query) ||
+      String(record.fechaEnvio || '').includes(query) ||
+      (record.numSerieEnv && String(record.numSerieEnv).toLowerCase().includes(query)) ||
+      (record.fechaRecepc && String(record.fechaRecepc).includes(query)) ||
+      (record.numSerieRec && String(record.numSerieRec).toLowerCase().includes(query)) ||
+      (record.estadoRecepc && String(record.estadoRecepc).toLowerCase().includes(query))
     );
 
     setFilteredData(filtered);
