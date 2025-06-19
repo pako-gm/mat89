@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter 
 } from "@/components/ui/dialog";
-import { Upload, PlusCircle, Trash2, Check } from "lucide-react";
+import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -434,35 +434,54 @@ export default function OrderForm({
     }));
   };
 
-  const handleAddComment = () => {
+  // MEJORADO: Función para agregar comentarios con mejor logging
+  const handleAddComment = async () => {
     if (newComment.trim()) {
-      // Obtener el email del usuario actual
-      const getCurrentUserEmail = async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          return user?.email || "usuario@mat89.com";
-        } catch (error) {
-          return "usuario@mat89.com";
-        }
-      };
+      console.log('=== AGREGANDO COMENTARIO ===');
+      console.log('Texto del comentario:', newComment.trim());
+      
+      try {
+        // Obtener el email del usuario actual
+        const { data: { user } } = await supabase.auth.getUser();
+        const userEmail = user?.email || 'usuario@mat89.com';
+        
+        console.log('Usuario actual:', userEmail);
+        
+        const newChange = {
+          id: uuidv4(),
+          date: new Date().toISOString(),
+          user: userEmail,
+          description: newComment.trim()
+        };
+        
+        console.log('Nuevo comentario creado:', newChange);
+        
+        setOrder(prev => {
+          const updatedHistory = [...prev.changeHistory, newChange];
+          console.log('ChangeHistory actualizado:', updatedHistory);
+          return {
+            ...prev,
+            changeHistory: updatedHistory
+          };
+        });
 
-      getCurrentUserEmail().then(userEmail => {
-        setOrder(prev => ({
-          ...prev,
-          changeHistory: [
-            ...prev.changeHistory,
-            {
-              id: uuidv4(),
-              date: new Date().toISOString(),
-              user: userEmail,
-              description: newComment.trim()
-            }
-          ]
-        }));
-      });
-
-      setNewComment("");
-      setIsCommentOpen(false);
+        setNewComment("");
+        setIsCommentOpen(false);
+        
+        toast({
+          title: "Comentario agregado",
+          description: "El comentario se ha agregado al pedido. Recuerde guardar los cambios.",
+        });
+        
+        console.log('=== COMENTARIO AGREGADO EXITOSAMENTE ===');
+      } catch (error) {
+        console.error('Error al agregar comentario:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo agregar el comentario.",
+        });
+      }
     }
   };
 
@@ -620,10 +639,13 @@ export default function OrderForm({
         quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
       }));
       
-      // NO añadir entrada automática al histórico - solo las entradas manuales se conservan
-      // Se elimina la lógica que agregaba "Creación pedido" o "Actualización de pedido"
+      console.log('=== GUARDANDO PEDIDO ===');
+      console.log('ChangeHistory antes de guardar:', updatedOrder.changeHistory);
       
       await saveOrder(updatedOrder);
+      
+      console.log('=== PEDIDO GUARDADO EXITOSAMENTE ===');
+      
       onSave();
       
     } catch (error) {
@@ -925,65 +947,88 @@ export default function OrderForm({
               </div>
             </div>
 
+            {/* MEJORADO: Sección de comentarios con mejor UI */}
             <div className="flex gap-4 items-start">
               <div className="flex-1">
-                <Label htmlFor="changeHistory" className="text-sm mb-1">
-                  Comentarios del Usuario
-                  {manualChangeHistory.length > 0 && (
-                    <span className="text-xs text-gray-500 ml-2">
-                      ({manualChangeHistory.length} {manualChangeHistory.length === 1 ? 'comentario' : 'comentarios'})
-                    </span>
-                  )}
-                </Label>
-                <div className="mt-1 border rounded-md h-[200px] overflow-y-auto bg-gray-50 p-2">
-                  {manualChangeHistory.length > 0 ? (
-                    manualChangeHistory.map((item, i) => (
-                      <div key={i} className="text-xs py-1 border-b last:border-0">
-                        <div className="text-xs text-gray-800 leading-relaxed break-words">
-                          {formatNewCommentStyle(item)}
-                        </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageCircle className="h-4 w-4 text-[#91268F]" />
+                  <Label htmlFor="changeHistory" className="text-sm font-medium">
+                    Comentarios del Usuario
+                    {manualChangeHistory.length > 0 && (
+                      <span className="text-xs text-gray-500 ml-2 font-normal">
+                        ({manualChangeHistory.length} {manualChangeHistory.length === 1 ? 'comentario' : 'comentarios'})
+                      </span>
+                    )}
+                  </Label>
+                </div>
+                <div className="border rounded-md bg-gray-50 overflow-hidden">
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {manualChangeHistory.length > 0 ? (
+                      <div className="divide-y divide-gray-200">
+                        {manualChangeHistory.map((item, i) => (
+                          <div key={i} className="p-3 bg-white">
+                            <div className="text-xs text-gray-800 leading-relaxed break-words">
+                              {formatNewCommentStyle(item)}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-gray-500 p-2">
-                      No hay comentarios registrados
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-sm text-gray-500 p-4 text-center">
+                        <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                        <p>No hay comentarios registrados</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Use el botón "Agregar Comentario" para añadir observaciones
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsCommentOpen(true)}
-                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-8 px-3 text-sm mt-7"
+                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2"
               >
-                Insertar Comentario
+                <MessageCircle className="h-4 w-4" />
+                Agregar Comentario
               </Button>
             </div>
             
+            {/* MEJORADO: Modal de comentarios con mejor diseño */}
             {isCommentOpen && (
               <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                  <h3 className="text-lg font-medium mb-4">Insertar Comentario</h3>
+                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MessageCircle className="h-5 w-5 text-[#91268F]" />
+                    <h3 className="text-lg font-medium">Agregar Comentario</h3>
+                  </div>
                   <Textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Escriba su comentario aquí..."
                     className="min-h-[100px] resize-none border-[#4C4C4C] focus:border-[#91268F]"
+                    autoFocus
                   />
                   <div className="flex justify-end gap-2 mt-4">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsCommentOpen(false)}
+                      onClick={() => {
+                        setIsCommentOpen(false);
+                        setNewComment("");
+                      }}
                     >
                       Cancelar
                     </Button>
                     <Button
                       onClick={handleAddComment}
-                      className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+                      disabled={!newComment.trim()}
+                      className="bg-[#91268F] hover:bg-[#7A1F79] text-white flex items-center gap-2"
                     >
-                      Guardar
+                      <Send className="h-4 w-4" />
+                      Agregar
                     </Button>
                   </div>
                 </div>

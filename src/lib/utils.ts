@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Función para filtrar entradas automáticas del sistema
+// Función para filtrar entradas automáticas del sistema - CORREGIDA
 export function filterManualChangeHistory(changeHistory: Array<{
   id: string;
   date: string;
@@ -33,19 +33,24 @@ export function filterManualChangeHistory(changeHistory: Array<{
   ];
 
   return changeHistory.filter(change => {
+    // Verificar que el comentario existe y no está vacío
+    if (!change.description || !change.description.trim()) {
+      return false;
+    }
+
     // Filtrar por patrones de texto automático
     const hasAutomaticPattern = automaticPatterns.some(pattern => 
       pattern.test(change.description.trim())
     );
     
-    // Filtrar entradas muy cortas que típicamente son automáticas
-    const isTooShort = change.description.trim().length < 10;
-    
     // Filtrar comentarios que parecen ser del sistema (usuario SISTEMA)
     const isSystemUser = /^(SISTEMA|system|auto)$/i.test(change.user.trim());
     
-    // Mantener solo comentarios que parecen ser manuales
-    return !hasAutomaticPattern && !isTooShort && !isSystemUser;
+    // CORREGIDO: Eliminar filtro de longitud mínima para permitir comentarios cortos
+    // CORREGIDO: Ser más específico con el filtro de usuario del sistema
+    
+    // Mantener comentarios que NO son automáticos y NO son del sistema
+    return !hasAutomaticPattern && !isSystemUser;
   });
 }
 
@@ -134,4 +139,39 @@ export function formatNewCommentStyle(change: {
     console.error('Error formatting comment:', error);
     return `[${change.date}] - ${change.user} # ${change.description}`;
   }
+}
+
+// Nueva función para debuggear comentarios
+export function debugComments(changeHistory: Array<{
+  id: string;
+  date: string;
+  user: string;
+  description: string;
+}>) {
+  console.log('=== DEBUG COMENTARIOS ===');
+  console.log('Total comentarios recibidos:', changeHistory.length);
+  
+  changeHistory.forEach((comment, index) => {
+    console.log(`Comentario ${index + 1}:`, {
+      id: comment.id,
+      date: comment.date,
+      user: comment.user,
+      description: comment.description,
+      descriptionLength: comment.description?.length || 0
+    });
+  });
+  
+  const filtered = filterManualChangeHistory(changeHistory);
+  console.log('Comentarios después del filtro:', filtered.length);
+  
+  filtered.forEach((comment, index) => {
+    console.log(`Comentario filtrado ${index + 1}:`, {
+      id: comment.id,
+      formatted: formatNewCommentStyle(comment)
+    });
+  });
+  
+  console.log('=== FIN DEBUG ===');
+  
+  return filtered;
 }
