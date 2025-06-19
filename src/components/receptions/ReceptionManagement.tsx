@@ -159,7 +159,7 @@ export default function ReceptionManagement() {
       // If this reception completes or over-completes the line, estado is required
       if (totalReceivedAfterThis >= selectedLine.quantity) {
         if (!newReception.estadoRecepcion) {
-          errors.estadoRecepcion = "El estado de recepción es obligatorio cuando se completa la línea";
+          errors.estadoRecepcion = "El estado de recepción es obligatorio";
         }
       }
     }
