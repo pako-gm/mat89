@@ -124,7 +124,7 @@ export const deleteSupplier = async (id: string) => {
   return true;
 };
 
-// Materials functions - UPDATED to be independent from suppliers
+// Materials functions - UPDATED to include new fields
 export const getAllMaterials = async (): Promise<Material[]> => {
   const { data: materials, error } = await supabase
     .from('tbl_materiales')
@@ -141,10 +141,12 @@ export const getAllMaterials = async (): Promise<Material[]> => {
     registration: material.matricula_89,
     description: material.descripcion,
     vehicleSeries: material.serie_vehiculo,
+    infoAdicional: material.info_adicional || '',
     supplierId: material.supplier_id || '', // Campo opcional, no relacionado
     supplierName: '', // Ya no se obtiene de la relación
     createdAt: material.created_at,
-    updatedAt: material.updated_at
+    updatedAt: material.updated_at,
+    updatedBy: material.updated_by
   }));
 };
 
@@ -165,10 +167,12 @@ export const getMaterialById = async (id: string): Promise<Material | null> => {
     registration: material.matricula_89,
     description: material.descripcion,
     vehicleSeries: material.serie_vehiculo,
+    infoAdicional: material.info_adicional || '',
     supplierId: material.supplier_id || '', // Campo opcional, no relacionado
     supplierName: '', // Ya no se obtiene de la relación
     createdAt: material.created_at,
-    updatedAt: material.updated_at
+    updatedAt: material.updated_at,
+    updatedBy: material.updated_by
   };
 };
 
@@ -196,10 +200,12 @@ export const searchMaterialsByRegistration = async (registrationQuery: string): 
     registration: material.matricula_89,
     description: material.descripcion,
     vehicleSeries: material.serie_vehiculo,
+    infoAdicional: material.info_adicional || '',
     supplierId: material.supplier_id || '',
     supplierName: '',
     createdAt: material.created_at,
-    updatedAt: material.updated_at
+    updatedAt: material.updated_at,
+    updatedBy: material.updated_by
   }));
 };
 
@@ -225,10 +231,12 @@ export const getMaterialByRegistration = async (registration: number): Promise<M
     registration: material.matricula_89,
     description: material.descripcion,
     vehicleSeries: material.serie_vehiculo,
+    infoAdicional: material.info_adicional || '',
     supplierId: material.supplier_id || '',
     supplierName: '',
     createdAt: material.created_at,
-    updatedAt: material.updated_at
+    updatedAt: material.updated_at,
+    updatedBy: material.updated_by
   };
 };
 
@@ -238,7 +246,9 @@ export const saveMaterial = async (material: Material): Promise<any> => {
     matricula_89: material.registration,
     descripcion: material.description,
     serie_vehiculo: material.vehicleSeries,
+    info_adicional: material.infoAdicional || '',
     updated_at: new Date().toISOString()
+    // updated_by se manejará automáticamente por el trigger de la base de datos
   };
 
   // Solo incluir supplier_id si existe y no está vacío

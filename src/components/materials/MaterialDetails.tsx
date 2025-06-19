@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Material } from "@/types";
-import { Edit2, X, Package, Factory, Calendar, Hash, Trash2 } from "lucide-react";
+import { Edit2, X, Package, Factory, Calendar, Hash, Trash2, User, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface MaterialDetailsProps {
@@ -26,6 +26,13 @@ export default function MaterialDetails({
     } catch (error) {
       return dateString;
     }
+  };
+
+  const formatUpdatedByAndDate = (dateString?: string, userEmail?: string) => {
+    if (!dateString && !userEmail) return "--";
+    const formattedDate = formatDate(dateString);
+    const email = userEmail || "SISTEMA";
+    return `${formattedDate} - ${email}`;
   };
 
   return (
@@ -116,10 +123,10 @@ export default function MaterialDetails({
                   </div>
                   
                   <div className="flex items-start">
-                    <Calendar className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <Clock className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
                     <div>
                       <div className="font-medium text-sm text-gray-500">Última Actualización</div>
-                      <div>{formatDate(material.updatedAt)}</div>
+                      <div>{formatUpdatedByAndDate(material.updatedAt, material.updatedBy)}</div>
                     </div>
                   </div>
                 </div>
@@ -128,13 +135,12 @@ export default function MaterialDetails({
               <div className="col-span-2">
                 <h3 className="text-lg font-medium mb-3">Información Adicional</h3>
                 <div className="bg-white border rounded-md p-3 min-h-[100px]">
-                  <p className="text-sm text-gray-600">
-                    Este material está registrado en el sistema con matrícula {material.registration}.
-                    {material.vehicleSeries && ` Pertenece a la serie de vehículo ${material.vehicleSeries}.`}
-                  </p>
-                  
-                  {!material.vehicleSeries && (
-                    <p className="text-sm text-gray-500 mt-2">
+                  {material.infoAdicional && material.infoAdicional.trim() ? (
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                      {material.infoAdicional}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
                       No hay información adicional disponible para este material.
                     </p>
                   )}

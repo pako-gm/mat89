@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select, 
   SelectContent, 
@@ -76,6 +77,7 @@ export default function MaterialForm({
     registration: 0,
     description: "",
     vehicleSeries: "",
+    infoAdicional: "",
     supplierId: "",
     supplierName: ""
   });
@@ -87,6 +89,7 @@ export default function MaterialForm({
         registration: material.registration || 0,
         description: material.description || "",
         vehicleSeries: material.vehicleSeries || "",
+        infoAdicional: material.infoAdicional || "",
         supplierId: "",
         supplierName: ""
       });
@@ -96,6 +99,7 @@ export default function MaterialForm({
         registration: 0,
         description: "",
         vehicleSeries: "",
+        infoAdicional: "",
         supplierId: "",
         supplierName: ""
       });
@@ -204,7 +208,7 @@ export default function MaterialForm({
     return Object.keys(errors).length === 0;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
     if (name === "registration") {
@@ -226,10 +230,15 @@ export default function MaterialForm({
         ...prev,
         [name]: numValue
       }));
-    } else {
+    } else if (name === "description") {
       setFormData(prev => ({
         ...prev,
         [name]: value.toUpperCase()
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
       }));
     }
     
@@ -447,6 +456,23 @@ export default function MaterialForm({
             {formErrors.description && (
               <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="infoAdicional" className="text-sm font-medium">
+              Información Adicional
+            </Label>
+            <Textarea
+              id="infoAdicional"
+              name="infoAdicional"
+              value={formData.infoAdicional || ''}
+              onChange={handleChange}
+              className="min-h-[100px] resize-none"
+              placeholder="Información adicional sobre el material (campo editable)..."
+            />
+            <p className="text-xs text-gray-500">
+              Este campo es completamente editable. Puede agregar cualquier información relevante sobre el material.
+            </p>
           </div>
           
           <DialogFooter className="mt-6">
