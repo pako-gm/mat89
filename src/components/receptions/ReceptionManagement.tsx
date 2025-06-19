@@ -159,7 +159,7 @@ export default function ReceptionManagement() {
       // If this reception completes or over-completes the line, estado is required
       if (totalReceivedAfterThis >= selectedLine.quantity) {
         if (!newReception.estadoRecepcion) {
-          errors.estadoRecepcion = "El estado de recepción es obligatorio";
+          errors.estadoRecepcion = "El estado de recepción es obligatorio cuando se completa la línea";
         }
       }
     }
@@ -282,15 +282,29 @@ export default function ReceptionManagement() {
     return lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
   };
 
-  const clearFilter = () => {
-    setSearchQuery('');
-    setFilteredOrders(orders);
+  // Check if we can add more receptions to this line
+  const canAddMoreReceptions = () => {
+    if (!selectedLine) return false;
+    const totalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
+    return totalReceived < selectedLine.quantity;
+  };
+
+  // Calculate remaining quantity that can be received
+  const getRemainingQuantity = () => {
+    if (!selectedLine) return 0;
+    const totalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
+    return Math.max(0, selectedLine.quantity - totalReceived);
   };
 
   const handleInputChange = (field: string, value: any) => {
     // Handle special case for estadoRecepcion select
     if (field === 'estadoRecepcion' && value === '__NONE__') {
       setNewReception(prev => ({ ...prev, [field]: undefined }));
+    } else if (field === 'nRec') {
+      // Ensure nRec doesn't exceed remaining quantity
+      const remainingQuantity = getRemainingQuantity();
+      const adjustedValue = Math.min(Math.max(1, value), remainingQuantity);
+      setNewReception(prev => ({ ...prev, [field]: adjustedValue }));
     } else {
       setNewReception(prev => ({ ...prev, [field]: value }));
     }
@@ -299,6 +313,11 @@ export default function ReceptionManagement() {
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const clearFilter = () => {
+    setSearchQuery('');
+    setFilteredOrders(orders);
   };
 
   return (
@@ -449,102 +468,124 @@ export default function ReceptionManagement() {
               </div>
 
               {/* Add Reception Form */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-4">Nueva Recepción</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="fechaRecepcion">
-                      Fecha Recepción <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="fechaRecepcion"
-                      type="date"
-                      value={newReception.fechaRecepcion}
-                      onChange={(e) => handleInputChange('fechaRecepcion', e.target.value)}
-                      className={`h-9 ${formErrors.fechaRecepcion ? 'border-red-500' : ''}`}
-                    />
-                    {formErrors.fechaRecepcion && (
-                      <p className="text-xs text-red-500 mt-1">{formErrors.fechaRecepcion}</p>
-                    )}
+              {canAddMoreReceptions() ? (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-4">Nueva Recepción</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fechaRecepcion">
+                        Fecha Recepción <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="fechaRecepcion"
+                        type="date"
+                        value={newReception.fechaRecepcion}
+                        onChange={(e) => handleInputChange('fechaRecepcion', e.target.value)}
+                        className={`h-9 ${formErrors.fechaRecepcion ? 'border-red-500' : ''}`}
+                      />
+                      {formErrors.fechaRecepcion && (
+                        <p className="text-xs text-red-500 mt-1">{formErrors.fechaRecepcion}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="estadoRecepcion">
+                        Estado Recepción <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={newReception.estadoRecepcion || '__NONE__'}
+                        onValueChange={(value) => handleInputChange('estadoRecepcion', value)}
+                      >
+                        <SelectTrigger className={`h-9 ${formErrors.estadoRecepcion ? 'border-red-500' : ''}`}>
+                          <SelectValue placeholder="Elige un estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__NONE__">Elige un estado</SelectItem>
+                          {receptionStates.map(state => (
+                            <SelectItem key={state.value} value={state.value}>
+                              {state.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {formErrors.estadoRecepcion && (
+                        <p className="text-xs text-red-500 mt-1">{formErrors.estadoRecepcion}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="nRec">
+                        Cantidad Recibida <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="nRec"
+                        type="number"
+                        min="1"
+                        max={getRemainingQuantity()}
+                        value={newReception.nRec}
+                        onChange={(e) => handleInputChange('nRec', parseInt(e.target.value) || 1)}
+                        className={`h-9 ${formErrors.nRec ? 'border-red-500' : ''}`}
+                      />
+                      {formErrors.nRec && (
+                        <p className="text-xs text-red-500 mt-1">{formErrors.nRec}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        Máximo disponible: {getRemainingQuantity()}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="nsRec">Número de Serie</Label>
+                      <Input
+                        id="nsRec"
+                        value={newReception.nsRec}
+                        onChange={(e) => handleInputChange('nsRec', e.target.value)}
+                        className="h-9"
+                        placeholder="Número de serie"
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Label htmlFor="observaciones">Observaciones</Label>
+                      <Textarea
+                        id="observaciones"
+                        value={newReception.observaciones}
+                        onChange={(e) => handleInputChange('observaciones', e.target.value)}
+                        className="min-h-[80px]"
+                        placeholder="Observaciones adicionales..."
+                      />
+                    </div>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="estadoRecepcion">
-                      Estado Recepción <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={newReception.estadoRecepcion || '__NONE__'}
-                      onValueChange={(value) => handleInputChange('estadoRecepcion', value)}
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      onClick={handleAddReception}
+                      disabled={loading || !canAddMoreReceptions()}
+                      className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
                     >
-                      <SelectTrigger className={`h-9 ${formErrors.estadoRecepcion ? 'border-red-500' : ''}`}>
-                        <SelectValue placeholder="Elige un estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__NONE__">Elige un estado</SelectItem>
-                        {receptionStates.map(state => (
-                          <SelectItem key={state.value} value={state.value}>
-                            {state.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formErrors.estadoRecepcion && (
-                      <p className="text-xs text-red-500 mt-1">{formErrors.estadoRecepcion}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="nRec">
-                      Cantidad Recibida <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="nRec"
-                      type="number"
-                      min="1"
-                      max={selectedLine.quantity - getTotalReceived(selectedLine)}
-                      value={newReception.nRec}
-                      onChange={(e) => handleInputChange('nRec', parseInt(e.target.value) || 1)}
-                      className={`h-9 ${formErrors.nRec ? 'border-red-500' : ''}`}
-                    />
-                    {formErrors.nRec && (
-                      <p className="text-xs text-red-500 mt-1">{formErrors.nRec}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="nsRec">Número de Serie</Label>
-                    <Input
-                      id="nsRec"
-                      value={newReception.nsRec}
-                      onChange={(e) => handleInputChange('nsRec', e.target.value)}
-                      className="h-9"
-                      placeholder="Número de serie"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Label htmlFor="observaciones">Observaciones</Label>
-                    <Textarea
-                      id="observaciones"
-                      value={newReception.observaciones}
-                      onChange={(e) => handleInputChange('observaciones', e.target.value)}
-                      className="min-h-[80px]"
-                      placeholder="Observaciones adicionales..."
-                    />
+                      {loading ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Agregar Recepción
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
-                
-                <div className="flex justify-end mt-4">
-                  <Button
-                    onClick={handleAddReception}
-                    disabled={loading}
-                    className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Recepción
-                  </Button>
+              ) : (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-medium mb-2 text-gray-700">Recepción Completada</h3>
+                  <p className="text-sm text-gray-600">
+                    La cantidad total recibida ({getTotalReceived(selectedLine)}) ha alcanzado la cantidad enviada ({selectedLine.quantity}). 
+                    No se pueden agregar más recepciones para esta línea.
+                  </p>
                 </div>
-              </div>
+              )}
 
               {/* Receptions List */}
               {lineReceptions.length > 0 && (
