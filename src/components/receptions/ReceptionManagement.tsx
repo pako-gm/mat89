@@ -47,7 +47,7 @@ export default function ReceptionManagement() {
   const [lineReceptions, setLineReceptions] = useState<MaterialReception[]>([]);
   const [newReception, setNewReception] = useState<Partial<MaterialReception>>({
     fechaRecepcion: new Date().toISOString().split('T')[0],
-    estadoRecepcion: '',
+    estadoRecepcion: undefined,
     nRec: 1,
     nsRec: '',
     observaciones: ''
@@ -68,7 +68,7 @@ export default function ReceptionManagement() {
   const initializeForm = () => {
     setNewReception({
       fechaRecepcion: new Date().toISOString().split('T')[0],
-      estadoRecepcion: '',
+      estadoRecepcion: undefined,
       nRec: 1,
       nsRec: '',
       observaciones: ''
@@ -145,14 +145,23 @@ export default function ReceptionManagement() {
       errors.fechaRecepcion = "La fecha de recepción es obligatoria";
     }
 
-    // Validate estadoRecepcion
-    if (!newReception.estadoRecepcion) {
-      errors.estadoRecepcion = "El estado de recepción es obligatorio";
-    }
-
-    // Validate nRec
+    // Validate nRec first
     if (!newReception.nRec || newReception.nRec <= 0) {
       errors.nRec = "La cantidad recibida es obligatoria y debe ser mayor a 0";
+    }
+
+    // Conditional validation for estadoRecepcion
+    // Only required when the line is being completed or over-completed
+    if (selectedLine && newReception.nRec) {
+      const currentTotalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
+      const totalReceivedAfterThis = currentTotalReceived + newReception.nRec;
+      
+      // If this reception completes or over-completes the line, estado is required
+      if (totalReceivedAfterThis >= selectedLine.quantity) {
+        if (!newReception.estadoRecepcion) {
+          errors.estadoRecepcion = "El estado de recepción es obligatorio cuando se completa la línea";
+        }
+      }
     }
 
     setFormErrors(errors);
@@ -279,7 +288,12 @@ export default function ReceptionManagement() {
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setNewReception(prev => ({ ...prev, [field]: value }));
+    // Handle special case for estadoRecepcion select
+    if (field === 'estadoRecepcion' && value === '__NONE__') {
+      setNewReception(prev => ({ ...prev, [field]: undefined }));
+    } else {
+      setNewReception(prev => ({ ...prev, [field]: value }));
+    }
     
     // Clear error when user starts typing
     if (formErrors[field]) {
@@ -459,14 +473,14 @@ export default function ReceptionManagement() {
                       Estado Recepción <span className="text-red-500">*</span>
                     </Label>
                     <Select
-                      value={newReception.estadoRecepcion || ''}
+                      value={newReception.estadoRecepcion || '__NONE__'}
                       onValueChange={(value) => handleInputChange('estadoRecepcion', value)}
                     >
                       <SelectTrigger className={`h-9 ${formErrors.estadoRecepcion ? 'border-red-500' : ''}`}>
                         <SelectValue placeholder="Elige un estado" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="placeholder" disabled>Elige un estado</SelectItem>
+                        <SelectItem value="__NONE__">Elige un estado</SelectItem>
                         {receptionStates.map(state => (
                           <SelectItem key={state.value} value={state.value}>
                             {state.label}
