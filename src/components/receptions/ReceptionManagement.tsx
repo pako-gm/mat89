@@ -47,11 +47,12 @@ export default function ReceptionManagement() {
   const [lineReceptions, setLineReceptions] = useState<MaterialReception[]>([]);
   const [newReception, setNewReception] = useState<Partial<MaterialReception>>({
     fechaRecepcion: new Date().toISOString().split('T')[0],
-    estadoRecepcion: 'UTIL',
+    estadoRecepcion: '',
     nRec: 1,
     nsRec: '',
     observaciones: ''
   });
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   const [receptionToDelete, setReceptionToDelete] = useState<MaterialReception | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -62,6 +63,18 @@ export default function ReceptionManagement() {
     { value: 'SIN ACTUACION', label: 'SIN ACTUACIÓN' },
     { value: 'OTROS', label: 'OTROS' }
   ];
+
+  // Initialize form to default state
+  const initializeForm = () => {
+    setNewReception({
+      fechaRecepcion: new Date().toISOString().split('T')[0],
+      estadoRecepcion: '',
+      nRec: 1,
+      nsRec: '',
+      observaciones: ''
+    });
+    setFormErrors({});
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -112,6 +125,8 @@ export default function ReceptionManagement() {
       const receptions = await getReceptionsByLineId(line.id);
       setLineReceptions(receptions);
       setShowReceptionDialog(true);
+      // Initialize form when dialog opens
+      initializeForm();
     } catch (error) {
       console.error('Error fetching receptions:', error);
       toast({
@@ -122,8 +137,40 @@ export default function ReceptionManagement() {
     }
   };
 
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+
+    // Validate fecha_recepcion
+    if (!newReception.fechaRecepcion) {
+      errors.fechaRecepcion = "La fecha de recepción es obligatoria";
+    }
+
+    // Validate estadoRecepcion
+    if (!newReception.estadoRecepcion) {
+      errors.estadoRecepcion = "El estado de recepción es obligatorio";
+    }
+
+    // Validate nRec
+    if (!newReception.nRec || newReception.nRec <= 0) {
+      errors.nRec = "La cantidad recibida es obligatoria y debe ser mayor a 0";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleAddReception = async () => {
     if (!selectedLine || !selectedOrder) return;
+
+    // Validate form first
+    if (!validateForm()) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Por favor, complete todos los campos obligatorios.",
+      });
+      return;
+    }
 
     // Validation: Check if total received would exceed total sent
     const currentTotalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
@@ -134,15 +181,6 @@ export default function ReceptionManagement() {
         variant: "destructive",
         title: "Error de validación",
         description: `La cantidad total recibida (${newTotalReceived}) no puede exceder la cantidad enviada (${selectedLine.quantity}).`,
-      });
-      return;
-    }
-
-    if (!newReception.estadoRecepcion || !newReception.nRec) {
-      toast({
-        variant: "destructive",
-        title: "Error de validación",
-        description: "Estado y cantidad son campos obligatorios.",
       });
       return;
     }
@@ -166,14 +204,8 @@ export default function ReceptionManagement() {
       const updatedReceptions = await getReceptionsByLineId(selectedLine.id);
       setLineReceptions(updatedReceptions);
       
-      // Reset form
-      setNewReception({
-        fechaRecepcion: new Date().toISOString().split('T')[0],
-        estadoRecepcion: 'UTIL',
-        nRec: 1,
-        nsRec: '',
-        observaciones: ''
-      });
+      // Reset form to initial state
+      initializeForm();
 
       // Refresh orders to update status
       await fetchOrders();
@@ -244,6 +276,15 @@ export default function ReceptionManagement() {
   const clearFilter = () => {
     setSearchQuery('');
     setFilteredOrders(orders);
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setNewReception(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   return (
@@ -398,26 +439,34 @@ export default function ReceptionManagement() {
                 <h3 className="font-medium mb-4">Nueva Recepción</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="fechaRecepcion">Fecha Recepción</Label>
+                    <Label htmlFor="fechaRecepcion">
+                      Fecha Recepción <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="fechaRecepcion"
                       type="date"
                       value={newReception.fechaRecepcion}
-                      onChange={(e) => setNewReception(prev => ({ ...prev, fechaRecepcion: e.target.value }))}
-                      className="h-9"
+                      onChange={(e) => handleInputChange('fechaRecepcion', e.target.value)}
+                      className={`h-9 ${formErrors.fechaRecepcion ? 'border-red-500' : ''}`}
                     />
+                    {formErrors.fechaRecepcion && (
+                      <p className="text-xs text-red-500 mt-1">{formErrors.fechaRecepcion}</p>
+                    )}
                   </div>
                   
                   <div>
-                    <Label htmlFor="estadoRecepcion">Estado</Label>
+                    <Label htmlFor="estadoRecepcion">
+                      Estado Recepción <span className="text-red-500">*</span>
+                    </Label>
                     <Select
-                      value={newReception.estadoRecepcion}
-                      onValueChange={(value) => setNewReception(prev => ({ ...prev, estadoRecepcion: value as any }))}
+                      value={newReception.estadoRecepcion || ''}
+                      onValueChange={(value) => handleInputChange('estadoRecepcion', value)}
                     >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
+                      <SelectTrigger className={`h-9 ${formErrors.estadoRecepcion ? 'border-red-500' : ''}`}>
+                        <SelectValue placeholder="Elige un estado" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="" disabled>Elige un estado</SelectItem>
                         {receptionStates.map(state => (
                           <SelectItem key={state.value} value={state.value}>
                             {state.label}
@@ -425,19 +474,27 @@ export default function ReceptionManagement() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formErrors.estadoRecepcion && (
+                      <p className="text-xs text-red-500 mt-1">{formErrors.estadoRecepcion}</p>
+                    )}
                   </div>
                   
                   <div>
-                    <Label htmlFor="nRec">Cantidad Recibida</Label>
+                    <Label htmlFor="nRec">
+                      Cantidad Recibida <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="nRec"
                       type="number"
                       min="1"
                       max={selectedLine.quantity - getTotalReceived(selectedLine)}
                       value={newReception.nRec}
-                      onChange={(e) => setNewReception(prev => ({ ...prev, nRec: parseInt(e.target.value) || 1 }))}
-                      className="h-9"
+                      onChange={(e) => handleInputChange('nRec', parseInt(e.target.value) || 1)}
+                      className={`h-9 ${formErrors.nRec ? 'border-red-500' : ''}`}
                     />
+                    {formErrors.nRec && (
+                      <p className="text-xs text-red-500 mt-1">{formErrors.nRec}</p>
+                    )}
                   </div>
                   
                   <div>
@@ -445,7 +502,7 @@ export default function ReceptionManagement() {
                     <Input
                       id="nsRec"
                       value={newReception.nsRec}
-                      onChange={(e) => setNewReception(prev => ({ ...prev, nsRec: e.target.value }))}
+                      onChange={(e) => handleInputChange('nsRec', e.target.value)}
                       className="h-9"
                       placeholder="Número de serie"
                     />
@@ -456,7 +513,7 @@ export default function ReceptionManagement() {
                     <Textarea
                       id="observaciones"
                       value={newReception.observaciones}
-                      onChange={(e) => setNewReception(prev => ({ ...prev, observaciones: e.target.value }))}
+                      onChange={(e) => handleInputChange('observaciones', e.target.value)}
                       className="min-h-[80px]"
                       placeholder="Observaciones adicionales..."
                     />
