@@ -92,3 +92,26 @@ export interface Material {
   updatedAt?: string;
   updatedBy?: string; // Email del usuario que hizo la última actualización
 }
+
+// New interface for the Consulta page data structure
+export interface ConsultaRecord {
+  linea: number;
+  almEnvia: string;
+  numPedido: string;
+  proveedor: string;
+  mat89: string;
+  descripcion: string;
+  vehiculo: string;
+  fechaEnvio: string;
+  cantEnv: number;
+  numSerieEnv: string;
+  fechaRecepc: string | null;
+  cantRec: number | null;
+  numSerieRec: string | null;
+  estadoRecepc: string | null;
+  observaciones: string | null;
+  // Internal IDs for tracking
+  pedidoId: string;
+  lineaId: string;
+  recepcionId: string | null;
+}

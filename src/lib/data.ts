@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception, Material, MaterialReception } from "@/types";
+import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -602,3 +602,97 @@ export const getReceptions = async (): Promise<Reception[]> => {
     }))
   }));
 }
+
+// New function for Consulta page data
+export const getConsultationData = async (): Promise<ConsultaRecord[]> => {
+  try {
+    const { data: orders, error } = await supabase
+      .from('tbl_pedidos_rep')
+      .select(`
+        id,
+        num_pedido,
+        alm_envia,
+        vehiculo,
+        fecha_envio,
+        tbl_proveedores!inner(nombre),
+        tbl_ln_pedidos_rep (
+          id,
+          matricula_89,
+          descripcion,
+          nenv,
+          nsenv,
+          tbl_recepciones (
+            id,
+            fecha_recepcion,
+            estado_recepcion,
+            n_rec,
+            ns_rec,
+            observaciones
+          )
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const consultationRecords: ConsultaRecord[] = [];
+    let lineCounter = 1;
+
+    orders?.forEach(order => {
+      order.tbl_ln_pedidos_rep?.forEach(line => {
+        if (line.tbl_recepciones && line.tbl_recepciones.length > 0) {
+          // Create a record for each reception
+          line.tbl_recepciones.forEach(reception => {
+            consultationRecords.push({
+              linea: lineCounter++,
+              almEnvia: order.alm_envia,
+              numPedido: order.num_pedido,
+              proveedor: order.tbl_proveedores.nombre,
+              mat89: line.matricula_89,
+              descripcion: line.descripcion || '',
+              vehiculo: order.vehiculo,
+              fechaEnvio: order.fecha_envio,
+              cantEnv: line.nenv,
+              numSerieEnv: line.nsenv || '',
+              fechaRecepc: reception.fecha_recepcion,
+              cantRec: reception.n_rec,
+              numSerieRec: reception.ns_rec,
+              estadoRecepc: reception.estado_recepcion,
+              observaciones: reception.observaciones,
+              pedidoId: order.id,
+              lineaId: line.id,
+              recepcionId: reception.id
+            });
+          });
+        } else {
+          // Create a record for line without reception
+          consultationRecords.push({
+            linea: lineCounter++,
+            almEnvia: order.alm_envia,
+            numPedido: order.num_pedido,
+            proveedor: order.tbl_proveedores.nombre,
+            mat89: line.matricula_89,
+            descripcion: line.descripcion || '',
+            vehiculo: order.vehiculo,
+            fechaEnvio: order.fecha_envio,
+            cantEnv: line.nenv,
+            numSerieEnv: line.nsenv || '',
+            fechaRecepc: null,
+            cantRec: null,
+            numSerieRec: null,
+            estadoRecepc: null,
+            observaciones: null,
+            pedidoId: order.id,
+            lineaId: line.id,
+            recepcionId: null
+          });
+        }
+      });
+    });
+
+    return consultationRecords;
+  } catch (error) {
+    console.error('Error fetching consultation data:', error);
+    return [];
+  }
+};
