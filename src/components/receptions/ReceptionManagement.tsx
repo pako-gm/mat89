@@ -466,7 +466,7 @@ export default function ReceptionManagement() {
                         <SelectValue placeholder="Elige un estado" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="" disabled>Elige un estado</SelectItem>
+                        <SelectItem value="placeholder" disabled>Elige un estado</SelectItem>
                         {receptionStates.map(state => (
                           <SelectItem key={state.value} value={state.value}>
                             {state.label}
