@@ -133,7 +133,7 @@ export default function Sidebar() {
       {/* User section at bottom */}
       <div className="flex flex-col items-center p-4 border-t border-gray-200 mt-auto">
         <img 
-          src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400"
+          src="https://library.shadcnblocks.com/images/block/avatar-1.webp"
           alt="Usuario"
           className="w-16 h-16 rounded-full object-cover mb-2"
         />
