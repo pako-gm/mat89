@@ -291,7 +291,7 @@ export default function LoginPage() {
           )}
         </CardContent>
         <CardFooter className="flex justify-center text-xs text-gray-500">
-          © fgm-dev 2025 - Sistema de Gestión de Reparación de Materiales
+          © fgm-dev 2025 - Sistema de Gestión de Reparación de Componentes
         </CardFooter>
       </Card>
     </div>
