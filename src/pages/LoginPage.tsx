@@ -39,14 +39,14 @@ export default function LoginPage() {
       }
       
       if (!data || !data.user) {
-        throw new Error("No se pudo iniciar sesión. Por favor, inténtelo de nuevo.");
+        throw new Error("No se pudo iniciar sesión. Por favor, inténtalo de nuevo.");
       }
       
       // Obtener el rol del usuario
       const userRole = await getUserRole();
       
       toast({
-        title: "Inicio de sesión exitoso",
+        title: "Inicio de sesión con éxito",
         description: `Bienvenido${userRole ? ` (${userRole})` : ''}`,
       });
       
@@ -57,12 +57,12 @@ export default function LoginPage() {
       console.error("Error de inicio de sesión:", err);
       
       // Extraer mensaje de error más amigable
-      let errorMessage = "No se pudo iniciar sesión. Por favor, verifique sus credenciales.";
+      let errorMessage = "No se pudo iniciar sesión. Por favor, verifica tus credenciales.";
       if (err instanceof Error) {
         if (err.message.includes("Invalid login credentials")) {
-          errorMessage = "Credenciales inválidas. Por favor, verifique su email y contraseña.";
+          errorMessage = "Credenciales inválidas. Por favor, verifica tu email y/o contraseña.";
         } else if (err.message.includes("Email not confirmed")) {
-          errorMessage = "Debe confirmar su correo electrónico antes de iniciar sesión.";
+          errorMessage = "Debes confirmar tu correo electrónico antes de iniciar sesión.";
         } else {
           errorMessage = err.message;
         }
@@ -88,7 +88,7 @@ export default function LoginPage() {
     try {
       // Validar que el correo no está vacío
       if (!resetEmail.trim()) {
-        throw new Error("Por favor, introduzca su dirección de correo electrónico.");
+        throw new Error("Por favor, introduce tu dirección de correo electrónico.");
       }
       
       // Verificar si el correo existe en la base de datos (opcional, Supabase lo hace por nosotros)
@@ -108,11 +108,11 @@ export default function LoginPage() {
       
       toast({
         title: "Correo enviado",
-        description: "Se ha enviado un enlace de recuperación a su correo electrónico.",
+        description: "Se ha enviado un enlace de recuperación a tu correo electrónico.",
       });
       
     } catch (err) {
-      console.error("Error al solicitar recuperación:", err);
+      console.error("Error al solicitar la recuperación:", err);
       
       let errorMessage = "No se pudo enviar el correo de recuperación.";
       if (err instanceof Error) {
@@ -152,7 +152,7 @@ export default function LoginPage() {
           <CardDescription>
             {isResetMode 
               ? "Recuperación de contraseña" 
-              : "Inicie sesión con sus credenciales"}
+              : "Inicia sesión con tus credenciales"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -167,8 +167,8 @@ export default function LoginPage() {
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
                 <h3 className="font-medium">Correo enviado</h3>
                 <p className="text-sm mt-1">
-                  Si el correo existe en nuestra base de datos, recibirá un enlace para restablecer su contraseña.
-                  Por favor, revise su bandeja de entrada y siga las instrucciones.
+                  Si el correo existe en nuestra base de datos, recibirás un enlace para restablecer tu contraseña.
+                  Por favor, revisa tu bandeja de entrada y sigue las instrucciones.
                 </p>
                 <p className="text-sm mt-2">
                   El enlace caducará en 24 horas por seguridad.
@@ -191,14 +191,14 @@ export default function LoginPage() {
                   <Input
                     id="resetEmail"
                     type="email"
-                    placeholder="ejemplo@renfe.es"
+                    placeholder="usuario@r****.es"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Introduzca la dirección de correo electrónico asociada a su cuenta.
-                    Le enviaremos un enlace para restablecer su contraseña.
+                    Introduce la dirección de correo electrónico asociada a tu cuenta.
+                    Te enviaremos un enlace para restablecer tu contraseña.
                   </p>
                 </div>
                 
@@ -210,7 +210,7 @@ export default function LoginPage() {
                   {resetLoading ? (
                     <>
                       <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                      Enviando...
+                      Enviando mensaje...
                     </>
                   ) : (
                     "Enviar correo de recuperación"
@@ -235,7 +235,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="ejemplo@renfe.es"
+                  placeholder="usuario@r****.es"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -291,7 +291,7 @@ export default function LoginPage() {
           )}
         </CardContent>
         <CardFooter className="flex justify-center text-xs text-gray-500">
-          © F.G.M. 2025 - Sistema de Gestión de Reparación de Materiales
+          © fgm-dev 2025 - Sistema de Gestión de Reparación de Materiales
         </CardFooter>
       </Card>
     </div>
