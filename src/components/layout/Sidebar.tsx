@@ -83,21 +83,10 @@ export default function Sidebar() {
   return (
     <div className="flex flex-col h-full border-r bg-white">
       <div className="p-6">
-        <div className="flex items-center justify-between w-full">
-          <h2 className="text-2xl font-medium tracking-tight">
-            <span className="text-[#4C4C4C]">Mat</span>
-            <span className="text-[#91268F]">89</span>
-          </h2>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={handleSignOut}
-            className="text-gray-700 hover:bg-gray-100 h-8 px-2"
-          >
-            <LogOut className="h-4 w-4 mr-1" />
-            <span className="text-xs">Cerrar sesión</span>
-          </Button>
-        </div>
+        <h2 className="text-2xl font-medium tracking-tight">
+          <span className="text-[#4C4C4C]">Mat</span>
+          <span className="text-[#91268F]">89</span>
+        </h2>
       </div>
       
       <div className="px-3 py-2 flex-1">
@@ -149,15 +138,23 @@ export default function Sidebar() {
           className="w-16 h-16 rounded-full object-cover mb-2"
         />
         {userEmail ? (
-          <div className="text-center w-full px-2">
+          <div className="text-center w-full px-2 mb-4">
             <p className="text-sm font-semibold text-gray-800 capitalize break-words">
               {userName}
             </p>
             <p className="text-xs text-gray-500 break-all">{userEmail}</p>
           </div>
         ) : (
-          <p className="text-sm font-medium text-gray-700">Cargando...</p>
+          <p className="text-sm font-medium text-gray-700 mb-4">Cargando...</p>
         )}
+        <Button 
+          variant="ghost" 
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-start text-gray-700 hover:bg-gray-100 px-3 py-2"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          <span className="text-sm">Cerrar sesión</span>
+        </Button>
       </div>
     </div>
   );
