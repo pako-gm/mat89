@@ -46,8 +46,21 @@ export default function Sidebar() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setUserEmail(user.email ?? "");
-          // Use full_name from metadata, or fallback to the part of the email before '@'
-          const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "";
+
+          // Fetch user name from user_profiles table
+          const { data: profile, error: profileError } = await supabase
+            .from("user_profiles")
+            .select("nombre_usuario")
+            .eq("id", user.id)
+            .single();
+
+          if (profileError) {
+            // This can happen if no profile row exists yet for the user.
+            console.log("Could not fetch user profile, using fallback:", profileError.message);
+          }
+
+          // Use name from profile, or fallback to the part of the email before '@'
+          const name = profile?.nombre_usuario || user.email?.split('@')[0] || "";
           setUserName(name);
         }
       } catch (error) {
