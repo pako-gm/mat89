@@ -38,13 +38,17 @@ export default function Sidebar() {
   const { toast } = useToast();
   const currentPath = window.location.pathname;
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          setUserEmail(user.email);
+        if (user) {
+          setUserEmail(user.email ?? "");
+          // Use full_name from metadata, or fallback to the part of the email before '@'
+          const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "";
+          setUserName(name);
         }
       } catch (error) {
         console.error("Error getting user:", error);
@@ -58,7 +62,7 @@ export default function Sidebar() {
     await signOut();
     toast({
       title: "Sesión cerrada",
-      description: "Ha cerrado sesión correctamente",
+      description: "Has cerrado sesión correctamente",
     });
     navigate("/login");
   };
@@ -131,9 +135,16 @@ export default function Sidebar() {
           alt="Usuario"
           className="w-16 h-16 rounded-full object-cover mb-2"
         />
-        <p className="text-sm font-medium text-gray-700 text-center break-all">
-          {userEmail || "usuario@mat89.com"}
-        </p>
+        {userEmail ? (
+          <div className="text-center w-full px-2">
+            <p className="text-sm font-semibold text-gray-800 capitalize break-words">
+              {userName}
+            </p>
+            <p className="text-xs text-gray-500 break-all">{userEmail}</p>
+          </div>
+        ) : (
+          <p className="text-sm font-medium text-gray-700">Cargando...</p>
+        )}
       </div>
     </div>
   );
