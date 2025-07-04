@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
       
       toast({
         title: "Contraseña actualizada",
-        description: "Su contraseña ha sido actualizada correctamente.",
+        description: "Tu contraseña ha sido actualizada correctamente.",
       });
       
       // Después de 3 segundos, redirigir al login
@@ -117,7 +117,7 @@ export default function ResetPasswordPage() {
       }, 3000);
       
     } catch (err) {
-      console.error("Error al restablecer contraseña:", err);
+      console.error("Error al restablecer la contraseña:", err);
       
       let errorMessage = "No se pudo restablecer la contraseña.";
       if (err instanceof Error) {
@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
                 Este enlace de recuperación no es válido o ha expirado.
               </p>
               <p className="text-gray-600 mt-1">
-                Por favor, solicite un nuevo enlace de recuperación.
+                Por favor, solicita al Administrador un nuevo enlace de recuperación.
               </p>
               <Button
                 className="mt-6 w-full bg-[#91268F] hover:bg-[#7A1F79]"
@@ -192,10 +192,10 @@ export default function ResetPasswordPage() {
               <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
               <h2 className="text-xl font-medium text-gray-900">¡Contraseña actualizada!</h2>
               <p className="text-gray-600 mt-2">
-                Su contraseña ha sido actualizada correctamente.
+                Tu contraseña ha sido actualizada correctamente.
               </p>
               <p className="text-gray-600 mt-1">
-                Será redirigido a la página de inicio de sesión en unos segundos...
+                Serás redirigido a la página de inicio de sesión en unos segundos...
               </p>
               <Button
                 className="mt-6 w-full bg-[#91268F] hover:bg-[#7A1F79]"
@@ -219,7 +219,7 @@ export default function ResetPasswordPage() {
             <span className="text-[#91268F]">89</span>
           </CardTitle>
           <CardDescription>
-            Establezca su nueva contraseña
+            Establece tu nueva contraseña
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -254,11 +254,11 @@ export default function ResetPasswordPage() {
               <div className="mt-3 space-y-2 text-sm">
                 <p className="text-gray-700 font-medium flex items-center">
                   <Lock className="h-4 w-4 mr-1" />
-                  Requisitos de contraseña:
+                  Requisitos de la contraseña:
                 </p>
                 <ul className="pl-5 space-y-1 text-xs">
                   <li className={passwordStrength.length ? "text-green-600" : "text-gray-600"}>
-                    ✓ Al menos 8 caracteres
+                    ✓ Debe tener al menos 8 caracteres
                   </li>
                   <li className={passwordStrength.hasUppercase ? "text-green-600" : "text-gray-600"}>
                     ✓ Al menos una letra mayúscula (A-Z)
@@ -289,7 +289,7 @@ export default function ResetPasswordPage() {
               />
               {password && confirmPassword && password !== confirmPassword && (
                 <p className="text-red-500 text-xs mt-1">
-                  Las contraseñas no coinciden
+                  Las contraseñas no coinciden.
                 </p>
               )}
             </div>
@@ -311,7 +311,7 @@ export default function ResetPasswordPage() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-xs text-gray-500">
-          © F.G.M. 2025 - Sistema de Gestión de Reparación de Materiales
+          © fgm-dev 2025 - Sistema de Gestión de Reparación de Componentes
         </CardFooter>
       </Card>
     </div>
