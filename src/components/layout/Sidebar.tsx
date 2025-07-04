@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, LogOut } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, LogOut, UserCircle2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth";
@@ -132,11 +132,9 @@ export default function Sidebar() {
 
       {/* User section at bottom */}
       <div className="flex flex-col items-center p-4 border-t border-gray-200 mt-auto">
-        <img 
-          src="https://library.shadcnblocks.com/images/block/avatar-1.webp"
-          alt="Usuario"
-          className="w-16 h-16 rounded-full object-cover mb-2"
-        />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 mb-2">
+          <UserCircle2 className="h-12 w-12 text-gray-400" />
+        </div>
         {userEmail ? (
           <div className="text-center w-full px-2 mb-4">
             <p className="text-sm font-semibold text-gray-800 capitalize break-words">
