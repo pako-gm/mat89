@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, LogOut, UserCircle2 } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarItemProps {
   icon?: React.ReactNode;
@@ -39,6 +40,7 @@ export default function Sidebar() {
   const currentPath = window.location.pathname;
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -69,6 +71,11 @@ export default function Sidebar() {
     };
     
     getCurrentUser();
+
+    // Generate a random avatar URL on component mount
+    const randomAvatarId = Math.floor(Math.random() * 16) + 1; // Assuming avatars 1-16 exist
+    const url = `https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-${randomAvatarId}.png`;
+    setAvatarUrl(url);
   }, []);
 
   const handleSignOut = async () => {
@@ -132,9 +139,10 @@ export default function Sidebar() {
 
       {/* User section at bottom */}
       <div className="flex flex-col items-center p-4 border-t border-gray-200 mt-auto">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 mb-2">
-          <UserCircle2 className="h-12 w-12 text-gray-400" />
-        </div>
+        <Avatar className="h-16 w-16 mb-2">
+          <AvatarImage src={avatarUrl} alt={userName || "User Avatar"} />
+          <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
+        </Avatar>
         {userEmail ? (
           <div className="text-center w-full px-2 mb-4">
             <p className="text-sm font-semibold text-gray-800 capitalize break-words">
