@@ -391,17 +391,18 @@ export default function ReceptionManagement() {
                   <TableRow>
                     <TableCell colSpan={5} className="p-0 border-b">
                       <div className="bg-gray-50 p-4">
-                        <div className="grid grid-cols-[2fr,3fr,1fr,2fr,1fr] gap-4 mb-2 text-sm font-medium text-gray-600">
+                        <div className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1fr] gap-4 mb-2 text-sm font-medium text-gray-600">
                           <div>Matrícula 89</div>
                           <div>Descripción Pieza</div>
                           <div>Cant. Env.</div>
+                          <div>Cant. Rec.</div>
                           <div>Num. Serie</div>
                           <div>Acciones</div>
                         </div>
                         {order.orderLines.map((line) => (
                           <div 
                             key={line.id}
-                            className="grid grid-cols-[2fr,3fr,1fr,2fr,1fr] gap-4 py-2 text-sm border-t border-gray-200 hover:bg-gray-100"
+                            className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1fr] gap-4 py-2 text-sm border-t border-gray-200 hover:bg-gray-100 items-center"
                           >
                             <div className="flex items-center gap-2">
                               {line.estadoCompletado && (
@@ -411,6 +412,7 @@ export default function ReceptionManagement() {
                             </div>
                             <div>{line.partDescription}</div>
                             <div>{line.quantity}</div>
+                            <div>{line.totalReceived || 0}</div>
                             <div>{line.serialNumber}</div>
                             <div>
                               <Button
