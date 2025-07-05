@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Order, OrderLine, MaterialReception } from "@/types";
-import { getOrdersForReception, getReceptionsByLineId, saveReception, deleteReception } from "@/lib/data";
+import { getOrdersForReception, getReceptionsByLineId, saveReception, deleteReception, updateOrderStatus } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +108,28 @@ export default function ReceptionManagement() {
     }
   };
 
+  const syncOrderStatus = async (orderId: string) => {
+    // This is slightly inefficient as it refetches all orders to check one.
+    // A dedicated `getOrderById` function in the data library would be more optimal.
+    const allOrders = await getOrdersForReception();
+    const targetOrder = allOrders.find(o => o.id === orderId);
+
+    if (!targetOrder) {
+      console.error("Could not find order to sync status", orderId);
+      return;
+    }
+
+    const allLinesCompleted = targetOrder.orderLines.every(line => line.estadoCompletado);
+    const currentStatus = targetOrder.estadoPedido;
+
+    if (allLinesCompleted && currentStatus !== 'COMPLETADO') {
+      await updateOrderStatus(orderId, 'COMPLETADO');
+    } else if (!allLinesCompleted && currentStatus === 'COMPLETADO') {
+      // Revert status if it was complete and now it's not
+      await updateOrderStatus(orderId, 'PENDIENTE');
+    }
+  };
+
   const handleOrderClick = (order: Order) => {
     if (expandedOrderId === order.id) {
       setExpandedOrderId(null);
@@ -176,7 +198,7 @@ export default function ReceptionManagement() {
       toast({
         variant: "destructive",
         title: "Error de validación",
-        description: "Por favor, complete todos los campos obligatorios.",
+        description: "Por favor, completa todos los campos obligatorios.",
       });
       return;
     }
@@ -208,6 +230,9 @@ export default function ReceptionManagement() {
       };
 
       await saveReception(reception);
+
+      // Check if the order is now complete and update its status
+      await syncOrderStatus(selectedOrder.id);
       
       // Refresh receptions
       const updatedReceptions = await getReceptionsByLineId(selectedLine.id);
@@ -240,6 +265,9 @@ export default function ReceptionManagement() {
 
     try {
       await deleteReception(receptionToDelete.id);
+
+      // Check if the order status needs to be reverted
+      await syncOrderStatus(receptionToDelete.pedidoId);
       
       // Refresh receptions
       if (selectedLine) {
@@ -581,8 +609,8 @@ export default function ReceptionManagement() {
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <h3 className="font-medium mb-2 text-gray-700">Recepción Completada</h3>
                   <p className="text-sm text-gray-600">
-                    La cantidad total recibida ({getTotalReceived(selectedLine)}) ha alcanzado la cantidad enviada ({selectedLine.quantity}). 
-                    No se pueden agregar más recepciones para esta línea.
+                    La cantidad total recibida ({getTotalReceived(selectedLine)}) ha alcanzado la cantidad total enviada ({selectedLine.quantity}). 
+                    No se pueden agregar más recepciones para esta línea de pedido.
                   </p>
                 </div>
               )}
