@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, LogOut } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/auth";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarItemProps {
@@ -35,8 +32,6 @@ const SidebarItem = ({ icon, label, path, active }: SidebarItemProps) => {
 };
 
 export default function Sidebar() {
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const currentPath = window.location.pathname;
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
@@ -78,15 +73,6 @@ export default function Sidebar() {
     setAvatarUrl(url);
   }, []);
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Sesión cerrada",
-      description: "Has cerrado sesión correctamente",
-    });
-    navigate("/login");
-  };
-  
   return (
     <div className="flex flex-col h-full border-r bg-white">
       <div className="p-6">
@@ -153,14 +139,6 @@ export default function Sidebar() {
         ) : (
           <p className="text-sm font-medium text-gray-700 mb-4">Cargando...</p>
         )}
-        <Button 
-          variant="ghost" 
-          onClick={handleSignOut}
-          className="w-full flex items-center justify-start text-gray-700 hover:bg-gray-100 px-3 py-2"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          <span className="text-sm">Cerrar sesión</span>
-        </Button>
       </div>
     </div>
   );
