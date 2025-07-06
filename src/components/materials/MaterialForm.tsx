@@ -468,10 +468,10 @@ export default function MaterialForm({
               value={formData.infoAdicional || ''}
               onChange={handleChange}
               className="min-h-[100px] resize-none"
-              placeholder="Información adicional sobre el material (campo editable)..."
+              placeholder="Información adicional sobre el material..."
             />
             <p className="text-xs text-gray-500">
-              Este campo es completamente editable. Puede agregar cualquier información relevante sobre el material.
+              Puede agregar aqui cualquier información relevante sobre el material.
             </p>
           </div>
           
