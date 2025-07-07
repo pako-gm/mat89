@@ -32,4 +32,4 @@ Los usuarios tendran diferentes niveles de acceso según su rol, que puede ser A
     - Acceso a todas las funciones CRUD en las secciones mencionadas, excepto la gestión de usuarios.
 
 - Consultas:
-    - Acceso únicamente a la sección Consultar, donde puede revisar el estado de los materiales enviados y recibidos.mat89
+    - Acceso únicamente a la sección Consultar, donde puede revisar el estado de los materiales enviados y recibidos.
