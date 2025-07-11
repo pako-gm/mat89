@@ -39,7 +39,7 @@ export default function LoginPage() {
       }
       
       if (!data || !data.user) {
-        throw new Error("SII se pudo iniciar sesión. Por favor, inténtalo de nuevo.");
+        throw new Error("No se pudo iniciar sesión. Por favor, inténtalo de nuevo.");
       }
       
       // Obtener el rol del usuario
