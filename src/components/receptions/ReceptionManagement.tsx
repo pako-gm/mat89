@@ -278,8 +278,8 @@ export default function ReceptionManagement() {
   };
 
   const getTotalReceived = (line: OrderLine) => {
-    if (!selectedLine || selectedLine.id !== line.id) return 0;
-    return lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
+    // Usar el total calculado desde la base de datos si está disponible
+    return line.totalReceived || 0;
   };
 
   // Check if we can add more receptions to this line
@@ -292,7 +292,7 @@ export default function ReceptionManagement() {
   // Calculate remaining quantity that can be received
   const getRemainingQuantity = () => {
     if (!selectedLine) return 0;
-    const totalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
+    const totalReceived = getTotalReceived(selectedLine);
     return Math.max(0, selectedLine.quantity - totalReceived);
   };
 
@@ -405,14 +405,21 @@ export default function ReceptionManagement() {
                             className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1fr] gap-4 py-2 text-sm border-t border-gray-200 hover:bg-gray-100 items-center"
                           >
                             <div className="flex items-center gap-2">
-                              {line.estadoCompletado && (
+                              {getTotalReceived(line) >= line.quantity && (
                                 <Package className="h-4 w-4 text-green-600" />
                               )}
                               {line.registration}
                             </div>
                             <div>{line.partDescription}</div>
                             <div>{line.quantity}</div>
-                            <div>{line.totalReceived || 0}</div>
+                            <div className="font-medium">
+                              <span className={`${getTotalReceived(line) >= line.quantity ? 'text-green-600' : 'text-gray-900'}`}>
+                                {getTotalReceived(line)}
+                              </span>
+                              <span className="text-gray-500 text-xs ml-1">
+                                / {line.quantity}
+                              </span>
+                            </div>
                             <div>{line.serialNumber}</div>
                             <div>
                               <Button
