@@ -85,7 +85,7 @@ export default function MaterialesPage() {
       
       toast({
         title: "Material eliminado",
-        description: "El material ha sido eliminado correctamente",
+        description: "El material SIIII ha sido eliminado correctamente",
       });
       
       // Close details dialog and refresh list
