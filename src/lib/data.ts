@@ -462,7 +462,8 @@ export const deleteOrder = async (orderId: string) => {
 // Reception functions
 export const getOrdersForReception = async (): Promise<Order[]> => {
   try {
-    const { data: orders, error: ordersError } = await supabase
+    // First get all orders with their lines
+    const { data: ordersData, error: ordersError } = await supabase
       .from('tbl_pedidos_rep')
       .select(`
         *,
@@ -473,9 +474,31 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
 
     if (ordersError) throw ordersError;
 
-    if (!orders) return [];
+    if (!ordersData) return [];
 
-    return orders.map(order => ({
+    // Then get all receptions with aggregated data
+    const { data: receptionsData, error: receptionsError } = await supabase
+      .from('tbl_recepciones')
+      .select(`
+        linea_pedido_id,
+        n_rec
+      `);
+
+    if (receptionsError) {
+      console.error('Error fetching receptions:', receptionsError);
+      // Continue without receptions data
+    }
+
+    // Create a map of total received quantities per line
+    const receptionTotals = new Map<string, number>();
+    if (receptionsData) {
+      receptionsData.forEach(reception => {
+        const currentTotal = receptionTotals.get(reception.linea_pedido_id) || 0;
+        receptionTotals.set(reception.linea_pedido_id, currentTotal + reception.n_rec);
+      });
+    }
+
+    return ordersData.map(order => ({
       id: order.id,
       orderNumber: order.num_pedido,
       warehouse: order.alm_envia,
@@ -496,7 +519,8 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
         partDescription: line.descripcion,
         quantity: line.nenv,
         serialNumber: line.nsenv,
-        estadoCompletado: line.estado_completado || false
+        estadoCompletado: line.estado_completado || false,
+        totalReceived: receptionTotals.get(line.id) || 0
       }))
     }));
   } catch (error) {

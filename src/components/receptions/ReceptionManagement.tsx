@@ -247,7 +247,7 @@ export default function ReceptionManagement() {
         setLineReceptions(updatedReceptions);
       }
       
-      // Refresh orders to update status
+      // Refresh orders to update quantities and status - CRITICAL  
       await fetchOrders();
       
       toast({
