@@ -158,8 +158,8 @@ export default function LoginPage() {
         {/* Make sure the image_2fb260.jpg is in your public folder */}
         <div className="mb-8 md:mb-0 md:mr-8 flex-shrink-0">
           <img
-            src="/image_2fb260.jpg"
-            alt="Decorative image"
+            src="/login_mat89.png"
+            alt="Mat89 login image"
             className="max-w-xs h-auto rounded-lg"
             style={{ maxHeight: '400px' }} // Adjust size as needed
           />
