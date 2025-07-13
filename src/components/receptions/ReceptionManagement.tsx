@@ -209,15 +209,24 @@ export default function ReceptionManagement() {
 
       await saveReception(reception);
 
-      // Refresh receptions
+      // Refresh receptions for the dialog
       const updatedReceptions = await getReceptionsByLineId(selectedLine.id);
       setLineReceptions(updatedReceptions);
       
       // Reset form to initial state
       initializeForm();
 
-      // Refresh orders to update status
+      // CRITICAL: Refresh orders to update totalReceived and status
       await fetchOrders();
+      
+      // Update the selectedLine totalReceived immediately for dialog display
+      const newTotalReceived = updatedReceptions.reduce((sum, r) => sum + r.nRec, 0);
+      if (selectedLine) {
+        setSelectedLine({
+          ...selectedLine,
+          totalReceived: newTotalReceived
+        });
+      }
 
       toast({
         title: "Recepción agregada",
@@ -241,10 +250,17 @@ export default function ReceptionManagement() {
     try {
       await deleteReception(receptionToDelete.id);
 
-      // Refresh receptions
+      // Refresh receptions for the dialog
       if (selectedLine) {
         const updatedReceptions = await getReceptionsByLineId(selectedLine.id);
         setLineReceptions(updatedReceptions);
+        
+        // Update the selectedLine totalReceived immediately for dialog display
+        const newTotalReceived = updatedReceptions.reduce((sum, r) => sum + r.nRec, 0);
+        setSelectedLine({
+          ...selectedLine,
+          totalReceived: newTotalReceived
+        });
       }
       
       // Refresh orders to update quantities and status - CRITICAL  
@@ -279,7 +295,9 @@ export default function ReceptionManagement() {
 
   const getTotalReceived = (line: OrderLine) => {
     // Usar el total calculado desde la base de datos si está disponible
-    return line.totalReceived || 0;
+    const dbTotal = line.totalReceived || 0;
+    console.log(`[DEBUG] getTotalReceived for line ${line.id}: ${dbTotal}`);
+    return dbTotal;
   };
 
   // Check if we can add more receptions to this line
