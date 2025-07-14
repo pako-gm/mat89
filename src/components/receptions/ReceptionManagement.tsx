@@ -423,7 +423,7 @@ export default function ReceptionManagement() {
                   <TableRow>
                     <TableCell colSpan={5} className="p-0 border-b">
                       <div className="bg-gray-50 p-4">
-                        <div className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1fr] gap-4 mb-2 text-sm font-medium text-gray-600">
+                        <div className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1fr] gap-4 py-2 text-sm font-medium text-gray-600 items-center border-b border-gray-200">
                           <div>Matrícula 89</div>
                           <div>Descripción Pieza</div>
                           <div>Cant. Env.</div>
