@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { Order, OrderLine, MaterialReception } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  getOrdersForReception, 
+  getReceptionsByLineId, 
+  saveReception, 
+  deleteReception, 
+  updateOrderStatusIfComplete 
+} from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
