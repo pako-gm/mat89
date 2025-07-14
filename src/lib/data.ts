@@ -1,5 +1,6 @@
 import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import { supabase } from './supabase';
 
 export const warehouses: Warehouse[] = [
   { id: "1", code: "ALM141", name: "Almacén 141" },
