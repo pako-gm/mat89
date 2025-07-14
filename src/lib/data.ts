@@ -1,6 +1,5 @@
 import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord } from "@/types";
 import { v4 as uuidv4 } from "uuid";
-import { supabase } from './supabase';
 
 export const warehouses: Warehouse[] = [
   { id: "1", code: "ALM141", name: "Almacén 141" },
@@ -457,6 +456,81 @@ export const deleteOrder = async (orderId: string) => {
   }
   
   return true;
+};
+
+// Nueva función corregida para actualizar estado del pedido
+export const updateOrderStatusIfComplete = async (orderId: string): Promise<void> => {
+  try {
+    console.log(`[DEBUG] Checking completion status for order: ${orderId}`);
+    
+    // 1. Obtener todas las líneas del pedido con sus recepciones
+    const { data: orderLines, error: linesError } = await supabase
+      .from('tbl_ln_pedidos_rep')
+      .select(`
+        id,
+        nenv,
+        tbl_recepciones (
+          n_rec
+        )
+      `)
+      .eq('pedido_id', orderId);
+
+    if (linesError) {
+      console.error('Error fetching order lines:', linesError);
+      return;
+    }
+
+    if (!orderLines || orderLines.length === 0) {
+      console.log(`[DEBUG] No lines found for order: ${orderId}`);
+      return;
+    }
+
+    // 2. Verificar si todas las líneas están completas
+    let allLinesComplete = true;
+    let totalSent = 0;
+    let totalReceived = 0;
+
+    for (const line of orderLines) {
+      const lineSent = line.nenv || 0;
+      const lineReceived = line.tbl_recepciones?.reduce((sum: number, reception: any) => {
+        return sum + (reception.n_rec || 0);
+      }, 0) || 0;
+
+      totalSent += lineSent;
+      totalReceived += lineReceived;
+
+      console.log(`[DEBUG] Line ${line.id}: Sent=${lineSent}, Received=${lineReceived}`);
+
+      if (lineReceived < lineSent) {
+        allLinesComplete = false;
+        console.log(`[DEBUG] Line ${line.id} is incomplete: ${lineReceived}/${lineSent}`);
+      }
+    }
+
+    console.log(`[DEBUG] Order ${orderId} - Total: Sent=${totalSent}, Received=${totalReceived}, AllComplete=${allLinesComplete}`);
+
+    // 3. Determinar el nuevo estado
+    const newStatus = allLinesComplete ? 'COMPLETADO' : 'PENDIENTE';
+
+    // 4. Actualizar el estado en la base de datos
+    const { error: updateError } = await supabase
+      .from('tbl_pedidos_rep')
+      .update({ 
+        estado_pedido: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+
+    if (updateError) {
+      console.error('Error updating order status:', updateError);
+      throw updateError;
+    }
+
+    console.log(`[DEBUG] Order ${orderId} status updated to: ${newStatus}`);
+    
+  } catch (error) {
+    console.error('Error in updateOrderStatusIfComplete:', error);
+  }
 };
 
 // Reception functions

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Order, OrderLine, MaterialReception } from "@/types";
-import { getOrdersForReception, getReceptionsByLineId, saveReception, deleteReception } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -219,6 +218,9 @@ export default function ReceptionManagement() {
       // CRITICAL: Refresh orders to update totalReceived and status
       await fetchOrders();
       
+      // CRITICAL: Update order status after adding reception
+      await updateOrderStatusIfComplete(selectedOrder.id);
+      
       // Update the selectedLine totalReceived immediately for dialog display
       const newTotalReceived = updatedReceptions.reduce((sum, r) => sum + r.nRec, 0);
       if (selectedLine) {
@@ -265,6 +267,11 @@ export default function ReceptionManagement() {
       
       // Refresh orders to update quantities and status - CRITICAL  
       await fetchOrders();
+      
+      // CRITICAL: Update order status after deleting reception
+      if (selectedOrder) {
+        await updateOrderStatusIfComplete(selectedOrder.id);
+      }
       
       toast({
         title: "Recepción eliminada",
