@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Order, OrderLine, MaterialReception } from "@/types";
+import { formatDateToDDMMYYYY } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getOrdersForReception, 
@@ -407,7 +408,7 @@ export default function ReceptionManagement() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {new Date(order.shipmentDate).toLocaleDateString()}
+                    {formatDateToDDMMYYYY(order.shipmentDate)}
                   </TableCell>
                   <TableCell>
                     <span
@@ -643,7 +644,7 @@ export default function ReceptionManagement() {
                         {lineReceptions.map((reception) => (
                           <TableRow key={reception.id}>
                             <TableCell>
-                              {new Date(reception.fechaRecepcion).toLocaleDateString()}
+                              {formatDateToDDMMYYYY(reception.fechaRecepcion)}
                             </TableCell>
                             <TableCell>
                               <span className={`px-2 py-1 rounded text-xs ${
