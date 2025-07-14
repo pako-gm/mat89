@@ -444,13 +444,8 @@ export default function ReceptionManagement() {
                             </div>
                             <div>{line.partDescription}</div>
                             <div>{line.quantity}</div>
-                            <div className="font-medium">
-                              <span className={`${getTotalReceived(line) >= line.quantity ? 'text-green-600' : 'text-gray-900'}`}>
-                                {getTotalReceived(line)}
-                              </span>
-                              <span className="text-gray-500 text-xs ml-1">
-                                / {line.quantity}
-                              </span>
+                            <div className={`font-medium ${getTotalReceived(line) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {getTotalReceived(line)}
                             </div>
                             <div>{line.serialNumber}</div>
                             <div>
