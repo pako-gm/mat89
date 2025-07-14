@@ -222,11 +222,11 @@ export default function ReceptionManagement() {
       // Reset form to initial state
       initializeForm();
 
-      // CRITICAL: Refresh orders to update totalReceived and status
-      await fetchOrders();
-      
       // CRITICAL: Update order status after adding reception
       await updateOrderStatusIfComplete(selectedOrder.id);
+      
+      // CRITICAL: Refresh orders to update totalReceived and status
+      await fetchOrders();
       
       // Update the selectedLine totalReceived immediately for dialog display
       const newTotalReceived = updatedReceptions.reduce((sum, r) => sum + r.nRec, 0);
@@ -272,13 +272,13 @@ export default function ReceptionManagement() {
         });
       }
       
-      // Refresh orders to update quantities and status - CRITICAL  
-      await fetchOrders();
-      
       // CRITICAL: Update order status after deleting reception
       if (selectedOrder) {
         await updateOrderStatusIfComplete(selectedOrder.id);
       }
+
+      // Refresh orders to update quantities and status - CRITICAL  
+      await fetchOrders();
       
       toast({
         title: "Recepción eliminada",
