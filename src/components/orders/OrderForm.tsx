@@ -5,7 +5,7 @@ import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
-import { filterManualChangeHistory, formatChangeHistoryDate, formatUserName, formatNewCommentStyle } from "@/lib/utils";
+import { filterManualChangeHistory, formatNewCommentStyle, formatDateToDDMMYYYY } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import { 
@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter 
 } from "@/components/ui/dialog";
-import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send } from "lucide-react";
+import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send, User, Clock, Edit2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ interface OrderFormProps {
   onClose: () => void;
   onSave: () => void;
   isEditing: boolean;
+  viewMode?: boolean; // Nueva prop para controlar el modo de vista
 }
 
 export default function OrderForm({
@@ -44,7 +45,8 @@ export default function OrderForm({
   open,
   onClose,
   onSave,
-  isEditing
+  isEditing,
+  viewMode = false
 }: OrderFormProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -56,7 +58,7 @@ export default function OrderForm({
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
     registration: string;
-    lineId: string; // Agregar ID de línea para saber qué campo limpiar
+    lineId: string;
   }>({ open: false, registration: "", lineId: "" });
   const [errors, setErrors] = useState({
     supplier: false,
@@ -66,6 +68,7 @@ export default function OrderForm({
     orderLines: false
   });
   const [authError, setAuthError] = useState<string | null>(null);
+  const [inEditMode, setInEditMode] = useState(!viewMode); // Estado para controlar el modo actual
   
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -132,6 +135,9 @@ export default function OrderForm({
             }]
       });
       
+      // Set initial mode based on viewMode prop
+      setInEditMode(!viewMode);
+      
       // Clear errors when opening
       setErrors({
         supplier: false,
@@ -142,7 +148,7 @@ export default function OrderForm({
       });
       setAuthError(null);
     }
-  }, [open, initialOrder, isEditing]);
+  }, [open, initialOrder, isEditing, viewMode]);
 
   useEffect(() => {
     const loadSuppliers = async () => {
@@ -165,7 +171,34 @@ export default function OrderForm({
     }
   }, [open, toast]);
 
+  // Función para cambiar al modo de edición
+  const handleEditMode = () => {
+    setInEditMode(true);
+  };
+
+  // Función para cancelar edición y volver al modo de vista
+  const handleCancelEdit = () => {
+    if (viewMode) {
+      setInEditMode(false);
+    } else {
+      onClose();
+    }
+  };
+
+  // Determinar el título basado en el modo actual
+  const getTitle = () => {
+    if (viewMode && !inEditMode) {
+      return "Detalles del Pedido";
+    }
+    return isEditing ? "Editar Pedido" : "Nuevo Pedido";
+  };
+
+  // Determinar si un campo debe ser solo lectura
+  const isReadOnly = viewMode && !inEditMode;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (isReadOnly) return;
+    
     const { name, value } = e.target;
     
     // Validate dismantle date is before shipment date
@@ -231,6 +264,8 @@ export default function OrderForm({
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    if (isReadOnly) return;
+    
     if (name === "warehouse") {
       // Update order number when warehouse changes
       const warehouseNum = value.replace('ALM', '');
@@ -270,6 +305,8 @@ export default function OrderForm({
   };
 
   const handleSwitchChange = (checked: boolean) => {
+    if (isReadOnly) return;
+    
     setOrder(prev => ({
       ...prev,
       warranty: checked,
@@ -278,6 +315,8 @@ export default function OrderForm({
   };
 
   const handleOrderLineUpdate = (id: string, data: Partial<OrderLine>) => {
+    if (isReadOnly) return;
+    
     setOrder(prev => ({
       ...prev,
       orderLines: prev.orderLines.map(line => {
@@ -305,6 +344,8 @@ export default function OrderForm({
 
   // Nueva función para manejar la actualización de matrícula con autorrellenado
   const handleMaterialRegistrationChange = (lineId: string, registration: string, description?: string) => {
+    if (isReadOnly) return;
+    
     setOrder(prev => ({
       ...prev,
       orderLines: prev.orderLines.map(line => {
@@ -330,6 +371,8 @@ export default function OrderForm({
 
   // Nueva función para manejar material no encontrado
   const handleMaterialNotFound = (registration: string, lineId?: string) => {
+    if (isReadOnly) return;
+    
     // Encontrar el ID de línea si no se proporciona
     let targetLineId = lineId;
     if (!targetLineId) {
@@ -391,6 +434,8 @@ export default function OrderForm({
   };
 
   const handleOrderLineDelete = (id: string) => {
+    if (isReadOnly) return;
+    
     if (order.orderLines.length > 1) {
       setOrder(prev => ({
         ...prev,
@@ -402,6 +447,8 @@ export default function OrderForm({
   };
 
   const addOrderLine = () => {
+    if (isReadOnly) return;
+    
     // Check if there are any existing lines with empty registration
     const hasEmptyRegistration = order.orderLines.some(line => !String(line.registration).trim());
     
@@ -436,6 +483,8 @@ export default function OrderForm({
 
   // MEJORADO: Función para agregar comentarios con mejor logging
   const handleAddComment = async () => {
+    if (isReadOnly) return;
+    
     if (newComment.trim()) {
       console.log('=== AGREGANDO COMENTARIO ===');
       console.log('Texto del comentario:', newComment.trim());
@@ -486,6 +535,8 @@ export default function OrderForm({
   };
 
   const handleDrag = (e: React.DragEvent) => {
+    if (isReadOnly) return;
+    
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -504,6 +555,8 @@ export default function OrderForm({
   };
 
   const handleDrop = (e: React.DragEvent) => {
+    if (isReadOnly) return;
+    
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -531,6 +584,8 @@ export default function OrderForm({
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isReadOnly) return;
+    
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
       if (order.shipmentDocumentation.length + files.length > 4) {
@@ -554,6 +609,8 @@ export default function OrderForm({
   };
 
   const removeFile = (fileName: string) => {
+    if (isReadOnly) return;
+    
     setOrder(prev => ({
       ...prev,
       shipmentDocumentation: prev.shipmentDocumentation.filter(f => f !== fileName)
@@ -669,14 +726,36 @@ export default function OrderForm({
   // Filtrar solo comentarios manuales para mostrar en el histórico
   const manualChangeHistory = filterManualChangeHistory(order.changeHistory);
 
+  // Función para renderizar un input en modo lectura
+  const renderReadOnlyInput = (value: string, placeholder?: string) => (
+    <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
+      {value || placeholder || "--"}
+    </div>
+  );
+
+  // Función para renderizar un textarea en modo lectura
+  const renderReadOnlyTextarea = (value: string, placeholder?: string) => (
+    <div className="min-h-[100px] px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm">
+      {value || placeholder || "--"}
+    </div>
+  );
+
+  // Función para renderizar un select en modo lectura
+  const renderReadOnlySelect = (value: string, options: any[], getLabel: (option: any) => string) => {
+    const selectedOption = options.find(opt => opt.id === value || opt.code === value || opt.value === value);
+    return (
+      <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
+        {selectedOption ? getLabel(selectedOption) : value || "--"}
+      </div>
+    );
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {isEditing ? "Editar Pedido" : "Nuevo Pedido"}
-            </DialogTitle>
+            <DialogTitle>{getTitle()}</DialogTitle>
           </DialogHeader>
           
           {authError && (
@@ -695,64 +774,76 @@ export default function OrderForm({
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="orderNumber" className="text-sm mb-1">Num. Pedido</Label>
-                <Input
-                  id="orderNumber"
-                  name="orderNumber"
-                  value={order.orderNumber}
-                  readOnly
-                  placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
-                  className="h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed text-[#4C4C4C]"
-                />
+                {isReadOnly ? (
+                  renderReadOnlyInput(order.orderNumber, `${order.warehouse.replace('ALM', '')}/25/1001`)
+                ) : (
+                  <Input
+                    id="orderNumber"
+                    name="orderNumber"
+                    value={order.orderNumber}
+                    readOnly
+                    placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
+                    className="h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed text-[#4C4C4C]"
+                  />
+                )}
               </div>
 
               <div>
                 <Label htmlFor="supplier" className="text-sm mb-1">
                   <span className="text-red-500">*</span> Razón Social
-                  {errors.supplier && (
+                  {errors.supplier && !isReadOnly && (
                     <span className="text-red-500 text-xs ml-2">Campo requerido</span>
                   )}
                 </Label>
-                <Select 
-                  value={order.supplierId} 
-                  onValueChange={(value) => handleSelectChange("supplier", value)}
-                >
-                  <SelectTrigger className={`h-9 border-[#4C4C4C] ${errors.supplier ? 'border-red-500' : ''}`}>
-                    <SelectValue placeholder="Seleccione un Proveedor">
-                      {order.supplierName || "Seleccione un Proveedor"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[280px] overflow-y-auto">
-                    {suppliers.map(supplier => (
-                      <SelectItem 
-                        key={supplier.id} 
-                        value={supplier.id}
-                        className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                      >
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isReadOnly ? (
+                  renderReadOnlySelect(order.supplierId, suppliers, (s) => s.name)
+                ) : (
+                  <Select 
+                    value={order.supplierId} 
+                    onValueChange={(value) => handleSelectChange("supplier", value)}
+                  >
+                    <SelectTrigger className={`h-9 border-[#4C4C4C] ${errors.supplier ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Seleccione un Proveedor">
+                        {order.supplierName || "Seleccione un Proveedor"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[280px] overflow-y-auto">
+                      {suppliers.map(supplier => (
+                        <SelectItem 
+                          key={supplier.id} 
+                          value={supplier.id}
+                          className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
+                        >
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div>
                 <Label htmlFor="warehouse" className="text-sm mb-1">Almacén</Label>
-                <Select 
-                  value={order.warehouse} 
-                  onValueChange={(value) => handleSelectChange("warehouse", value)}
-                  defaultValue="ALM141"
-                >
-                  <SelectTrigger className="h-9 border-[#4C4C4C]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map(warehouse => (
-                      <SelectItem key={warehouse.id} value={warehouse.code}>
-                        {warehouse.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isReadOnly ? (
+                  renderReadOnlySelect(order.warehouse, warehouses, (w) => w.code)
+                ) : (
+                  <Select 
+                    value={order.warehouse} 
+                    onValueChange={(value) => handleSelectChange("warehouse", value)}
+                    defaultValue="ALM141"
+                  >
+                    <SelectTrigger className="h-9 border-[#4C4C4C]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map(warehouse => (
+                        <SelectItem key={warehouse.id} value={warehouse.code}>
+                          {warehouse.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
@@ -760,65 +851,79 @@ export default function OrderForm({
               <div>
                 <Label htmlFor="vehicle" className="text-sm mb-1">
                   <span className="text-red-500">*</span> Vehículo
-                  {errors.vehicle && (
+                  {errors.vehicle && !isReadOnly && (
                     <span className="text-red-500 text-xs ml-2">Campo requerido</span>
                   )}
                 </Label>
-                <Input
-                  id="vehicle"
-                  name="vehicle"
-                  value={order.vehicle.replace(/[^\d-]/g, '')}
-                  onChange={(e) => {
-                    let value = e.target.value.replace(/[^\d]/g, '');
-                    if (value.length > 3 && !value.includes('-')) {
-                      value = value.slice(0, 3) + '-' + value.slice(3);
-                    }
-                    if (value.length > 7) {
-                      value = value.slice(0, 7);
-                    }
-                    setOrder(prev => ({
-                      ...prev,
-                      vehicle: value
-                    }));
-                  }}
-                  onFocus={(e) => e.target.placeholder = ""}
-                  onBlur={(e) => e.target.placeholder = "252-058"}
-                  placeholder="252-058"
-                  className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.vehicle ? 'border-red-500' : ''}`}
-                />
+                {isReadOnly ? (
+                  renderReadOnlyInput(order.vehicle, "252-058")
+                ) : (
+                  <Input
+                    id="vehicle"
+                    name="vehicle"
+                    value={order.vehicle.replace(/[^\d-]/g, '')}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/[^\d]/g, '');
+                      if (value.length > 3 && !value.includes('-')) {
+                        value = value.slice(0, 3) + '-' + value.slice(3);
+                      }
+                      if (value.length > 7) {
+                        value = value.slice(0, 7);
+                      }
+                      setOrder(prev => ({
+                        ...prev,
+                        vehicle: value
+                      }));
+                    }}
+                    onFocus={(e) => e.target.placeholder = ""}
+                    onBlur={(e) => e.target.placeholder = "252-058"}
+                    placeholder="252-058"
+                    className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.vehicle ? 'border-red-500' : ''}`}
+                  />
+                )}
               </div>
               
               <div className="flex items-center justify-end space-x-2 pt-6">
                 <Label htmlFor="warranty" className="text-sm">Garantía</Label>
-                <Switch
-                  defaultChecked={false}
-                  id="warranty"
-                  checked={order.warranty}
-                  onCheckedChange={handleSwitchChange}
-                />
+                {isReadOnly ? (
+                  <div className="text-sm text-gray-700">
+                    {order.warranty ? "Sí" : "No"}
+                  </div>
+                ) : (
+                  <Switch
+                    defaultChecked={false}
+                    id="warranty"
+                    checked={order.warranty}
+                    onCheckedChange={handleSwitchChange}
+                  />
+                )}
               </div>
               
               <div>
                 <Label htmlFor="nonConformityReport" className="text-sm mb-1">Informe No Conformidad</Label>
-                <Input
-                  disabled={!order.warranty}
-                  id="nonConformityReport"
-                  name="nonConformityReport"
-                  value={order.nonConformityReport.toUpperCase()}
-                  onChange={(e) => {
-                    if (order.warranty) {
-                      const value = e.target.value.toUpperCase();
-                      setOrder(prev => ({
-                        ...prev,
-                        nonConformityReport: value
-                      }));
-                    }
-                  }}
-                  onFocus={(e) => e.target.placeholder = ""}
-                  onBlur={(e) => e.target.placeholder = "Informe NC"}
-                  placeholder="Informe NC"
-                  className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${!order.warranty ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                />
+                {isReadOnly ? (
+                  renderReadOnlyInput(order.nonConformityReport, "Informe NC")
+                ) : (
+                  <Input
+                    disabled={!order.warranty}
+                    id="nonConformityReport"
+                    name="nonConformityReport"
+                    value={order.nonConformityReport.toUpperCase()}
+                    onChange={(e) => {
+                      if (order.warranty) {
+                        const value = e.target.value.toUpperCase();
+                        setOrder(prev => ({
+                          ...prev,
+                          nonConformityReport: value
+                        }));
+                      }
+                    }}
+                    onFocus={(e) => e.target.placeholder = ""}
+                    onBlur={(e) => e.target.placeholder = "Informe NC"}
+                    placeholder="Informe NC"
+                    className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${!order.warranty ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  />
+                )}
               </div>
             </div>
 
@@ -826,7 +931,7 @@ export default function OrderForm({
               <div>
                 <Label htmlFor="dismantleDate" className="text-sm mb-1">
                   <span className="text-red-500">*</span> Fecha Desmonte
-                  {errors.dismantleDate && (
+                  {errors.dismantleDate && !isReadOnly && (
                     <span className="text-red-500 text-xs ml-2">
                       {order.shipmentDate && order.dismantleDate > order.shipmentDate 
                         ? "Debe ser anterior a la fecha de envío" 
@@ -834,21 +939,25 @@ export default function OrderForm({
                     </span>
                   )}
                 </Label>
-                <Input
-                  id="dismantleDate"
-                  name="dismantleDate"
-                  type="date"
-                  max={order.shipmentDate || undefined}
-                  value={order.dismantleDate}
-                  onChange={handleChange}
-                  className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.dismantleDate ? 'border-red-500' : ''}`}
-                />
+                {isReadOnly ? (
+                  renderReadOnlyInput(formatDateToDDMMYYYY(order.dismantleDate))
+                ) : (
+                  <Input
+                    id="dismantleDate"
+                    name="dismantleDate"
+                    type="date"
+                    max={order.shipmentDate || undefined}
+                    value={order.dismantleDate}
+                    onChange={handleChange}
+                    className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.dismantleDate ? 'border-red-500' : ''}`}
+                  />
+                )}
               </div>
               
               <div>
                 <Label htmlFor="shipmentDate" className="text-sm mb-1">
                   <span className="text-red-500">*</span> Fecha Envío
-                  {errors.shipmentDate && (
+                  {errors.shipmentDate && !isReadOnly && (
                     <span className="text-red-500 text-xs ml-2">
                       {order.dismantleDate && order.shipmentDate < order.dismantleDate
                         ? "Debe ser posterior a la fecha de desmonte"
@@ -856,94 +965,118 @@ export default function OrderForm({
                     </span>
                   )}
                 </Label>
-                <Input
-                  id="shipmentDate"
-                  name="shipmentDate"
-                  type="date"
-                  min={order.dismantleDate || undefined}
-                  value={order.shipmentDate}
-                  onChange={handleChange}
-                  className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.shipmentDate ? 'border-red-500' : ''}`}
-                />
+                {isReadOnly ? (
+                  renderReadOnlyInput(formatDateToDDMMYYYY(order.shipmentDate))
+                ) : (
+                  <Input
+                    id="shipmentDate"
+                    name="shipmentDate"
+                    type="date"
+                    min={order.dismantleDate || undefined}
+                    value={order.shipmentDate}
+                    onChange={handleChange}
+                    className={`h-9 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${errors.shipmentDate ? 'border-red-500' : ''}`}
+                  />
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="declaredDamage" className="text-sm mb-1">Avería Declarada</Label>
-                <Textarea
-                  id="declaredDamage"
-                  name="declaredDamage"
-                  value={order.declaredDamage.toUpperCase()}
-                  onChange={(e) => {
-                    const value = e.target.value.toUpperCase();
-                    setOrder(prev => ({
-                      ...prev,
-                      declaredDamage: value
-                    }));
-                  }}
-                  onFocus={(e) => e.target.placeholder = ""}
-                  onBlur={(e) => e.target.placeholder = "Apuntado en Tarjeta Identificativa"}
-                  placeholder="Apuntado en Tarjeta Identificativa"
-                  className="min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
-                />
+                {isReadOnly ? (
+                  renderReadOnlyTextarea(order.declaredDamage, "Apuntado en Tarjeta Identificativa")
+                ) : (
+                  <Textarea
+                    id="declaredDamage"
+                    name="declaredDamage"
+                    value={order.declaredDamage.toUpperCase()}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase();
+                      setOrder(prev => ({
+                        ...prev,
+                        declaredDamage: value
+                      }));
+                    }}
+                    onFocus={(e) => e.target.placeholder = ""}
+                    onBlur={(e) => e.target.placeholder = "Apuntado en Tarjeta Identificativa"}
+                    placeholder="Apuntado en Tarjeta Identificativa"
+                    className="min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                  />
+                )}
               </div>
               
               <div>
                 <Label htmlFor="shipmentDocumentation" className="text-sm mb-1">Documentación Envío</Label>
-                <div
-                  className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${
-                    dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
-                  } flex flex-col h-[100px]`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <input
-                    type="file"
-                    id="fileInput"
-                    multiple
-                    accept=".pdf,.jpeg,.jpg,.xlsx,.zip"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="fileInput"
-                    className="flex flex-col items-center justify-center cursor-pointer h-full"
+                {isReadOnly ? (
+                  <div className="min-h-[100px] p-4 border border-gray-300 rounded-md bg-gray-50">
+                    {order.shipmentDocumentation.length > 0 ? (
+                      <div className="space-y-1">
+                        {order.shipmentDocumentation.map((file, index) => (
+                          <div key={index} className="flex items-center bg-white p-1 rounded-md border text-xs">
+                            <span className="truncate">{file}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-sm">No hay documentación adjunta</div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${
+                      dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
+                    } flex flex-col h-[100px]`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
                   >
-                    <Upload className="h-4 w-4 text-gray-400" />
-                    <p className="text-xs text-gray-600 text-center mt-1">
-                      Arrastra y suelta aquí la documentación asociada al envío o{" "}
-                      <span className="text-[#91268F]">haga clic para seleccionar</span>
-                    </p>
-                    <p className="text-[10px] text-gray-500 text-center mt-0.5">
-                      Tipos permitidos: .pdf, .jpeg, .xlsx, .zip (máx. 4 archivos, 5 MB cada uno)
-                    </p>
-                  </label>
+                    <input
+                      type="file"
+                      id="fileInput"
+                      multiple
+                      accept=".pdf,.jpeg,.jpg,.xlsx,.zip"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="fileInput"
+                      className="flex flex-col items-center justify-center cursor-pointer h-full"
+                    >
+                      <Upload className="h-4 w-4 text-gray-400" />
+                      <p className="text-xs text-gray-600 text-center mt-1">
+                        Arrastra y suelta aquí la documentación asociada al envío o{" "}
+                        <span className="text-[#91268F]">haga clic para seleccionar</span>
+                      </p>
+                      <p className="text-[10px] text-gray-500 text-center mt-0.5">
+                        Tipos permitidos: .pdf, .jpeg, .xlsx, .zip (máx. 4 archivos, 5 MB cada uno)
+                      </p>
+                    </label>
 
-                  {order.shipmentDocumentation.length > 0 && (
-                    <div className="mt-2 space-y-1 overflow-y-auto">
-                      {order.shipmentDocumentation.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between bg-white p-1 rounded-md border text-[10px]"
-                        >
-                          <span className="truncate max-w-[200px]">{file}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(file)}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                    {order.shipmentDocumentation.length > 0 && (
+                      <div className="mt-2 space-y-1 overflow-y-auto">
+                        {order.shipmentDocumentation.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between bg-white p-1 rounded-md border text-[10px]"
                           >
-                            ×
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                            <span className="truncate max-w-[200px]">{file}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(file)}
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -966,9 +1099,27 @@ export default function OrderForm({
                     {manualChangeHistory.length > 0 ? (
                       <div className="divide-y divide-gray-200">
                         {manualChangeHistory.map((item, i) => (
-                          <div key={i} className="p-3 bg-white">
-                            <div className="text-xs text-gray-800 leading-relaxed break-words">
-                              {formatNewCommentStyle(item)}
+                          <div key={i} className="p-4 bg-white hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-[#91268F] rounded-full flex items-center justify-center">
+                                  <User className="h-4 w-4 text-white" />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {item.user || 'Usuario desconocido'}
+                                  </span>
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {formatDateToDDMMYYYY(item.date)}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-800 bg-gray-100 rounded-lg p-3 border-l-4 border-l-[#91268F]">
+                                  {item.description}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -985,15 +1136,17 @@ export default function OrderForm({
                   </div>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCommentOpen(true)}
-                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Agregar Comentario
-              </Button>
+              {!isReadOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCommentOpen(true)}
+                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Agregar Comentario
+                </Button>
+              )}
             </div>
             
             {/* MEJORADO: Modal de comentarios con mejor diseño */}
@@ -1037,25 +1190,27 @@ export default function OrderForm({
 
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className={`text-lg font-medium ${errors.orderLines ? 'text-red-500' : ''}`}>
+                <h2 className={`text-lg font-medium ${errors.orderLines && !isReadOnly ? 'text-red-500' : ''}`}>
                   Líneas de Pedido
-                  {errors.orderLines && (
+                  {errors.orderLines && !isReadOnly && (
                     <span className="text-red-500 text-sm ml-2 font-normal">
                       * Debe añadirse al menos una línea de pedido
                     </span>
                   )}
                 </h2>
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  onClick={addOrderLine}
-                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
-                >
-                  <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
-                </Button>
+                {!isReadOnly && (
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={addOrderLine}
+                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
+                  </Button>
+                )}
               </div>
               
-              <Card className={`border-gray-200 ${errors.orderLines ? 'border-red-500' : ''}`}>
+              <Card className={`border-gray-200 ${errors.orderLines && !isReadOnly ? 'border-red-500' : ''}`}>
                 <CardContent className="p-4">
                   <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 mb-2">
                     <Label className="text-sm font-medium"><span className="text-red-500">*</span> Matrícula 89</Label>
@@ -1069,80 +1224,108 @@ export default function OrderForm({
 
                   {order.orderLines.map(line => (
                     <div key={line.id} className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 items-center mb-2">
-                      <MaterialAutocompleteInput
-                        ref={(ref) => {
-                          if (ref) {
-                            materialInputRefs.current.set(line.id, ref);
-                          } else {
-                            materialInputRefs.current.delete(line.id);
+                      {isReadOnly ? (
+                        <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
+                          {line.registration}
+                        </div>
+                      ) : (
+                        <MaterialAutocompleteInput
+                          ref={(ref) => {
+                            if (ref) {
+                              materialInputRefs.current.set(line.id, ref);
+                            } else {
+                              materialInputRefs.current.delete(line.id);
+                            }
+                          }}
+                          value={String(line.registration)}
+                          onChange={(registration, description) => 
+                            handleMaterialRegistrationChange(line.id, registration, description)
                           }
-                        }}
-                        value={String(line.registration)}
-                        onChange={(registration, description) => 
-                          handleMaterialRegistrationChange(line.id, registration, description)
-                        }
-                        onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
-                        placeholder="89xxxxxx"
-                        className={errors.orderLines && !String(line.registration).trim() ? 'border-red-500' : ''}
-                        error={errors.orderLines && !String(line.registration).trim()}
-                      />
+                          onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
+                          placeholder="89xxxxxx"
+                          className={errors.orderLines && !String(line.registration).trim() ? 'border-red-500' : ''}
+                          error={errors.orderLines && !String(line.registration).trim()}
+                        />
+                      )}
                       
-                      <Input
-                        name="partDescription"
-                        value={line.partDescription}
-                        onChange={(e) => {
-                          const value = e.target.value.toUpperCase();
-                          handleOrderLineUpdate(line.id, { partDescription: value });
-                        }}
-                        placeholder="Descripción Pieza"
-                        className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] bg-gray-100"
-                        readOnly
-                      />
+                      {isReadOnly ? (
+                        <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
+                          {line.partDescription}
+                        </div>
+                      ) : (
+                        <Input
+                          name="partDescription"
+                          value={line.partDescription}
+                          onChange={(e) => {
+                            const value = e.target.value.toUpperCase();
+                            handleOrderLineUpdate(line.id, { partDescription: value });
+                          }}
+                          placeholder="Descripción Pieza"
+                          className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] bg-gray-100"
+                          readOnly
+                        />
+                      )}
                       
-                      <Input
-                        name="quantity"
-                        type="number"
-                        min="1"
-                        value={line.quantity}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value, 10);
-                          handleOrderLineUpdate(line.id, { quantity: isNaN(value) || value < 1 ? 1 : value });
-                        }}
-                        placeholder="1"
-                        className="h-9 border-[#4C4C4C] focus:border-[#91268F]"
-                      />
+                      {isReadOnly ? (
+                        <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
+                          {line.quantity}
+                        </div>
+                      ) : (
+                        <Input
+                          name="quantity"
+                          type="number"
+                          min="1"
+                          value={line.quantity}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value, 10);
+                            handleOrderLineUpdate(line.id, { quantity: isNaN(value) || value < 1 ? 1 : value });
+                          }}
+                          placeholder="1"
+                          className="h-9 border-[#4C4C4C] focus:border-[#91268F]"
+                        />
+                      )}
                       
-                      <Input
-                        name="serialNumber"
-                        value={line.serialNumber}
-                        onChange={(e) => {
-                          const value = e.target.value.toUpperCase();
-                          handleOrderLineUpdate(line.id, { serialNumber: value });
-                        }}
-                        placeholder="ST/3145874"
-                        className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
-                      />
+                      {isReadOnly ? (
+                        <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
+                          {line.serialNumber}
+                        </div>
+                      ) : (
+                        <Input
+                          name="serialNumber"
+                          value={line.serialNumber}
+                          onChange={(e) => {
+                            const value = e.target.value.toUpperCase();
+                            handleOrderLineUpdate(line.id, { serialNumber: value });
+                          }}
+                          placeholder="ST/3145874"
+                          className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                        />
+                      )}
                       
                       <div className="flex space-x-1">
-                        <Button 
-                          type="button"
-                          variant="ghost" 
-                          size="sm"
-                          className="p-0 h-8 w-8"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        
-                        {order.orderLines.length > 1 && (
-                          <Button 
-                            type="button"
-                            variant="ghost" 
-                            size="sm"
-                            className="p-0 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleOrderLineDelete(line.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        {!isReadOnly && (
+                          <>
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm"
+                              className="p-0 h-8 w-8"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            
+                            {order.orderLines.length > 1 && (
+                              <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="sm"
+                                className="p-0 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleOrderLineDelete(line.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1152,19 +1335,51 @@ export default function OrderForm({
             </div>
             
             <DialogFooter className="mt-6">
-              <Button variant="outline" type="button" onClick={onClose}>
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-                disabled={loading || !!authError}
-              >
-                {loading && (
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                )}
-                {isEditing ? "Actualizar Pedido" : "Guardar Pedido"}
-              </Button>
+              {viewMode && !inEditMode ? (
+                // Modo vista: mostrar botón Modificar Pedido
+                <>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={handleEditMode}
+                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white flex items-center gap-2"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    Modificar Pedido
+                  </Button>
+                  <Button variant="outline" type="button" onClick={onClose}>
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                // Modo edición: mostrar botones de edición
+                <>
+                  {viewMode && (
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={handleEditMode}
+                      className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white flex items-center gap-2"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Modificar Pedido
+                    </Button>
+                  )}
+                  <Button variant="outline" type="button" onClick={handleCancelEdit}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+                    disabled={loading || !!authError}
+                  >
+                    {loading && (
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    )}
+                    {isEditing ? "Actualizar Pedido" : "Guardar Pedido"}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </form>
         </DialogContent>
