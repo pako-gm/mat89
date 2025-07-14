@@ -175,3 +175,26 @@ export function debugComments(changeHistory: Array<{
   
   return filtered;
 }
+
+// Función para formatear fecha a DD/MM/YYYY
+export function formatDateToDDMMYYYY(dateString: string | null | undefined): string {
+  if (!dateString) return '--';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Verificar que la fecha es válida
+    if (isNaN(date.getTime())) {
+      return '--';
+    }
+    
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '--';
+  }
+}
