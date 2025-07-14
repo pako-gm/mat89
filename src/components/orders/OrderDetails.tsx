@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit2, Trash2, X, MessageCircle, Clock, User } from "lucide-react";
-import { filterManualChangeHistory, formatNewCommentStyle, debugComments } from "@/lib/utils";
-import { formatDateToDDMMYYYY } from "@/lib/dateUtils";
+import { filterManualChangeHistory, formatNewCommentStyle, debugComments, formatDateToDDMMYYYY } from "@/lib/utils";
 
 interface OrderDetailsProps {
   order: Order;
