@@ -294,11 +294,11 @@ export default function OrderList() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-medium w-[20%]">Núm. Pedido</TableHead>
-              <TableHead className="font-medium w-[20%]">Almacén</TableHead>
-              <TableHead className="font-medium w-[30%]">Proveedor</TableHead>
-              <TableHead className="font-medium w-[15%]">Vehículo</TableHead>
-              <TableHead className="font-medium w-[15%]">Fecha Envío</TableHead>
+              <TableHead className="font-medium w-[15%]">Núm. Pedido</TableHead>
+              <TableHead className="font-medium w-[10%]">Almacén</TableHead>
+              <TableHead className="font-medium w-[55%]">Proveedor</TableHead>
+              <TableHead className="font-medium w-[10%]">Vehículo</TableHead>
+              <TableHead className="font-medium w-[10%]">Fecha Envío</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
