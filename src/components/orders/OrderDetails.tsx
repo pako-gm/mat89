@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit2, Trash2, X, MessageCircle, Clock, User } from "lucide-react";
-import { format } from "date-fns";
 import { filterManualChangeHistory, formatNewCommentStyle, debugComments } from "@/lib/utils";
+import { formatDateToDDMMYYYY } from "@/lib/dateUtils";
 
 interface OrderDetailsProps {
   order: Order;
@@ -21,15 +21,6 @@ export default function OrderDetails({
   onEdit,
   onDelete
 }: OrderDetailsProps) {
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "--";
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy");
-    } catch (error) {
-      return dateString;
-    }
-  };
-
   // MEJORADO: Agregar logging para diagnóstico y manejar comentarios
   const manualChangeHistory = (() => {
     console.log('=== DIAGNÓSTICO DE COMENTARIOS ===');
@@ -97,7 +88,7 @@ export default function OrderDetails({
               <div className="flex gap-4 mt-2 text-sm text-gray-300">
                 <div>Almacén: {order.warehouse}</div>
                 <div>Vehículo: {order.vehicle}</div>
-                <div>Fecha Envío: {formatDate(order.shipmentDate)}</div>
+                <div>Fecha Envío: {formatDateToDDMMYYYY(order.shipmentDate)}</div>
               </div>
             </div>
             
@@ -119,11 +110,11 @@ export default function OrderDetails({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="font-medium text-sm text-gray-500">Fecha Desmonte</div>
-                      <div>{formatDate(order.dismantleDate)}</div>
+                      <div>{formatDateToDDMMYYYY(order.dismantleDate)}</div>
                     </div>
                     <div>
                       <div className="font-medium text-sm text-gray-500">Fecha Envío</div>
-                      <div>{formatDate(order.shipmentDate)}</div>
+                      <div>{formatDateToDDMMYYYY(order.shipmentDate)}</div>
                     </div>
                   </div>
                   
@@ -199,7 +190,7 @@ export default function OrderDetails({
                                 </span>
                                 <span className="text-xs text-gray-500 flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
-                                  {formatDate(change.date)}
+                                  {formatDateToDDMMYYYY(change.date)}
                                 </span>
                               </div>
                               <div className="text-sm text-gray-800 bg-gray-100 rounded-lg p-3 border-l-4 border-l-[#91268F]">

@@ -7,6 +7,7 @@ import { warehouses, getOrders, deleteOrder } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Search } from "lucide-react";
+import { format } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -320,7 +321,7 @@ export default function OrderList() {
                   <TableCell>{order.supplierName}</TableCell>
                   <TableCell>{order.vehicle}</TableCell>
                   <TableCell>
-                    {order.shipmentDate ? new Date(order.shipmentDate).toLocaleDateString() : '--'}
+                    {order.shipmentDate ? format(new Date(order.shipmentDate), 'dd/MM/yyyy') : '--'}
                   </TableCell>
                 </TableRow>
               ))
