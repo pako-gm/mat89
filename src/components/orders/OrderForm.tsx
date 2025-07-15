@@ -1321,19 +1321,51 @@ export default function OrderForm({
             </div>
             
             <DialogFooter className="mt-6">
-              <Button variant="outline" type="button" onClick={handleCancelEdit}>
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-                disabled={loading}
-              >
-                {loading && (
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                )}
-                {initialIsEditing ? "Actualizar Pedido" : "Guardar Pedido"}
-              </Button>
+              {viewMode && !inEditMode ? (
+                // Modo vista: mostrar botón Modificar Pedido
+                <>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={handleEditMode}
+                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white flex items-center gap-2"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    Modificar Pedido
+                  </Button>
+                  <Button variant="outline" type="button" onClick={onClose}>
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                // Modo edición: mostrar botones de edición
+                <>
+                  {viewMode && (
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={handleEditMode}
+                      className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white flex items-center gap-2"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Modificar Pedido
+                    </Button>
+                  )}
+                  <Button variant="outline" type="button" onClick={handleCancelEdit}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+                    disabled={loading}
+                  >
+                    {loading && (
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    )}
+                    {initialIsEditing ? "Actualizar Pedido" : "Guardar Pedido"}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </form>
         </DialogContent>
