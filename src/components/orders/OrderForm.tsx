@@ -45,7 +45,7 @@ export default function OrderForm({
   open,
   onClose,
   onSave,
-  isEditing,
+  isEditing: initialIsEditing,
   viewMode = false
 }: OrderFormProps) {
   const navigate = useNavigate();
@@ -67,7 +67,6 @@ export default function OrderForm({
     shipmentDate: false,
     orderLines: false
   });
-  const [authError, setAuthError] = useState<string | null>(null);
   const [inEditMode, setInEditMode] = useState(!viewMode); // Estado para controlar el modo actual
   
   // Referencias para los inputs de matrícula
@@ -137,7 +136,7 @@ export default function OrderForm({
       
       // Set initial mode based on viewMode prop
       setInEditMode(!viewMode);
-      
+
       // Clear errors when opening
       setErrors({
         supplier: false,
@@ -146,7 +145,6 @@ export default function OrderForm({
         shipmentDate: false,
         orderLines: false
       });
-      setAuthError(null);
     }
   }, [open, initialOrder, isEditing, viewMode]);
 
@@ -167,7 +165,7 @@ export default function OrderForm({
     
     if (open) {
       loadSuppliers();
-      checkUserAuthentication();
+      //checkUserAuthentication();
     }
   }, [open, toast]);
 
@@ -636,7 +634,6 @@ export default function OrderForm({
 
   const checkUserAuthentication = async () => {
     try {
-      setAuthError(null);
       const { data, error } = await supabase.auth.getUser();
       
       if (error) {
@@ -675,7 +672,7 @@ export default function OrderForm({
         variant: "destructive",
         title: "Error de validación",
         description: "Por favor, corrija los campos marcados en rojo.",
-      });
+      });      
       return;
     }
 
@@ -745,7 +742,7 @@ export default function OrderForm({
     const selectedOption = options.find(opt => opt.id === value || opt.code === value || opt.value === value);
     return (
       <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
-        {selectedOption ? getLabel(selectedOption) : value || "--"}
+                  {selectedOption ? getLabel(selectedOption) : "--"}
       </div>
     );
   };
@@ -758,17 +755,6 @@ export default function OrderForm({
             <DialogTitle>{getTitle()}</DialogTitle>
           </DialogHeader>
           
-          {authError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              <p>{authError}</p>
-              <p className="text-sm mt-1">Para continuar, por favor intente:</p>
-              <ul className="list-disc text-sm ml-5">
-                <li>Cerrar sesión y volver a iniciar sesión</li>
-                <li>Verificar que su cuenta tenga los permisos necesarios</li>
-                <li>Contactar al administrador del sistema</li>
-              </ul>
-            </div>
-          )}
           
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-3 gap-4">
@@ -1371,7 +1357,7 @@ export default function OrderForm({
                   <Button 
                     type="submit" 
                     className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-                    disabled={loading || !!authError}
+                    disabled={loading}
                   >
                     {loading && (
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
