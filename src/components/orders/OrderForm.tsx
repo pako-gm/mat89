@@ -146,7 +146,7 @@ export default function OrderForm({
         orderLines: false
       });
     }
-  }, [open, initialOrder, isEditing, viewMode]);
+  }, [open, initialOrder, initialIsEditing, viewMode]);
 
   useEffect(() => {
     const loadSuppliers = async () => {
@@ -188,7 +188,7 @@ export default function OrderForm({
     if (viewMode && !inEditMode) {
       return "Detalles del Pedido";
     }
-    return isEditing ? "Editar Pedido" : "Nuevo Pedido";
+    return initialIsEditing ? "Editar Pedido" : "Nuevo Pedido";
   };
 
   // Determinar si un campo debe ser solo lectura
@@ -1362,7 +1362,7 @@ export default function OrderForm({
                     {loading && (
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     )}
-                    {isEditing ? "Actualizar Pedido" : "Guardar Pedido"}
+                    {initialIsEditing ? "Actualizar Pedido" : "Guardar Pedido"}
                   </Button>
                 </>
               )}

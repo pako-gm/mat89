@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
+import { warehouses } from "@/lib/data";
 
 export default function OrderList() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export default function OrderList() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
@@ -77,12 +79,12 @@ export default function OrderList() {
 
   const generateNextOrderNumber = () => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
-    const defaultWarehouse = warehouses[0].code.replace('ALM', '');
+    // Get the warehouse code dynamically from the first warehouse in the list.
+    const defaultWarehouseCode = warehouses[0].code;
+    const warehouseNumber = defaultWarehouseCode.replace('ALM', '');
     
     // Find the highest sequential number for the current year
-    const currentYearOrders = orders.filter(order => 
-      order.orderNumber.includes(`/${currentYear}/`)
-    );
+    const currentYearOrders = orders.filter(order => order.orderNumber.includes(`/${currentYear}/`));
     
     let maxSequential = 1000; // Start at 1000 so first number will be 1001
     
@@ -94,7 +96,7 @@ export default function OrderList() {
       maxSequential = Math.max(...sequentials);
     }
     
-    return `${defaultWarehouse}/${currentYear}/${(maxSequential + 1).toString().padStart(4, '0')}`;
+    return `${warehouseNumber}/${currentYear}/${(maxSequential + 1).toString().padStart(4, '0')}`;
   };
 
   const createEmptyOrder = (): Order => {
@@ -102,7 +104,7 @@ export default function OrderList() {
     return {
       id: uuidv4(),
       orderNumber: nextOrderNumber,
-      warehouse: "ALM141", // Default warehouse
+      warehouse: warehouses[0].code, // Dynamically set default warehouse code
       supplierId: "",
       supplierName: "",
       vehicle: "",
@@ -178,10 +180,16 @@ export default function OrderList() {
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
-    setOrderToDelete(null);
+  const confirmDeleteOrder = (orderId: string) => {
+    setOrderToDelete(orderId);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    setShowDeleteConfirmation(false);
     try {
-      await deleteOrder(orderId);
+      if (!orderToDelete) return;
+      await deleteOrder(orderToDelete);
       const updatedOrders = await getOrders();
       setOrders(updatedOrders);
       setFilteredOrders(updatedOrders.filter(order => order.id !== orderId));
@@ -196,6 +204,7 @@ export default function OrderList() {
         description: "No se pudo eliminar el pedido. Por favor, inténtelo de nuevo.",
       });
     }
+    setOrderToDelete(null);
   };
 
   // Calculate pagination
@@ -398,13 +407,15 @@ export default function OrderList() {
         />
       )}
       
-      <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
+      {/* Confirmation dialog for deleting an order */}
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl">Confirmar eliminación</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600">
               ¿Está seguro que desea eliminar este pedido?
             </AlertDialogDescription>
+          
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
@@ -412,7 +423,7 @@ export default function OrderList() {
             </AlertDialogCancel>
             <AlertDialogAction 
               className="bg-red-600 text-white hover:bg-red-700"
-              onClick={() => orderToDelete && handleDeleteOrder(orderToDelete)}
+              onClick={handleDeleteOrder}
             >
               Eliminar
             </AlertDialogAction>
