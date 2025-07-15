@@ -402,8 +402,8 @@ export default function OrderList() {
           open={showForm}
           onClose={handleCloseForm}
           onSave={handleSaveOrder}
-          isEditing={selectedOrder?.id ? true : false}
-          viewMode={selectedOrder.id !== '' && !isEditing} // Modo vista para pedidos existentes
+          isEditing={isEditing}
+          viewMode={isEditing}
         />
       )}
       
