@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
-import { warehouses } from "@/lib/data";
+//import { warehouses } from "@/lib/data";
 
 export default function OrderList() {
   const navigate = useNavigate();

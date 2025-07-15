@@ -5,7 +5,7 @@ import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
-import { filterManualChangeHistory, formatNewCommentStyle, formatDateToDDMMYYYY } from "@/lib/utils";
+import { filterManualChangeHistory, formatDateToDDMMYYYY } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import { 
