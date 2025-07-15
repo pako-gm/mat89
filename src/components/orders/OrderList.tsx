@@ -212,8 +212,24 @@ export default function OrderList() {
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
-    setShowForm(true);
-    setIsEditing(false); // View mode, not editing
+    setShowDetails(false);
+    setShowForm(false);
+    setIsEditing(true); // Para indicar que es un pedido existente
+    setShowForm(true); // Mostrar el formulario en modo vista
+  };
+
+  const handleEditOrder = () => {
+    if (selectedOrder) {
+      setIsEditing(true); // This is EDITING an existing order
+      setShowDetails(false);
+      setShowForm(true);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setShowDetails(false);
+    setSelectedOrder(null);
+    setIsEditing(false);
   };
 
   const handleCloseForm = () => {
@@ -377,7 +393,8 @@ export default function OrderList() {
           open={showForm}
           onClose={handleCloseForm}
           onSave={handleSaveOrder}
-          mode={selectedOrder.id && !isEditing ? 'view' : 'edit'}
+          isEditing={isEditing}
+          viewMode={selectedOrder.id !== '' && !isEditing} // Modo vista para pedidos existentes
         />
       )}
       
