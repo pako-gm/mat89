@@ -1340,17 +1340,6 @@ export default function OrderForm({
               ) : (
                 // Modo edición: mostrar botones de edición
                 <>
-                  {viewMode && (
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={handleEditMode}
-                      className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white flex items-center gap-2"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      Modificar Pedido
-                    </Button>
-                  )}
                   <Button variant="outline" type="button" onClick={handleCancelEdit}>
                     Cancelar
                   </Button>
