@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Order } from "@/types";
-import OrderDetails from "./OrderDetails";
 import OrderForm from "./OrderForm";
 import { warehouses, getOrders, deleteOrder } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ import { v4 as uuidv4 } from "uuid";
 //import { warehouses } from "@/lib/data";
 
 export default function OrderList() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -40,7 +38,6 @@ export default function OrderList() {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
   
   // Pagination state
@@ -220,13 +217,12 @@ export default function OrderList() {
   };
 
   const handleViewDetails = (order: Order) => {
+  const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
-    setShowDetails(false);
     setShowForm(false);
     setIsEditing(true); // Para indicar que es un pedido existente
     setShowForm(true); // Mostrar el formulario en modo vista
   };
-
   const handleEditOrder = () => {
     if (selectedOrder) {
       setIsEditing(true); // This is EDITING an existing order
@@ -237,11 +233,10 @@ export default function OrderList() {
 
   const handleCloseDetails = () => {
     setShowDetails(false);
+  const handleCloseDetails = () => {
     setSelectedOrder(null);
     setIsEditing(false);
   };
-
-  const handleCloseForm = () => {
     setShowForm(false);
     setSelectedOrder(null);
     setIsEditing(false);
