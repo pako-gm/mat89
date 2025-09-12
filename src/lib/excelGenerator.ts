@@ -112,8 +112,7 @@ export class ExcelGenerator {
       fecha_envio: this.formatDate(orderData.fecha_envio),
       garantia: orderData.garantia ? 'SÍ' : 'NO',
       averia_declarada: orderData.averia_declarada || '',
-      vehiculo: orderData.vehiculo || '',
-      alm_envia: orderData.alm_envia || '', // Changed from almacen to alm_envia
+      alm_envia: orderData.alm_envia || '',
       nombre: orderData.tbl_proveedores?.nombre || '',
       direccion: orderData.tbl_proveedores?.direccion || '',
       ciudad: orderData.tbl_proveedores?.ciudad || '',
@@ -250,9 +249,11 @@ export class ExcelGenerator {
     rowIndex: number, 
     templateRow: { [col: number]: XLSX.CellObject }, 
     lineData: OrderData['tbl_ln_pedidos_rep'][0],
-    orderData: OrderData,
+    orderData: OrderData | null,
     range: XLSX.Range
   ): void {
+    if (!orderData) return;
+    
     // Calculate fecha_necesidad (fecha_envio + 15 days)
     const fechaNecesidad = this.calculateFechaNecesidad(orderData.fecha_envio);
     
@@ -261,9 +262,9 @@ export class ExcelGenerator {
       descripcion: lineData.descripcion,
       nenv: lineData.nenv,
       nsenv: lineData.nsenv || '',
-      // Add order-level data that should repeat in each line
       vehiculo: orderData.vehiculo || '',
       alm_envia: orderData.alm_envia || '',
+      almacen: orderData.alm_envia || '', // Support both placeholders
       fecha_necesidad: fechaNecesidad
     };
 
@@ -299,6 +300,11 @@ export class ExcelGenerator {
     
     try {
       const date = new Date(fechaEnvio);
+      // Ensure we have a valid date
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
       // Add 15 days
       date.setDate(date.getDate() + 15);
       
@@ -307,6 +313,7 @@ export class ExcelGenerator {
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
     } catch (error) {
+      console.error('Error calculating fecha_necesidad:', error);
       return '';
     }
   }
