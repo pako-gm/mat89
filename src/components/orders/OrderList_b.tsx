@@ -1,618 +1,913 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, ChevronDown, ChevronUp, Calendar, DollarSign, Package, User, Clock, AlertCircle, Check, X, Truck, ShoppingBag } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Order } from "@/types";
+import OrderDetails from "./OrderDetails";
+import OrderForm from "./OrderForm";
+import { warehouses, getOrders, deleteOrder } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Search, Star, Trash2, FileDown } from "lucide-react";
+import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { 
+  Table, 
+  TableBody,
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid";
 
-interface OrderItem {
-  id: string;
-  productName: string;
-  quantity: number;
-  price: number;
-  subtotal: number;
-}
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  orderDate: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  totalAmount: number;
-  items: OrderItem[];
-  shippingAddress: string;
-  paymentMethod: string;
-  trackingNumber?: string;
-}
-
-const OrderList: React.FC = () => {
+export default function OrderList() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'status'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const { toast } = useToast();
+  
+  // Lanzar PAR modal state
+  const [showLanzarParModal, setShowLanzarParModal] = useState(false);
+  const [orderNumberInput, setOrderNumberInput] = useState("");
+  
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
   const ordersPerPage = 10;
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // PAR generation modal state
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [generatedHTML, setGeneratedHTML] = useState("");
 
-  // Simulación de carga de datos
   useEffect(() => {
     const fetchOrders = async () => {
-      // Simular llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Datos de ejemplo
-      const mockOrders: Order[] = [
-        {
-          id: '1',
-          orderNumber: 'ORD-2024-001',
-          customerName: 'Juan Pérez',
-          customerEmail: 'juan@example.com',
-          orderDate: '2024-01-15T10:30:00',
-          status: 'delivered',
-          totalAmount: 150.00,
-          items: [
-            { id: '1', productName: 'Producto A', quantity: 2, price: 50.00, subtotal: 100.00 },
-            { id: '2', productName: 'Producto B', quantity: 1, price: 50.00, subtotal: 50.00 }
-          ],
-          shippingAddress: 'Calle Principal 123, Ciudad',
-          paymentMethod: 'Tarjeta de Crédito',
-          trackingNumber: 'TRK123456789'
-        },
-        {
-          id: '2',
-          orderNumber: 'ORD-2024-002',
-          customerName: 'María García',
-          customerEmail: 'maria@example.com',
-          orderDate: '2024-01-16T14:20:00',
-          status: 'processing',
-          totalAmount: 250.00,
-          items: [
-            { id: '3', productName: 'Producto C', quantity: 5, price: 50.00, subtotal: 250.00 }
-          ],
-          shippingAddress: 'Avenida Central 456, Ciudad',
-          paymentMethod: 'PayPal'
-        },
-        {
-          id: '3',
-          orderNumber: 'ORD-2024-003',
-          customerName: 'Carlos López',
-          customerEmail: 'carlos@example.com',
-          orderDate: '2024-01-17T09:15:00',
-          status: 'pending',
-          totalAmount: 320.00,
-          items: [
-            { id: '4', productName: 'Producto D', quantity: 2, price: 80.00, subtotal: 160.00 },
-            { id: '5', productName: 'Producto E', quantity: 2, price: 80.00, subtotal: 160.00 }
-          ],
-          shippingAddress: 'Plaza Mayor 789, Ciudad',
-          paymentMethod: 'Transferencia'
-        },
-        {
-          id: '4',
-          orderNumber: 'ORD-2024-004',
-          customerName: 'Ana Martínez',
-          customerEmail: 'ana@example.com',
-          orderDate: '2024-01-18T16:45:00',
-          status: 'shipped',
-          totalAmount: 180.00,
-          items: [
-            { id: '6', productName: 'Producto F', quantity: 3, price: 60.00, subtotal: 180.00 }
-          ],
-          shippingAddress: 'Calle Segunda 321, Ciudad',
-          paymentMethod: 'Tarjeta de Débito',
-          trackingNumber: 'TRK987654321'
-        },
-        {
-          id: '5',
-          orderNumber: 'ORD-2024-005',
-          customerName: 'Luis Rodríguez',
-          customerEmail: 'luis@example.com',
-          orderDate: '2024-01-19T11:30:00',
-          status: 'cancelled',
-          totalAmount: 95.00,
-          items: [
-            { id: '7', productName: 'Producto G', quantity: 1, price: 95.00, subtotal: 95.00 }
-          ],
-          shippingAddress: 'Paseo Norte 555, Ciudad',
-          paymentMethod: 'Efectivo'
+      try {
+        const loadedOrders = await getOrders();
+        if (Array.isArray(loadedOrders) && loadedOrders.length > 0) {
+          const sortedOrders = [...loadedOrders].sort((a, b) => {
+            const seqA = parseInt(a.orderNumber.split('/')[2] || '0');
+            const seqB = parseInt(b.orderNumber.split('/')[2] || '0');
+            return seqB - seqA;
+          });
+          setOrders(sortedOrders);
+          setFilteredOrders(sortedOrders);
+        } else {
+          setOrders([]);
+          setFilteredOrders([]);
         }
-      ];
-      
-      setOrders(mockOrders);
-      setFilteredOrders(mockOrders);
-      setLoading(false);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los pedidos. Por favor, inténtelo de nuevo.",
+        });
+      }
     };
 
     fetchOrders();
-  }, []);
+  }, [toast]);
 
-  // Aplicar filtros y búsqueda
+  const generateNextOrderNumber = () => {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    const defaultWarehouseCode = warehouses[0].code;
+    const warehouseNumber = defaultWarehouseCode.replace('ALM', '');
+    
+    const currentYearOrders = orders.filter(order => order.orderNumber.includes(`/${currentYear}/`));
+    
+    let maxSequential = 1000; 
+    
+    if (currentYearOrders.length > 0) {
+      const sequentials = currentYearOrders.map(order => {
+        const parts = order.orderNumber.split('/');
+        return parseInt(parts[2] || '0');
+      });
+      maxSequential = Math.max(...sequentials);
+    }
+    
+    return `${warehouseNumber}/${currentYear}/${(maxSequential + 1).toString().padStart(4, '0')}`;
+  };
+
+  const createEmptyOrder = (): Order => {
+    const nextOrderNumber = generateNextOrderNumber();
+    return {
+      id: uuidv4(),
+      orderNumber: nextOrderNumber,
+      warehouse: warehouses[0].code,
+      supplierId: "",
+      supplierName: "",
+      vehicle: "",
+      warranty: false,
+      nonConformityReport: "",
+      dismantleDate: "",
+      shipmentDate: "",
+      declaredDamage: "",
+      shipmentDocumentation: [],
+      changeHistory: [],
+      orderLines: [{
+        id: uuidv4(),
+        registration: "",
+        partDescription: "",
+        quantity: 1,
+        serialNumber: ""
+      }]
+    };
+  };
+
+  const handleNewOrder = () => {
+    const emptyOrder = createEmptyOrder();
+    setSelectedOrder(emptyOrder);
+    setIsEditing(false);
+    setShowForm(true);
+    setShowDetails(false);
+  };
+
   useEffect(() => {
-    let filtered = [...orders];
+    const searchQuery = searchParams.get('search')?.toLowerCase() || '';
+    
+    if (searchQuery) {
+      const filtered = orders.filter(order => 
+        order.orderNumber.toLowerCase().includes(searchQuery) ||
+        order.supplierName.toLowerCase().includes(searchQuery) ||
+        order.vehicle.toLowerCase().includes(searchQuery)
+      ).sort((a, b) => {
+        const seqA = parseInt(a.orderNumber.split('/')[2] || '0');
+        const seqB = parseInt(b.orderNumber.split('/')[2] || '0');
+        return seqB - seqA;
+      });
+      setFilteredOrders(filtered);
+      setCurrentPage(1);
+    } else {
+      setFilteredOrders(orders);
+    }
+  }, [searchParams, orders]);
 
-    // Filtro por búsqueda
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(order =>
-        order.orderNumber.toLowerCase().includes(searchLower) ||
-        order.customerName.toLowerCase().includes(searchLower) ||
-        order.customerEmail.toLowerCase().includes(searchLower)
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    if (value) {
+      const filtered = orders.filter(order => 
+        order.orderNumber.toLowerCase().includes(value.toLowerCase()) ||
+        order.supplierName.toLowerCase().includes(value.toLowerCase()) ||
+        order.vehicle.toLowerCase().includes(value.toLowerCase())
       );
+      setFilteredOrders(filtered);
+      setCurrentPage(1);
+    } else {
+      setFilteredOrders(orders);
     }
+  };
 
-    // Filtro por estado
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter);
+  const clearFilter = () => {
+    setSearchQuery("");
+    setFilteredOrders(orders);
+    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
     }
+  };
 
-    // Filtro por fecha
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      const filterDate = new Date();
-      
-      switch (dateFilter) {
-        case 'today':
-          filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter(order => new Date(order.orderDate) >= filterDate);
-          break;
-        case 'week':
-          filterDate.setDate(now.getDate() - 7);
-          filtered = filtered.filter(order => new Date(order.orderDate) >= filterDate);
-          break;
-        case 'month':
-          filterDate.setMonth(now.getMonth() - 1);
-          filtered = filtered.filter(order => new Date(order.orderDate) >= filterDate);
-          break;
-      }
+  const confirmDeleteOrder = (orderId: string) => {
+    setOrderToDelete(orderId);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    setShowDeleteConfirmation(false);
+    try {
+      if (!orderToDelete) return;
+      await deleteOrder(orderToDelete);
+      const updatedOrders = await getOrders();
+      setOrders(updatedOrders);
+      setFilteredOrders(updatedOrders.filter(order => order.id !== orderToDelete)); // Corrected this line
+      toast({
+        title: "Pedido eliminado",
+        description: "El pedido se ha eliminado correctamente",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el pedido. Por favor, inténtelo de nuevo.",
+      });
     }
+    setOrderToDelete(null);
+  };
 
-    // Aplicar ordenamiento
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'date':
-          comparison = new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime();
-          break;
-        case 'amount':
-          comparison = a.totalAmount - b.totalAmount;
-          break;
-        case 'status':
-          comparison = a.status.localeCompare(b.status);
-          break;
-      }
-      
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    setFilteredOrders(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, dateFilter, sortBy, sortOrder, orders]);
-
-  // Calcular páginas
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrders = useMemo(
-    () => filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder),
-    [filteredOrders, indexOfFirstOrder, indexOfLastOrder]
-  );
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
 
-  // Estadísticas memoizadas
-  const stats = useMemo(() => {
-    const total = filteredOrders.length;
-    const revenue = filteredOrders.reduce((sum, order) => sum + order.totalAmount, 0);
-    const pending = filteredOrders.filter(o => o.status === 'pending').length;
-    const processing = filteredOrders.filter(o => o.status === 'processing').length;
-    
-    return { total, revenue, pending, processing };
-  }, [filteredOrders]);
-
-  const toggleOrderExpansion = useCallback((orderId: string) => {
-    setExpandedOrders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const handleSort = useCallback((field: 'date' | 'amount' | 'status') => {
-    if (sortBy === field) {
-      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
+  const paginate = (pageNumber: number) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
     }
-  }, [sortBy]);
+  };
 
-  const getStatusColor = useCallback((status: string) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
-      shipped: 'bg-purple-100 text-purple-800',
-      delivered: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800'
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setShowDetails(false);
+    setShowForm(false);
+    setIsEditing(true);
+    setShowForm(true);
+  };
+
+  const handleEditOrder = () => {
+    if (selectedOrder) {
+      setIsEditing(true);
+      setShowDetails(false);
+      setShowForm(true);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setShowDetails(false);
+    setSelectedOrder(null);
+    setIsEditing(false);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setSelectedOrder(null);
+    setIsEditing(false);
+  };
+
+
+  const handleSaveOrder = async () => {
+    const action = isEditing ? "actualizado" : "creado";
+    toast({
+      title: `Pedido ${action}`,
+      description: `El pedido se ha ${action} correctamente`,
+    });
+    
+    setShowForm(false);
+    setSelectedOrder(null);
+    setIsEditing(false);
+    
+    try {
+      const updatedOrders = await getOrders();
+      setOrders(updatedOrders);
+      setFilteredOrders(updatedOrders);
+    } catch (error) {
+      console.error('Error refreshing orders:', error);
+    }
+  };
+
+  const handleLanzarPAR = () => {
+    setShowLanzarParModal(true);
+    setOrderNumberInput("");
+  };
+
+  const handleLanzarParCancel = () => {
+    setShowLanzarParModal(false);
+    setOrderNumberInput("");
+  };
+
+  const handleLanzarParAccept = async () => {
+    if (!orderNumberInput.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Campo requerido",
+        description: "Por favor, introduce las últimas 4 cifras del pedido.",
+      });
+      return;
+    }
+
+    if (orderNumberInput.length !== 4) {
+      toast({
+        variant: "destructive",
+        title: "Formato incorrecto",
+        description: "Debes introducir exactamente 4 dígitos.",
+      });
+      return;
+    }
+
+    try {
+      // Buscar el pedido por las 4 últimas cifras
+      const orderFound = await findOrderByLastDigits(orderNumberInput);
+      
+      if (!orderFound) {
+        toast({
+          variant: "destructive",
+          title: "Pedido no encontrado",
+          description: `No se encontró ningún pedido que termine en: ${orderNumberInput}`,
+        });
+        return;
+      }
+
+      // Obtener información del proveedor
+      const supplier = await getSupplierInfo(orderFound.proveedor_id);
+      
+      if (!supplier) {
+        toast({
+          variant: "destructive",
+          title: "Error de datos",
+          description: "No se pudo obtener la información del proveedor.",
+        });
+        return;
+      }
+
+      // Lógica condicional basada en es_externo
+      if (supplier.es_externo === true) {
+        // Llamar a función para proveedores externos
+        await procesarProveedorExterno(orderFound.num_pedido);
+      } else {
+        // Llamar a función para proveedores internos
+        await procesarProveedorInterno(orderFound.num_pedido);
+      }
+      
+    } catch (error) {
+      console.error('Error processing PAR:', error);
+      toast({
+        variant: "destructive",
+        title: "Error de conexión",
+        description: "No se pudo conectar con la base de datos. Inténtelo de nuevo.",
+      });
+    }
+    
+    setShowLanzarParModal(false);
+    setOrderNumberInput("");
+  };
+
+  // Función para buscar pedido por las 4 últimas cifras
+  const findOrderByLastDigits = async (lastDigits: string) => {
+    try {
+      const { data: orders, error } = await supabase
+        .from('tbl_pedidos_rep')
+        .select('id, num_pedido, proveedor_id')
+        .ilike('num_pedido', `%${lastDigits}`);
+
+      if (error) {
+        console.error('Database error:', error);
+        return null;
+      }
+
+      // Filtrar pedidos que realmente terminen con esas cifras
+      const matchingOrders = orders?.filter(order => 
+        order.num_pedido.slice(-4) === lastDigits
+      );
+
+      if (!matchingOrders || matchingOrders.length === 0) {
+        return null;
+      }
+
+      if (matchingOrders.length > 1) {
+        toast({
+          variant: "destructive",
+          title: "Múltiples pedidos encontrados",
+          description: `Se encontraron ${matchingOrders.length} pedidos que terminan en ${lastDigits}. Use un número más específico.`,
+        });
+        return null;
+      }
+
+      return matchingOrders[0];
+    } catch (error) {
+      console.error('Error searching order:', error);
+      throw error;
+    }
+  };
+
+  // Función para obtener información del proveedor
+  const getSupplierInfo = async (supplierId: string) => {
+    try {
+      const { data: supplier, error } = await supabase
+        .from('tbl_proveedores')
+        .select('id, nombre, es_externo, direccion, ciudad, provincia, codigo_postal, email')
+        .eq('id', supplierId)
+        .single();
+
+      if (error) {
+        console.error('Supplier query error:', error);
+        return null;
+      }
+
+      return supplier;
+    } catch (error) {
+      console.error('Error getting supplier info:', error);
+      throw error;
+    }
+  };
+
+  // Función para procesar proveedores externos
+  const procesarProveedorExterno = async (numeroPedido: string) => {
+    try {
+      // Cargar plantilla HTML
+      const templateResponse = await fetch('/plantillas/plantilla_ext.html');
+      if (!templateResponse.ok) {
+        throw new Error('No se pudo cargar la plantilla HTML');
+      }
+      let templateHTML = await templateResponse.text();
+
+      // Obtener datos completos del pedido
+      const orderData = await fetchCompleteOrderData(numeroPedido);
+      if (!orderData) {
+        throw new Error('No se pudieron obtener los datos del pedido');
+      }
+
+      // Reemplazar placeholders con datos reales
+      const processedHTML = replaceTemplatePlaceholders(templateHTML, orderData);
+      
+      // Reemplazar logo
+      const finalHTML = replaceLogo(processedHTML);
+      
+      setGeneratedHTML(finalHTML);
+      setShowPrintModal(true);
+      
+      toast({
+        title: "Documento generado",
+        description: "El documento PAR se ha generado correctamente.",
+      });
+      
+    } catch (error) {
+      console.error('Error processing external supplier PAR:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al generar documento",
+        description: error instanceof Error ? error.message : "Error desconocido al procesar el PAR",
+      });
+    }
+  };
+
+  // Función para procesar proveedores internos
+  const procesarProveedorInterno = async (numeroPedido: string) => {
+    toast({
+      title: "Proveedor Interno Detectado", 
+      description: `El procesamiento para proveedores internos estará disponible próximamente. Pedido: ${numeroPedido}`,
+    });
+    
+    // TODO: Implementar lógica específica para proveedores internos
+    console.log(`Processing internal supplier PAR for order: ${numeroPedido}`);
+  };
+
+  const handleOrderNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Solo números
+    if (value.length <= 4) {
+      setOrderNumberInput(value);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleLanzarParAccept();
+    }
+  };
+
+  // Función para obtener datos completos del pedido
+  const fetchCompleteOrderData = async (numeroPedido: string) => {
+    try {
+      const { data: orderData, error: orderError } = await supabase
+        .from('tbl_pedidos_rep')
+        .select(`
+          *,
+          tbl_proveedores(*),
+          tbl_ln_pedidos_rep(*)
+        `)
+        .eq('num_pedido', numeroPedido)
+        .single();
+
+      if (orderError) {
+        throw orderError;
+      }
+
+      return orderData;
+    } catch (error) {
+      console.error('Error fetching complete order data:', error);
+      return null;
+    }
+  };
+
+  // Función para reemplazar placeholders en la plantilla
+  const replaceTemplatePlaceholders = (template: string, orderData: any) => {
+    let processedHTML = template;
+
+    // Formatear fecha de envío
+    const formatDate = (dateString: string) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES');
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  }, []);
 
-  const getStatusIcon = useCallback((status: string) => {
-    const icons = {
-      pending: <Clock className="w-4 h-4" />,
-      processing: <Package className="w-4 h-4" />,
-      shipped: <Truck className="w-4 h-4" />,
-      delivered: <Check className="w-4 h-4" />,
-      cancelled: <X className="w-4 h-4" />
-    };
-    return icons[status as keyof typeof icons] || null;
-  }, []);
+    // Reemplazos básicos del pedido
+    processedHTML = processedHTML.replace(/{num_pedido}/g, orderData.num_pedido || '');
+    processedHTML = processedHTML.replace(/{fecha_envio}/g, formatDate(orderData.fecha_envio));
+    processedHTML = processedHTML.replace(/{información_nc}/g, orderData.garantia ? 'SÍ' : 'NO');
+    processedHTML = processedHTML.replace(/{avería_declarada}/g, orderData.averia_declarada || '');
 
-  const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  }, []);
+    // Reemplazos del proveedor
+    if (orderData.tbl_proveedores) {
+      const proveedor = orderData.tbl_proveedores;
+      processedHTML = processedHTML.replace(/{nombre}/g, proveedor.nombre || '');
+      processedHTML = processedHTML.replace(/{direccion}/g, proveedor.direccion || '');
+      processedHTML = processedHTML.replace(/{ciudad}/g, proveedor.ciudad || '');
+      processedHTML = processedHTML.replace(/{codigo_postal}/g, proveedor.codigo_postal || '');
+      processedHTML = processedHTML.replace(/{provincia}/g, proveedor.provincia || '');
+      processedHTML = processedHTML.replace(/{email_empresa}/g, proveedor.email || '');
+    }
+    // Reemplazos de líneas de pedido (tomar la primera línea)
+    // Logo embebido en base64 - Imagen simple de Renfe
+    const logoBase64 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkYwMDAwIi8+Cjx0ZXh0IHg9IjEwIiB5PSIzMCIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCI+UkVORkU8L3RleHQ+Cjx0ZXh0IHg9IjEwIiB5PSI0NSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5JbmdlbmllcsOtYSB5IE1hbnRlbmltaWVudG88L3RleHQ+Cjwvc3ZnPgo=`;
 
-  const formatCurrency = useCallback((amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  }, []);
+    return processedHTML;
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+  // Función para reemplazar logo
+  const replaceLogo = (html: string) => {
+    // Logo embebido en base64 - Imagen simple de Renfe
+    const logoBase64 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkYwMDAwIi8+Cjx0ZXh0IHg9IjEwIiB5PSIzMCIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCI+UkVORkU8L3RleHQ+Cjx0ZXh0IHg9IjEwIiB5PSI0NSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5JbmdlbmllcsOtYSB5IE1hbnRlbmltaWVudG88L3RleHQ+Cjwvc3ZnPgo=`;
+    
+    // Buscar y reemplazar el div del logo específico
+    let replacedHtml = html.replace(
+      /<div\s+class="logo"[^>]*>.*?<\/div>/gi,
+      `<div class="logo"><img width="200" height="50" src="${logoBase64}" alt="Logo Renfe" style="max-width: 100%; height: auto;"></div>`
     );
-  }
+    
+    // Buscar también el patrón "🚄 Logo Renfe" y reemplazarlo
+    replacedHtml = replacedHtml.replace(
+      /🚄\s*Logo\s*Renfe/gi,
+      `<img width="200" height="50" src="${logoBase64}" alt="Logo Renfe" style="max-width: 100%; height: auto;">`
+    );
+    
+    return replacedHtml;
+  };
+
+  // Funciones del modal de impresión
+  const handleSave = () => {
+    try {
+      // Crear el contenido HTML completo
+      const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Documento PAR</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    @media print {
+      @page {
+        size: landscape;
+        margin: 0.5in;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  ${generatedHTML}
+</body>
+</html>`;
+
+      // Crear blob con el HTML
+      const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
+      
+      // Crear URL temporal para la descarga
+      const url = URL.createObjectURL(blob);
+      
+      // Crear elemento de descarga
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = `documento_PAR_${Date.now()}.html`;
+      
+      // Simular click para descargar
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      
+      // Limpiar
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Archivo guardado",
+        description: "El documento HTML se ha descargado correctamente.",
+      });
+      
+    } catch (error) {
+      console.error('Error saving file:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al guardar",
+        description: "No se pudo guardar el archivo. Inténtelo de nuevo.",
+      });
+    }
+  };
+
+  const handleCancelSave = () => {
+    setShowPrintModal(false);
+    setGeneratedHTML('');
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de Pedidos</h1>
-        <p className="text-gray-600">Administra y supervisa todos los pedidos de tu tienda</p>
-      </div>
-
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Pedidos</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <ShoppingBag className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Ingresos</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.revenue)}</p>
-            </div>
-            <DollarSign className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pendientes</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">En Proceso</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.processing}</p>
-            </div>
-            <Package className="w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Barra de búsqueda y filtros */}
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Buscar por número de pedido, cliente o email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+    <div className="max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-medium">Gestión de Pedidos</h1>
+        <div className="flex gap-3">
+          <Button 
+            onClick={handleLanzarPAR}
+            className="bg-[#107C41] hover:bg-[#0D5B2F] text-white"
           >
-            <Filter className="w-4 h-4" />
-            Filtros
-            {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+            <Star className="mr-2 h-4 w-4" /> Lanzar PAR
+          </Button>
+          <Button 
+            onClick={handleNewOrder}
+            className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Pedido
+          </Button>
         </div>
-
-        {/* Filtros expandibles */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">Todos los estados</option>
-                <option value="pending">Pendiente</option>
-                <option value="processing">Procesando</option>
-                <option value="shipped">Enviado</option>
-                <option value="delivered">Entregado</option>
-                <option value="cancelled">Cancelado</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Período</label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              >
-                <option value="all">Todo el tiempo</option>
-                <option value="today">Hoy</option>
-                <option value="week">Última semana</option>
-                <option value="month">Último mes</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ordenar por</label>
-              <div className="flex gap-2">
-                <select
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'date' | 'amount' | 'status')}
-                >
-                  <option value="date">Fecha</option>
-                  <option value="amount">Monto</option>
-                  <option value="status">Estado</option>
-                </select>
-                <button
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  {sortOrder === 'asc' ? '↑' : '↓'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Lista de pedidos */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {currentOrders.length === 0 ? (
-          <div className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No se encontraron pedidos que coincidan con los criterios de búsqueda</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Pedido
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('date')}>
-                    <div className="flex items-center gap-1">
-                      Fecha
-                      {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('status')}>
-                    <div className="flex items-center gap-1">
-                      Estado
-                      {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('amount')}>
-                    <div className="flex items-center gap-1">
-                      Total
-                      {sortBy === 'amount' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentOrders.map((order) => (
-                  <React.Fragment key={order.id}>
-                    <tr className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{order.orderNumber}</div>
-                        <div className="text-sm text-gray-500">{order.items.length} artículos</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-gray-600" />
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
-                            <div className="text-sm text-gray-500">{order.customerEmail}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Calendar className="w-4 h-4 mr-1 text-gray-400" />
-                          {formatDate(order.orderDate)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
-                          {order.status === 'pending' && 'Pendiente'}
-                          {order.status === 'processing' && 'Procesando'}
-                          {order.status === 'shipped' && 'Enviado'}
-                          {order.status === 'delivered' && 'Entregado'}
-                          {order.status === 'cancelled' && 'Cancelado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{formatCurrency(order.totalAmount)}</div>
-                        <div className="text-sm text-gray-500">{order.paymentMethod}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => toggleOrderExpansion(order.id)}
-                          className="text-blue-600 hover:text-blue-900 font-medium"
-                        >
-                          {expandedOrders.has(order.id) ? 'Ocultar' : 'Ver detalles'}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedOrders.has(order.id) && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-2">Información de envío</h4>
-                                <p className="text-sm text-gray-600">{order.shippingAddress}</p>
-                                {order.trackingNumber && (
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    Tracking: <span className="font-mono">{order.trackingNumber}</span>
-                                  </p>
-                                )}
-                              </div>
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-2">Productos</h4>
-                                <div className="space-y-2">
-                                  {order.items.map((item) => (
-                                    <div key={item.id} className="flex justify-between text-sm">
-                                      <span className="text-gray-600">
-                                        {item.productName} x{item.quantity}
-                                      </span>
-                                      <span className="font-medium">{formatCurrency(item.subtotal)}</span>
-                                    </div>
-                                  ))}
-                                  <div className="pt-2 border-t border-gray-200">
-                                    <div className="flex justify-between font-medium">
-                                      <span>Total</span>
-                                      <span>{formatCurrency(order.totalAmount)}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                                Actualizar estado
-                              </button>
-                              <button className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700">
-                                Enviar email
-                              </button>
-                              {order.status === 'pending' && (
-                                <button className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
-                                  Cancelar pedido
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="flex gap-4 mb-6">
+        <div className="relative flex-1 max-w-2xl">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Buscar por núm. pedido, proveedor, vehículo..."
+            value={searchQuery}
+            onChange={handleSearch}
+            className="pl-10 h-9"
+          />
+        </div>
+        <Button 
+          variant="outline" 
+          className="h-9 hover:bg-gray-50 transition-colors duration-200" 
+          onClick={clearFilter}
+        >
+          Borrar Filtro
+        </Button>
+      </div>
 
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Mostrando {indexOfFirstOrder + 1} a {Math.min(indexOfLastOrder, filteredOrders.length)} de {filteredOrders.length} pedidos
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead className="font-medium w-[15%]">Núm. Pedido</TableHead>
+              <TableHead className="font-medium w-[10%]">Almacén</TableHead>
+              <TableHead className="font-medium w-[55%]">Proveedor</TableHead>
+              <TableHead className="font-medium w-[10%]">Vehículo</TableHead>
+              <TableHead className="font-medium w-[10%]">Fecha Envío</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {currentOrders.length > 0 ? (
+              currentOrders.map((order) => (
+                <TableRow 
+                  key={order.id} 
+                  className="hover:bg-gray-50 transition-colors duration-200"
                 >
-                  Anterior
-                </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 border rounded text-sm ${
-                        currentPage === pageNum
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'border-gray-300 hover:bg-gray-100'
-                      }`}
+                  <TableCell className="font-medium cursor-pointer" onClick={() => handleViewDetails(order)}>
+                    {order.orderNumber}
+                  </TableCell>
+                  <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>
+                    <span className="inline-flex items-center justify-center rounded-md border bg-gray-50 px-2 py-1 text-xs">
+                      {order.warehouse}
+                    </span>
+                  </TableCell>
+                  <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>{order.supplierName}</TableCell>
+                  <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>{order.vehicle}</TableCell>
+                  <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>
+                    {order.shipmentDate ? format(new Date(order.shipmentDate), 'dd/MM/yyyy') : '--'}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDeleteOrder(order.id);
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 h-8 w-8"
                     >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  {searchQuery
+                    ? "No se encontraron pedidos que coincidan con la búsqueda"
+                    : "No hay pedidos registrados. Haga clic en 'Nuevo Pedido' para agregar uno."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {filteredOrders.length > ordersPerPage && (
+        <div className="flex justify-center items-center py-4 mt-4">
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <span className="mx-2 flex items-center text-sm text-gray-600">
+              Página {currentPage} de {totalPages}
+            </span>
+            
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {selectedOrder && showForm && (
+        <OrderForm
+          order={selectedOrder}
+          open={showForm}
+          onClose={handleCloseForm}
+          onSave={handleSaveOrder}
+          isEditing={isEditing}
+          viewMode={isEditing}
+        />
+      )}
+      
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl">Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              ¿Está seguro que desea eliminar este pedido?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={handleDeleteOrder}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Lanzar PAR Modal */}
+      <Dialog open={showLanzarParModal} onOpenChange={setShowLanzarParModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Introducir Número de Pedido</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                  Últimas 4 cifras del pedido
+                </label>
+                <Input
+                  id="orderNumber"
+                  type="text"
+                  value={orderNumberInput}
+                  onChange={handleOrderNumberChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ej: 1001"
+                  className="w-full text-center text-lg tracking-wider"
+                  maxLength={4}
+                  autoFocus
+                />
+              </div>
+              
+              <p className="text-sm text-gray-600 text-center">
+                Introduce las 4 últimas cifras del número de pedido
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-3">
+            <Button
+              variant="outline"
+              onClick={handleLanzarParCancel}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleLanzarParAccept}
+              className="flex-1 bg-[#91268F] hover:bg-[#7A1F79] text-white"
+            >
+              Aceptar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Confirmation Modal */}
+      <Dialog open={showPrintModal} onOpenChange={setShowPrintModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Documento PAR generado</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex gap-6 py-4">
+            <div className="flex-1">
+              <p className="text-lg mb-4">El documento PAR se ha generado.</p>
+              <p className="text-sm text-gray-600 mb-6">
+                Puede guardar el documento HTML en su equipo o cancelar la operación.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleSave}
+                  className="bg-[#107C41] hover:bg-[#0D5B2F] text-white flex-1"
                 >
-                  Siguiente
-                </button>
+                  Guardar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelSave}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview del documento */}
+            <div className="w-80 border rounded-lg overflow-hidden">
+              <div className="bg-gray-100 p-2 text-xs text-center font-medium">
+                Vista previa del documento
+              </div>
+              <div className="h-96 overflow-auto p-4 text-xs">
+                <div 
+                  dangerouslySetInnerHTML={{ __html: generatedHTML }} 
+                  style={{ transform: 'scale(0.3)', transformOrigin: 'top left', width: '333%' }}
+                />
               </div>
             </div>
           </div>
-        )}
-      </div>
+          
+          <DialogFooter className="mt-4">
+            <p className="text-xs text-gray-500">
+              El documento se guardará como archivo HTML con formato optimizado
+            </p>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default OrderList;
+}
