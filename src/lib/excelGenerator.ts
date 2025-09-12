@@ -1,3 +1,4 @@
+//version con mejoras en la gestion de filas y formato
 import * as XLSX from 'xlsx';
 
 interface OrderData {

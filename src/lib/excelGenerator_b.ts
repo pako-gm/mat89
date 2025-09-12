@@ -1,3 +1,4 @@
+//version original de excelGenerator.ts
 import * as XLSX from 'xlsx';
 
 interface OrderData {
