@@ -32,6 +32,7 @@ export class ExcelGenerator {
   private workbook: XLSX.WorkBook | null = null;
   private worksheet: XLSX.WorkSheet | null = null;
   private templateRowIndex: number = -1;
+  private orderData: OrderData | null = null;
 
   /**
    * Load the Excel template from the public folder
@@ -94,6 +95,9 @@ export class ExcelGenerator {
   async generateExcel(orderData: OrderData): Promise<ArrayBuffer> {
     await this.loadTemplate();
     
+    // Store order data for use in other methods
+    this.orderData = orderData;
+    
     if (!this.workbook || !this.worksheet) {
       throw new Error('No se pudo cargar la plantilla Excel');
     }
@@ -109,7 +113,7 @@ export class ExcelGenerator {
       garantia: orderData.garantia ? 'SÍ' : 'NO',
       averia_declarada: orderData.averia_declarada || '',
       vehiculo: orderData.vehiculo || '',
-      alm_envia: orderData.alm_envia || '',
+      alm_envia: orderData.alm_envia || '', // Changed from almacen to alm_envia
       nombre: orderData.tbl_proveedores?.nombre || '',
       direccion: orderData.tbl_proveedores?.direccion || '',
       ciudad: orderData.tbl_proveedores?.ciudad || '',
@@ -194,7 +198,7 @@ export class ExcelGenerator {
       }
       
       // Fill the row with line data
-      this.fillRowWithLineData(targetRowIndex, templateRow, line, range);
+      this.fillRowWithLineData(targetRowIndex, templateRow, line, this.orderData, range);
     });
     
     // Update worksheet range
@@ -246,13 +250,21 @@ export class ExcelGenerator {
     rowIndex: number, 
     templateRow: { [col: number]: XLSX.CellObject }, 
     lineData: OrderData['tbl_ln_pedidos_rep'][0],
+    orderData: OrderData,
     range: XLSX.Range
   ): void {
+    // Calculate fecha_necesidad (fecha_envio + 15 days)
+    const fechaNecesidad = this.calculateFechaNecesidad(orderData.fecha_envio);
+    
     const lineReplacements: PlaceholderReplacements = {
       matricula: lineData.matricula_89,
       descripcion: lineData.descripcion,
       nenv: lineData.nenv,
-      nsenv: lineData.nsenv || ''
+      nsenv: lineData.nsenv || '',
+      // Add order-level data that should repeat in each line
+      vehiculo: orderData.vehiculo || '',
+      alm_envia: orderData.alm_envia || '',
+      fecha_necesidad: fechaNecesidad
     };
 
     for (let col = range.s.c; col <= range.e.c; col++) {
@@ -276,6 +288,26 @@ export class ExcelGenerator {
           cell.w = cellValue;
         }
       }
+    }
+  }
+
+  /**
+   * Calculate fecha_necesidad (fecha_envio + 15 days)
+   */
+  private calculateFechaNecesidad(fechaEnvio: string): string {
+    if (!fechaEnvio) return '';
+    
+    try {
+      const date = new Date(fechaEnvio);
+      // Add 15 days
+      date.setDate(date.getDate() + 15);
+      
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      return '';
     }
   }
 
