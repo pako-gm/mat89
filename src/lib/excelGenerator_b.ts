@@ -33,7 +33,6 @@ export class ExcelGenerator {
   private worksheet: XLSX.WorkSheet | null = null;
   private templateRowIndex: number = -1;
   private orderData: OrderData | null = null;
-  private originalStyles: { [address: string]: any } = {};
 
   /**
    * Load the Excel template from the public folder
@@ -46,14 +45,7 @@ export class ExcelGenerator {
       }
       
       const arrayBuffer = await response.arrayBuffer();
-      // Importante: cargar con cellStyles: true y cellHTML: false para preservar formato
-      this.workbook = XLSX.read(arrayBuffer, { 
-        type: 'array', 
-        cellStyles: true,
-        cellHTML: false,
-        cellNF: true,
-        cellDates: true
-      });
+      this.workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
       
       if (!this.workbook.SheetNames.length) {
         throw new Error('La plantilla no contiene hojas de cálculo');
@@ -63,41 +55,12 @@ export class ExcelGenerator {
       const sheetName = this.workbook.SheetNames[0];
       this.worksheet = this.workbook.Sheets[sheetName];
       
-      // Preserve original styles
-      this.preserveOriginalStyles();
-      
       // Find the template row (row containing {descripcion})
       this.findTemplateRow();
       
     } catch (error) {
       console.error('Error loading Excel template:', error);
       throw new Error(`Error al cargar la plantilla Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  }
-
-  /**
-   * Preserve original styles from the worksheet
-   */
-  private preserveOriginalStyles(): void {
-    if (!this.worksheet) return;
-
-    const range = XLSX.utils.decode_range(this.worksheet['!ref'] || 'A1:A1');
-    
-    for (let row = range.s.r; row <= range.e.r; row++) {
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-        const cell = this.worksheet[cellAddress];
-        
-        if (cell) {
-          this.originalStyles[cellAddress] = {
-            s: cell.s ? JSON.parse(JSON.stringify(cell.s)) : undefined,
-            t: cell.t,
-            f: cell.f,
-            w: cell.w,
-            z: cell.z
-          };
-        }
-      }
     }
   }
 
@@ -165,12 +128,11 @@ export class ExcelGenerator {
     // Process order lines
     this.processOrderLines(orderData.tbl_ln_pedidos_rep);
 
-    // Generate the Excel buffer with better options for preserving formatting
+    // Generate the Excel buffer
     return XLSX.write(this.workbook, { 
       type: 'array', 
       bookType: 'xlsx',
-      cellStyles: true,
-      compression: true
+      cellStyles: true 
     });
   }
 
@@ -204,15 +166,8 @@ export class ExcelGenerator {
           });
           
           if (hasReplacement) {
-            // Preserve original formatting while updating value
             cell.v = cellValue;
-            if (cell.w !== undefined) {
-              cell.w = cellValue;
-            }
-            // Preserve original styles
-            if (this.originalStyles[cellAddress]?.s) {
-              cell.s = this.originalStyles[cellAddress].s;
-            }
+            cell.w = cellValue; // Also update the formatted value
           }
         }
       }
@@ -227,8 +182,8 @@ export class ExcelGenerator {
 
     const range = XLSX.utils.decode_range(this.worksheet['!ref'] || 'A1:A1');
     
-    // Get the template row data with complete formatting
-    const templateRow = this.getRowDataWithFormatting(this.templateRowIndex, range);
+    // Get the template row data
+    const templateRow = this.getRowData(this.templateRowIndex, range);
     
     // Process each order line
     orderLines.forEach((line, index) => {
@@ -236,7 +191,7 @@ export class ExcelGenerator {
       
       // If this is not the first line, we need to insert a new row
       if (index > 0) {
-        this.insertRowWithFormatting(targetRowIndex, range, templateRow);
+        this.insertRow(targetRowIndex, range);
         // Update range after insertion
         range.e.r++;
       }
@@ -250,35 +205,17 @@ export class ExcelGenerator {
   }
 
   /**
-   * Get all cell data from a specific row with complete formatting
+   * Get all cell data from a specific row
    */
-  private getRowDataWithFormatting(rowIndex: number, range: XLSX.Range): { [col: number]: XLSX.CellObject } {
+  private getRowData(rowIndex: number, range: XLSX.Range): { [col: number]: XLSX.CellObject } {
     const rowData: { [col: number]: XLSX.CellObject } = {};
     
     for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: col });
       const cell = this.worksheet![cellAddress];
       if (cell) {
-        // Create a deep copy of the cell to preserve all formatting
-        rowData[col] = {
-          v: cell.v,
-          w: cell.w,
-          t: cell.t,
-          f: cell.f,
-          z: cell.z,
-          s: cell.s ? JSON.parse(JSON.stringify(cell.s)) : undefined,
-          l: cell.l,
-          h: cell.h
-        };
-      } else {
-        // Even for empty cells, preserve potential formatting from the original template
-        const originalStyle = this.originalStyles[cellAddress];
-        if (originalStyle?.s) {
-          rowData[col] = {
-            v: '',
-            s: JSON.parse(JSON.stringify(originalStyle.s))
-          };
-        }
+        // Create a copy of the cell to preserve formatting
+        rowData[col] = { ...cell };
       }
     }
     
@@ -286,9 +223,9 @@ export class ExcelGenerator {
   }
 
   /**
-   * Insert a new row by shifting existing rows down while preserving formatting
+   * Insert a new row by shifting existing rows down
    */
-  private insertRowWithFormatting(insertAtRow: number, range: XLSX.Range, templateRow: { [col: number]: XLSX.CellObject }): void {
+  private insertRow(insertAtRow: number, range: XLSX.Range): void {
     if (!this.worksheet) return;
 
     // Shift all rows below the insertion point down by one
@@ -298,30 +235,15 @@ export class ExcelGenerator {
         const newAddress = XLSX.utils.encode_cell({ r: row + 1, c: col });
         
         if (this.worksheet[oldAddress]) {
-          // Deep copy to preserve formatting
-          this.worksheet[newAddress] = {
-            v: this.worksheet[oldAddress].v,
-            w: this.worksheet[oldAddress].w,
-            t: this.worksheet[oldAddress].t,
-            f: this.worksheet[oldAddress].f,
-            z: this.worksheet[oldAddress].z,
-            s: this.worksheet[oldAddress].s ? JSON.parse(JSON.stringify(this.worksheet[oldAddress].s)) : undefined,
-            l: this.worksheet[oldAddress].l,
-            h: this.worksheet[oldAddress].h
-          };
+          this.worksheet[newAddress] = { ...this.worksheet[oldAddress] };
+          delete this.worksheet[oldAddress];
         }
       }
-    }
-
-    // Clear the old row
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      const oldAddress = XLSX.utils.encode_cell({ r: insertAtRow, c: col });
-      delete this.worksheet[oldAddress];
     }
   }
 
   /**
-   * Fill a row with order line data while preserving formatting
+   * Fill a row with order line data
    */
   private fillRowWithLineData(
     rowIndex: number, 
@@ -349,18 +271,9 @@ export class ExcelGenerator {
     for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: col });
       
-      // Copy the template cell if it exists, preserving ALL formatting
+      // Copy the template cell if it exists
       if (templateRow[col]) {
-        this.worksheet![cellAddress] = {
-          v: templateRow[col].v,
-          w: templateRow[col].w,
-          t: templateRow[col].t,
-          f: templateRow[col].f,
-          z: templateRow[col].z,
-          s: templateRow[col].s ? JSON.parse(JSON.stringify(templateRow[col].s)) : undefined,
-          l: templateRow[col].l,
-          h: templateRow[col].h
-        };
+        this.worksheet![cellAddress] = { ...templateRow[col] };
         
         const cell = this.worksheet![cellAddress];
         if (cell.v && typeof cell.v === 'string') {
@@ -373,9 +286,7 @@ export class ExcelGenerator {
           });
           
           cell.v = cellValue;
-          if (cell.w !== undefined) {
-            cell.w = cellValue;
-          }
+          cell.w = cellValue;
         }
       }
     }
