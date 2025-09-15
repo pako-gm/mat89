@@ -559,9 +559,25 @@ export default function OrderList() {
       processedHTML = processedHTML.replace(/{provincia}/g, proveedor.provincia || '');
       processedHTML = processedHTML.replace(/{email_empresa}/g, proveedor.email || '');
     }
-    // Reemplazos de líneas de pedido (tomar la primera línea)
-    // Logo embebido en base64 - Imagen simple de Renfe
-    const logoBase64 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkYwMDAwIi8+Cjx0ZXh0IHg9IjEwIiB5PSIzMCIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCI+UkVORkU8L3RleHQ+Cjx0ZXh0IHg9IjEwIiB5PSI0NSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5JbmdlbmllcsOtYSB5IE1hbnRlbmltaWVudG88L3RleHQ+Cjwvc3ZnPgo=`;
+    // Generar filas de líneas de pedido
+    let orderLinesHtml = '';
+    if (orderData.tbl_ln_pedidos_rep && orderData.tbl_ln_pedidos_rep.length > 0) {
+      orderLinesHtml = orderData.tbl_ln_pedidos_rep.map((line: any) => `
+        <tr>
+          <td class="center">${line.registration || ''}</td>
+          <td>${line.partDescription || ''}</td>
+          <td class="center">${line.quantity || ''}</td>
+          <td class="center">${line.serialNumber || ''}</td>
+        </tr>
+      `).join('');
+    } else {
+      orderLinesHtml = `
+        <tr>
+          <td colspan="4" class="center">No hay líneas de pedido para mostrar.</td>
+        </tr>
+      `;
+    }
+    processedHTML = processedHTML.replace('<!-- ORDER_LINES_PLACEHOLDER -->', orderLinesHtml);
 
     return processedHTML;
   };

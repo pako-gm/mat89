@@ -1,3 +1,6 @@
+//VERSION ORIGINAL ANTES DEL ENENSIMO CAMBIO
+//A VER SI EL PROVEEDOR EXTERNO FUNCIONA YA DE UNA PUTA VEZ
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Order } from "@/types";
@@ -36,6 +39,8 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
+import { generateInternalSupplierExcel } from "@/lib/excelGenerator";
+import { saveAs } from "file-saver";
 
 export default function OrderList() {
   const navigate = useNavigate();
@@ -456,13 +461,41 @@ export default function OrderList() {
 
   // Función para procesar proveedores internos
   const procesarProveedorInterno = async (numeroPedido: string) => {
-    toast({
-      title: "Proveedor Interno Detectado", 
-      description: `El procesamiento para proveedores internos estará disponible próximamente. Pedido: ${numeroPedido}`,
-    });
-    
-    // TODO: Implementar lógica específica para proveedores internos
-    console.log(`Processing internal supplier PAR for order: ${numeroPedido}`);
+    try {
+      // Obtener datos completos del pedido
+      const orderData = await fetchCompleteOrderData(numeroPedido);
+      if (!orderData) {
+        throw new Error('No se pudieron obtener los datos del pedido');
+      }
+
+      // Generar Excel usando la plantilla interna
+      const excelBuffer = await generateInternalSupplierExcel(orderData);
+      
+      // Crear blob y descargar
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      // Generar nombre de archivo con timestamp
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      const fileName = `PAR_Interno_${numeroPedido.replace(/\//g, '_')}_${timestamp}.xlsx`;
+      
+      // Descargar archivo
+      saveAs(blob, fileName);
+      
+      toast({
+        title: "Excel generado correctamente",
+        description: `El archivo ${fileName} se ha descargado en su carpeta de Descargas.`,
+      });
+      
+    } catch (error) {
+      console.error('Error processing internal supplier PAR:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al generar Excel",
+        description: error instanceof Error ? error.message : "Error desconocido al procesar el PAR interno",
+      });
+    }
   };
 
   const handleOrderNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
