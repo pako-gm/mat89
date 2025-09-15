@@ -417,44 +417,474 @@ export default function OrderList() {
   };
 
   // Función para procesar proveedores externos
-  const procesarProveedorExterno = async (numeroPedido: string) => {
-    try {
-      // Cargar plantilla HTML
-      const templateResponse = await fetch('/plantillas/plantilla_ext.html');
-      if (!templateResponse.ok) {
-        throw new Error('No se pudo cargar la plantilla HTML');
-      }
-      let templateHTML = await templateResponse.text();
-
-      // Obtener datos completos del pedido
-      const orderData = await fetchCompleteOrderData(numeroPedido);
-      if (!orderData) {
-        throw new Error('No se pudieron obtener los datos del pedido');
-      }
-
-      // Reemplazar placeholders con datos reales
-      const processedHTML = replaceTemplatePlaceholders(templateHTML, orderData);
-      
-      // Reemplazar logo
-      const finalHTML = replaceLogo(processedHTML);
-      
-      setGeneratedHTML(finalHTML);
-      setShowPrintModal(true);
-      
-      toast({
-        title: "Documento generado",
-        description: "El documento PAR se ha generado correctamente.",
-      });
-      
-    } catch (error) {
-      console.error('Error processing external supplier PAR:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al generar documento",
-        description: error instanceof Error ? error.message : "Error desconocido al procesar el PAR",
-      });
+  // Función para procesar proveedores externos - MODIFICADA
+const procesarProveedorExterno = async (numeroPedido: string) => {
+  try {
+    // Obtener datos completos del pedido
+    const orderData = await fetchCompleteOrderData(numeroPedido);
+    if (!orderData) {
+      throw new Error('No se pudieron obtener los datos del pedido');
     }
+
+    // Generar HTML directamente con formato A4 vertical
+    const documentHTML = generateProveedorExternoHTML(orderData);
+    
+    setGeneratedHTML(documentHTML);
+    setShowPrintModal(true);
+    
+    toast({
+      title: "Documento generado",
+      description: "El documento PAR se ha generado correctamente.",
+    });
+    
+  } catch (error) {
+    console.error('Error processing external supplier PAR:', error);
+    toast({
+      variant: "destructive",
+      title: "Error al generar documento",
+      description: error instanceof Error ? error.message : "Error desconocido al procesar el PAR",
+    });
+  }
+};
+
+// Nueva función para generar HTML con formato A4 vertical
+const generateProveedorExternoHTML = (orderData: any) => {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric'
+    });
   };
+
+  const formatDateTime = () => {
+    const now = new Date();
+    return now.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const proveedor = orderData.tbl_proveedores || {};
+  const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
+
+  // Generar filas de las líneas de pedido en formato grid
+  const generarLineasPedidoHTML = () => {
+    if (!lineasPedido || lineasPedido.length === 0) {
+      return `
+        <div class="grid-item no-data">
+          <p>No hay líneas de pedido disponibles</p>
+        </div>
+      `;
+    }
+
+    return lineasPedido.map((linea, index) => `
+      <div class="grid-item">
+        <div class="line-header">
+          <span class="line-number">Línea ${index + 1}</span>
+        </div>
+        <div class="line-content">
+          <div class="field-group">
+            <label>Matrícula:</label>
+            <span>${linea.registration || 'N/A'}</span>
+          </div>
+          <div class="field-group">
+            <label>Descripción de la pieza:</label>
+            <span>${linea.partDescription || 'N/A'}</span>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Cantidad:</label>
+              <span>${linea.quantity || '0'}</span>
+            </div>
+            <div class="field-group">
+              <label>Número de serie:</label>
+              <span>${linea.serialNumber || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedido de Repuestos PAR - ${orderData.num_pedido}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+        }
+        
+        @page {
+            size: A4 portrait;
+            margin: 20mm;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 20mm;
+                font-size: 12px;
+            }
+            .no-print {
+                display: none;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        
+        .document-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            min-height: 297mm;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #0066cc;
+        }
+        
+        .logo-section {
+            flex: 1;
+        }
+        
+        .logo {
+            width: 200px;
+            height: 60px;
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+            border-radius: 5px;
+            position: relative;
+        }
+        
+        .logo::after {
+            content: 'RENFE';
+            position: absolute;
+            font-size: 20px;
+        }
+        
+        .document-info {
+            text-align: right;
+            flex: 1;
+        }
+        
+        .document-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        
+        .document-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .generation-date {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .main-content {
+            display: grid;
+            gap: 25px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .supplier-section .info-grid {
+            grid-template-columns: 2fr 1fr 1fr;
+        }
+        
+        .lines-section {
+            margin-top: 10px;
+        }
+        
+        .lines-grid {
+            display: grid;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .grid-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .line-header {
+            background: #0066cc;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .line-content {
+            padding: 15px;
+        }
+        
+        .field-group {
+            margin-bottom: 12px;
+        }
+        
+        .field-group label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        
+        .field-group span {
+            display: block;
+            padding: 6px 10px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            font-size: 13px;
+            min-height: 32px;
+            line-height: 20px;
+        }
+        
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+        }
+        
+        .warranty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .warranty-yes {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .warranty-no {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .no-data {
+            padding: 40px 20px;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            background: white;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .document-info {
+                text-align: center;
+                margin-top: 20px;
+            }
+            
+            .info-grid,
+            .supplier-section .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo"></div>
+            </div>
+            <div class="document-info">
+                <div class="document-title">PEDIDO DE REPUESTOS</div>
+                <div class="document-subtitle">Proveedor Externo</div>
+                <div class="generation-date">Generado el ${formatDateTime()}</div>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <!-- Información del Pedido -->
+            <section class="section">
+                <h2 class="section-title">Información del Pedido</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Número de Pedido</span>
+                        <div class="info-value">${orderData.num_pedido || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha de Envío</span>
+                        <div class="info-value">${formatDate(orderData.fecha_envio)}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Vehículo</span>
+                        <div class="info-value">${orderData.vehiculo || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Garantía</span>
+                        <div class="info-value">
+                            <span class="warranty-badge ${orderData.garantia ? 'warranty-yes' : 'warranty-no'}">
+                                ${orderData.garantia ? 'SÍ' : 'NO'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Avería Declarada</span>
+                    <div class="info-value">${orderData.averia_declarada || 'No especificada'}</div>
+                </div>
+            </section>
+            
+            <!-- Información del Proveedor -->
+            <section class="section supplier-section">
+                <h2 class="section-title">Información del Proveedor</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Nombre de la Empresa</span>
+                        <div class="info-value">${proveedor.nombre || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Ciudad</span>
+                        <div class="info-value">${proveedor.ciudad || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Provincia</span>
+                        <div class="info-value">${proveedor.provincia || 'N/A'}</div>
+                    </div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Dirección</span>
+                        <div class="info-value">${proveedor.direccion || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Código Postal</span>
+                        <div class="info-value">${proveedor.codigo_postal || 'N/A'}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email</span>
+                        <div class="info-value">${proveedor.email || 'N/A'}</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Líneas de Pedido -->
+            <section class="section lines-section">
+                <h2 class="section-title">Líneas de Pedido (${lineasPedido.length} elemento${lineasPedido.length !== 1 ? 's' : ''})</h2>
+                <div class="lines-grid">
+                    ${generarLineasPedidoHTML()}
+                </div>
+            </section>
+        </main>
+        
+        <footer class="footer">
+            <p>Documento generado automáticamente por el sistema de gestión de pedidos RENFE</p>
+            <p>© ${new Date().getFullYear()} RENFE - Ingeniería y Mantenimiento</p>
+        </footer>
+    </div>
+</body>
+</html>`;
+};
 
   // Función para procesar proveedores internos
   const procesarProveedorInterno = async (numeroPedido: string) => {
