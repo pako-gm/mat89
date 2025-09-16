@@ -507,6 +507,8 @@ const generateProveedorExternoHTML = (orderData: any) => {
             color: #000;
             background: white;
             padding: 15mm;
+            max-width: 210mm;
+            margin: 0 auto;
         }
         
         @page {
