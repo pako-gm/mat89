@@ -26,13 +26,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { 
-  Table, 
+import {
+  Table,
   TableBody,
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
@@ -51,16 +51,16 @@ export default function OrderList() {
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
-  
+
   // Lanzar PAR modal state
   const [showLanzarParModal, setShowLanzarParModal] = useState(false);
   const [orderNumberInput, setOrderNumberInput] = useState("");
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // PAR generation modal state
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [generatedHTML, setGeneratedHTML] = useState("");
@@ -98,11 +98,11 @@ export default function OrderList() {
     const currentYear = new Date().getFullYear().toString().slice(-2);
     const defaultWarehouseCode = warehouses[0].code;
     const warehouseNumber = defaultWarehouseCode.replace('ALM', '');
-    
+
     const currentYearOrders = orders.filter(order => order.orderNumber.includes(`/${currentYear}/`));
-    
-    let maxSequential = 1000; 
-    
+
+    let maxSequential = 1000;
+
     if (currentYearOrders.length > 0) {
       const sequentials = currentYearOrders.map(order => {
         const parts = order.orderNumber.split('/');
@@ -110,7 +110,7 @@ export default function OrderList() {
       });
       maxSequential = Math.max(...sequentials);
     }
-    
+
     return `${warehouseNumber}/${currentYear}/${(maxSequential + 1).toString().padStart(4, '0')}`;
   };
 
@@ -150,9 +150,9 @@ export default function OrderList() {
 
   useEffect(() => {
     const searchQuery = searchParams.get('search')?.toLowerCase() || '';
-    
+
     if (searchQuery) {
-      const filtered = orders.filter(order => 
+      const filtered = orders.filter(order =>
         order.orderNumber.toLowerCase().includes(searchQuery) ||
         order.supplierName.toLowerCase().includes(searchQuery) ||
         order.vehicle.toLowerCase().includes(searchQuery)
@@ -171,9 +171,9 @@ export default function OrderList() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
+
     if (value) {
-      const filtered = orders.filter(order => 
+      const filtered = orders.filter(order =>
         order.orderNumber.toLowerCase().includes(value.toLowerCase()) ||
         order.supplierName.toLowerCase().includes(value.toLowerCase()) ||
         order.vehicle.toLowerCase().includes(value.toLowerCase())
@@ -267,11 +267,11 @@ export default function OrderList() {
       title: `Pedido ${action}`,
       description: `El pedido se ha ${action} correctamente`,
     });
-    
+
     setShowForm(false);
     setSelectedOrder(null);
     setIsEditing(false);
-    
+
     try {
       const updatedOrders = await getOrders();
       setOrders(updatedOrders);
@@ -313,7 +313,7 @@ export default function OrderList() {
     try {
       // Buscar el pedido por las 4 últimas cifras
       const orderFound = await findOrderByLastDigits(orderNumberInput);
-      
+
       if (!orderFound) {
         toast({
           variant: "destructive",
@@ -325,7 +325,7 @@ export default function OrderList() {
 
       // Obtener información del proveedor
       const supplier = await getSupplierInfo(orderFound.proveedor_id);
-      
+
       if (!supplier) {
         toast({
           variant: "destructive",
@@ -343,7 +343,7 @@ export default function OrderList() {
         // Llamar a función para proveedores internos
         await procesarProveedorInterno(orderFound.num_pedido);
       }
-      
+
     } catch (error) {
       console.error('Error processing PAR:', error);
       toast({
@@ -352,7 +352,7 @@ export default function OrderList() {
         description: "No se pudo conectar con la base de datos. Inténtelo de nuevo.",
       });
     }
-    
+
     setShowLanzarParModal(false);
     setOrderNumberInput("");
   };
@@ -371,7 +371,7 @@ export default function OrderList() {
       }
 
       // Filtrar pedidos que realmente terminen con esas cifras
-      const matchingOrders = orders?.filter(order => 
+      const matchingOrders = orders?.filter(order =>
         order.num_pedido.slice(-4) === lastDigits
       );
 
@@ -417,76 +417,76 @@ export default function OrderList() {
   };
 
   // Función para procesar proveedores externos - MODIFICADA
-const procesarProveedorExterno = async (numeroPedido: string) => {
-  try {
-    // Obtener datos completos del pedido
-    const orderData = await fetchCompleteOrderData(numeroPedido);
-    if (!orderData) {
-      throw new Error('No se pudieron obtener los datos del pedido');
+  const procesarProveedorExterno = async (numeroPedido: string) => {
+    try {
+      // Obtener datos completos del pedido
+      const orderData = await fetchCompleteOrderData(numeroPedido);
+      if (!orderData) {
+        throw new Error('No se pudieron obtener los datos del pedido');
+      }
+
+      // Generar HTML directamente con formato A4 vertical
+      const documentHTML = generateProveedorExternoHTML(orderData);
+
+      setGeneratedHTML(documentHTML);
+      setShowPrintModal(true);
+
+      toast({
+        title: "Documento generado",
+        description: "El documento PAR se ha generado correctamente.",
+      });
+
+    } catch (error) {
+      console.error('Error processing external supplier PAR:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al generar documento",
+        description: error instanceof Error ? error.message : "Error desconocido al procesar el PAR",
+      });
     }
-
-    // Generar HTML directamente con formato A4 vertical
-    const documentHTML = generateProveedorExternoHTML(orderData);
-    
-    setGeneratedHTML(documentHTML);
-    setShowPrintModal(true);
-    
-    toast({
-      title: "Documento generado",
-      description: "El documento PAR se ha generado correctamente.",
-    });
-    
-  } catch (error) {
-    console.error('Error processing external supplier PAR:', error);
-    toast({
-      variant: "destructive",
-      title: "Error al generar documento",
-      description: error instanceof Error ? error.message : "Error desconocido al procesar el PAR",
-    });
-  }
-};
-
-// Nueva función para generar HTML con formato A4 vertical minimalista
-const generateProveedorExternoHTML = (orderData: any) => {
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric'
-    });
   };
 
-  const formatDateTime = () => {
-    const now = new Date();
-    return now.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
+  // Nueva función para generar HTML con formato A4 vertical minimalista
+  const generateProveedorExternoHTML = (orderData: any) => {
+    const formatDate = (dateString: string) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    };
 
-  const proveedor = orderData.tbl_proveedores || {};
-  const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
+    const formatDateTime = () => {
+      const now = new Date();
+      return now.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    };
 
-  // Generar filas de la tabla de líneas de pedido
-  const generarFilasTabla = () => {
-    if (!lineasPedido || lineasPedido.length === 0) {
-      return `<tr><td colspan="4" style="text-align: center; font-style: italic;">No hay líneas de pedido disponibles</td></tr>`;
-    }
+    const proveedor = orderData.tbl_proveedores || {};
+    const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
 
-    return lineasPedido.map((linea) => `
+    // Generar filas de la tabla de líneas de pedido
+    const generarFilasTabla = () => {
+      if (!lineasPedido || lineasPedido.length === 0) {
+        return `<tr><td colspan="4" style="text-align: center; font-style: italic;">No hay líneas de pedido disponibles</td></tr>`;
+      }
+
+      return lineasPedido.map((linea) => `
       <tr>
-        <td>${linea.registration || 'N/A'}</td>
-        <td>${linea.partDescription || 'N/A'}</td>
-        <td style="text-align: center;">${linea.quantity || '0'}</td>
-        <td>${linea.serialNumber || 'N/A'}</td>
+        <td style="text-align: center;">${linea.matricula || 'N/A'}</td>
+        <td>${linea.descripcion || 'N/A'}</td>
+        <td style="text-align: center;">${linea.nenv || '0'}</td>
+        <td style="text-align: center;">${linea.nsenv || 'N/A'}</td>
       </tr>
     `).join('');
-  };
+    };
 
-  return `
+    return `
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -653,13 +653,14 @@ const generateProveedorExternoHTML = (orderData: any) => {
             <div>Ingeniería y Mantenimiento</div>
         </div>
         <div class="header-right">
-            <div>Fecha: ${formatDateTime()}</div>
-            <div>Número de Pedido de Reparación: ${orderData.num_pedido || 'N/A'}</div>
+        <div>Número de Pedido de Reparación: ${orderData.num_pedido || 'N/A'}</div>    
+        <div>Fecha Envio: ${formatDate(orderData.fecha_envio)}</div>
+        <div>Garantia (NO CONFORMIDAD): ${orderData.informacion_nc}</div>
         </div>
     </div>
     
     <div class="document-title">
-        CARTA DE PEDIDO DE REPARACION - PROVEEDOR EXTERNO
+        Carta de Reparacion de Servicios al Exterior (PAR)
     </div>
     
     <div class="two-column">
@@ -668,31 +669,18 @@ const generateProveedorExternoHTML = (orderData: any) => {
             <div>Base de Mantenimiento de Valencia</div>
             <div>Camino Moli de Bonjoch, s/n</div>
             <div>46013 - Valencia</div>
-            <div>Tel. 963-357-392</div>
+            <div>Tel. 963-357-275 // 392</div>
+            <div>almacenvalencia140@renfe.es</div>
+            <div>almacenvalencia14@renfe.es</div>
         </div>
         
         <div class="column">
             <h3>Destinatario:</h3>
             <div><strong>${proveedor.nombre || 'N/A'}</strong></div>
             <div>${proveedor.direccion || 'N/A'}</div>
-            <div>${proveedor.codigo_postal || ''} - ${proveedor.ciudad || 'N/A'}</div>
+            <div>${proveedor.codigo_postal || 'N/A'} - ${proveedor.ciudad || 'N/A'}</div>
             <div>${proveedor.provincia || 'N/A'}</div>
-            ${proveedor.email ? `<div>Email: ${proveedor.email}</div>` : ''}
-        </div>
-    </div>
-    
-    <div class="info-section">
-        <div class="info-row">
-            <span class="info-label">Vehículo:</span>
-            <span class="info-value">${orderData.vehiculo || 'N/A'}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Fecha de Envío:</span>
-            <span class="info-value">${formatDate(orderData.fecha_envio)}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label guarantee">Garantía:</span>
-            <span class="info-value guarantee">${orderData.garantia ? 'SÍ' : 'NO'}</span>
+            <div>${proveedor.email_empresa || 'N/A'}</div>
         </div>
     </div>
     
@@ -724,11 +712,13 @@ const generateProveedorExternoHTML = (orderData: any) => {
         <p>La oferta les será devuelta aceptada, requisito previo indispensable ANTES de proceder a la realización de cualquier reparación.</p>
         <p>Para una mejor trazabilidad, hagan referencia en todas las comunicaciones a nuestro número de Carta de Pedido de Reparación.</p>
         <p>A la entrega del material reparado incluyan la documentación de calidad requerida por nuestras Especificaciones Técnicas.</p>
+        <p>CODIGOS DP PARA PETICIONES DE REPARACION SIN NÚMERO DE PEDIDO (POR SERVICIOS)</p>
+        <p>DP16000069: ALMACÉN 140 || DP16000073: ALMACÉN 141</p>
     </div>
 </body>
 </html>`;
-};
-//** FIN DEL CODIGO GENERACION PAR EXTERNO */
+  };
+  //** FIN DEL CODIGO GENERACION PAR EXTERNO */
 
   // Función para procesar proveedores internos
   const procesarProveedorInterno = async (numeroPedido: string) => {
@@ -741,24 +731,24 @@ const generateProveedorExternoHTML = (orderData: any) => {
 
       // Generar Excel usando la plantilla interna
       const excelBuffer = await generateInternalSupplierExcel(orderData);
-      
+
       // Crear blob y descargar
-      const blob = new Blob([excelBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
-      
+
       // Generar nombre de archivo con timestamp
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
       const fileName = `PAR_Interno_${numeroPedido.replace(/\//g, '_')}_${timestamp}.xlsx`;
-      
+
       // Descargar archivo
       saveAs(blob, fileName);
-      
+
       toast({
         title: "Excel generado correctamente",
         description: `El archivo ${fileName} se ha descargado en su carpeta de Descargas.`,
       });
-      
+
     } catch (error) {
       console.error('Error processing internal supplier PAR:', error);
       toast({
@@ -860,19 +850,19 @@ const generateProveedorExternoHTML = (orderData: any) => {
   const replaceLogo = (html: string) => {
     // Logo embebido en base64 - Imagen simple de Renfe
     const logoBase64 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkYwMDAwIi8+Cjx0ZXh0IHg9IjEwIiB5PSIzMCIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCI+UkVORkU8L3RleHQ+Cjx0ZXh0IHg9IjEwIiB5PSI0NSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5JbmdlbmllcsOtYSB5IE1hbnRlbmltaWVudG88L3RleHQ+Cjwvc3ZnPgo=`;
-    
+
     // Buscar y reemplazar el div del logo específico
     let replacedHtml = html.replace(
       /<div\s+class="logo"[^>]*>.*?<\/div>/gi,
       `<div class="logo"><img width="200" height="50" src="${logoBase64}" alt="Logo Renfe" style="max-width: 100%; height: auto;"></div>`
     );
-    
+
     // Buscar también el patrón "🚄 Logo Renfe" y reemplazarlo
     replacedHtml = replacedHtml.replace(
       /🚄\s*Logo\s*Renfe/gi,
       `<img width="200" height="50" src="${logoBase64}" alt="Logo Renfe" style="max-width: 100%; height: auto;">`
     );
-    
+
     return replacedHtml;
   };
 
@@ -910,28 +900,28 @@ const generateProveedorExternoHTML = (orderData: any) => {
 
       // Crear blob con el HTML
       const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
-      
+
       // Crear URL temporal para la descarga
       const url = URL.createObjectURL(blob);
-      
+
       // Crear elemento de descarga
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
       downloadLink.download = `documento_PAR_${Date.now()}.html`;
-      
+
       // Simular click para descargar
       document.body.appendChild(downloadLink);
       downloadLink.click();
-      
+
       // Limpiar
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
-      
+
       toast({
         title: "Archivo guardado",
         description: "El documento HTML se ha descargado correctamente.",
       });
-      
+
     } catch (error) {
       console.error('Error saving file:', error);
       toast({
@@ -952,13 +942,13 @@ const generateProveedorExternoHTML = (orderData: any) => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-medium">Gestión de Pedidos</h1>
         <div className="flex gap-3">
-          <Button 
+          <Button
             onClick={handleLanzarPAR}
             className="bg-[#107C41] hover:bg-[#0D5B2F] text-white"
           >
             <Star className="mr-2 h-4 w-4" /> Lanzar PAR
           </Button>
-          <Button 
+          <Button
             onClick={handleNewOrder}
             className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
           >
@@ -977,9 +967,9 @@ const generateProveedorExternoHTML = (orderData: any) => {
             className="pl-10 h-9"
           />
         </div>
-        <Button 
-          variant="outline" 
-          className="h-9 hover:bg-gray-50 transition-colors duration-200" 
+        <Button
+          variant="outline"
+          className="h-9 hover:bg-gray-50 transition-colors duration-200"
           onClick={clearFilter}
         >
           Borrar Filtro
@@ -1000,8 +990,8 @@ const generateProveedorExternoHTML = (orderData: any) => {
           <TableBody>
             {currentOrders.length > 0 ? (
               currentOrders.map((order) => (
-                <TableRow 
-                  key={order.id} 
+                <TableRow
+                  key={order.id}
                   className="hover:bg-gray-50 transition-colors duration-200"
                 >
                   <TableCell className="font-medium cursor-pointer" onClick={() => handleViewDetails(order)}>
@@ -1066,11 +1056,11 @@ const generateProveedorExternoHTML = (orderData: any) => {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            
+
             <span className="mx-2 flex items-center text-sm text-gray-600">
               Página {currentPage} de {totalPages}
             </span>
-            
+
             <Button
               variant="outline"
               size="icon"
@@ -1092,7 +1082,7 @@ const generateProveedorExternoHTML = (orderData: any) => {
           </div>
         </div>
       )}
-      
+
       {selectedOrder && showForm && (
         <OrderForm
           order={selectedOrder}
@@ -1103,7 +1093,7 @@ const generateProveedorExternoHTML = (orderData: any) => {
           viewMode={isEditing}
         />
       )}
-      
+
       <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
@@ -1116,7 +1106,7 @@ const generateProveedorExternoHTML = (orderData: any) => {
             <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-red-600 text-white hover:bg-red-700"
               onClick={handleDeleteOrder}
             >
@@ -1132,7 +1122,7 @@ const generateProveedorExternoHTML = (orderData: any) => {
           <DialogHeader>
             <DialogTitle className="text-xl">Introducir Número de Pedido</DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="space-y-4">
               <div>
@@ -1151,13 +1141,13 @@ const generateProveedorExternoHTML = (orderData: any) => {
                   autoFocus
                 />
               </div>
-              
+
               <p className="text-sm text-gray-600 text-center">
                 Introduce las 4 últimas cifras del número de pedido
               </p>
             </div>
           </div>
-          
+
           <DialogFooter className="gap-3">
             <Button
               variant="outline"
@@ -1182,14 +1172,14 @@ const generateProveedorExternoHTML = (orderData: any) => {
           <DialogHeader>
             <DialogTitle className="text-xl">Documento PAR generado</DialogTitle>
           </DialogHeader>
-          
+
           <div className="flex gap-6 py-4">
             <div className="flex-1">
               <p className="text-lg mb-4">El documento PAR se ha generado.</p>
               <p className="text-sm text-gray-600 mb-6">
                 Puede guardar el documento HTML en su equipo o cancelar la operación.
               </p>
-              
+
               <div className="flex gap-3">
                 <Button
                   onClick={handleSave}
@@ -1206,21 +1196,21 @@ const generateProveedorExternoHTML = (orderData: any) => {
                 </Button>
               </div>
             </div>
-            
+
             {/* Preview del documento */}
             <div className="w-80 border rounded-lg overflow-hidden">
               <div className="bg-gray-100 p-2 text-xs text-center font-medium">
                 Vista previa del documento
               </div>
               <div className="h-96 overflow-auto p-4 text-xs">
-                <div 
-                  dangerouslySetInnerHTML={{ __html: generatedHTML }} 
+                <div
+                  dangerouslySetInnerHTML={{ __html: generatedHTML }}
                   style={{ transform: 'scale(0.3)', transformOrigin: 'top left', width: '333%' }}
                 />
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="mt-4">
             <p className="text-xs text-gray-500">
               El documento se guardará como archivo HTML con formato optimizado
