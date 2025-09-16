@@ -446,7 +446,9 @@ export default function OrderList() {
     }
   };
 
-  // Nueva función para generar HTML con formato A4 vertical minimalista
+  /*
+   Nueva función para generar HTML con formato A4 vertical estilo minimalista
+   */
   const generateProveedorExternoHTML = (orderData: any) => {
     const formatDate = (dateString: string) => {
       if (!dateString) return '';
@@ -458,14 +460,6 @@ export default function OrderList() {
       });
     };
 
-    const formatDateTime = () => {
-      const now = new Date();
-      return now.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    };
 
     const proveedor = orderData.tbl_proveedores || {};
     const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
@@ -492,7 +486,7 @@ export default function OrderList() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carta Pedido de Reparacion - ${orderData.num_pedido}</title>
+    <title>Pedido de Reparacion - ${orderData.num_pedido}</title>
     <style>
         * {
             margin: 0;
@@ -649,8 +643,7 @@ export default function OrderList() {
 <body>
     <div class="header">
         <div class="logo-section">
-            <h1>RENFE</h1>
-            <div>Ingeniería y Mantenimiento</div>
+            <img src="/images/logo_renfe_ext.jpg" alt="Logo Renfe" style="height: 50px; width: auto;">
         </div>
         <div class="header-right">
         <div>Número de Pedido de Reparación: ${orderData.num_pedido || 'N/A'}</div>    
