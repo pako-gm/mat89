@@ -648,7 +648,7 @@ export default function OrderList() {
         <div class="header-right">
         <div>Número de Pedido de Reparación: ${orderData.num_pedido || 'N/A'}</div>    
         <div>Fecha Envio: ${formatDate(orderData.fecha_envio)}</div>
-        <div>Garantia (NO CONFORMIDAD): ${orderData.informacion_nc}</div>
+        <div>Garantia (No Conformidad): ${orderData.informacion_nc}</div>
         </div>
     </div>
     
@@ -659,7 +659,7 @@ export default function OrderList() {
     <div class="two-column">
         <div class="column">
             <h3>Remitente:</h3>
-            <div>Base de Mantenimiento de Valencia</div>
+            <div><strong>Base de Mantenimiento de Valencia</strong></div>
             <div>Camino Moli de Bonjoch, s/n</div>
             <div>46013 - Valencia</div>
             <div>Tel. 963-357-275 // 392</div>
