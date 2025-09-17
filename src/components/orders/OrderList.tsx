@@ -230,15 +230,8 @@ export default function OrderList() {
 
     const handleViewDetails = (order: Order) => {
       setSelectedOrder(order);
-      setShowForm(false);
       setIsEditing(true);
       setShowForm(true);
-    };
-    if (selectedOrder) {
-      setIsEditing(true);
-      setSelectedOrder(null);
-      setIsEditing(false);
-      setIsEditing(false);
     };
 
 
