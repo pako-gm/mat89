@@ -242,6 +242,12 @@ export default function OrderList() {
     };
 
 
+    const handleCloseForm = () => {
+      setShowForm(false);
+      setSelectedOrder(null);
+      setIsEditing(false);
+    };
+
     const handleSaveOrder = async () => {
       const action = isEditing ? "actualizado" : "creado";
       toast({
