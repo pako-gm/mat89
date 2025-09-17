@@ -588,6 +588,7 @@ export default function OrderList() {
         
         .table-container {
             margin: 15px 0;
+            text-align: center;
         }
         
         .table-container h3 {
@@ -622,6 +623,7 @@ export default function OrderList() {
         
         .footer-instructions p {
             margin-bottom: 5px;
+            text-align: center;
         }
         
         .guarantee {
@@ -635,7 +637,8 @@ export default function OrderList() {
             <img src="${logoBase64}" alt="Logo Renfe" style="height: 50px; width: auto;">
         </div>
         <div class="header-right">
-        <div>Número de Pedido de Reparación: ${orderData.num_pedido || 'N/A'}</div>    
+        <div style="font-size: 16px;"><strong>Número de Pedido de Reparación:</strong> ${orderData.num_pedido || 'N/A'}</div>
+        <br />    
         <div>Fecha Envio: ${formatDate(orderData.fecha_envio)}</div>
         <div>Garantia (No Conformidad): ${orderData.informacion_nc || 'No Procede'}</div>
         </div>
@@ -667,7 +670,7 @@ export default function OrderList() {
     </div>
     
     <div class="notes-section">
-        <h3>Notas a tener en cuenta en la reparación:</h3>
+        <h3>Notas a tener en cuenta en la reparación (averia declarada, requisitos reparación, etc):</h3>
         <div class="notes-content">
             ${orderData.averia_declarada || 'Avería no especificada'}
         </div>
