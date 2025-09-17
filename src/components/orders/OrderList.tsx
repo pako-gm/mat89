@@ -476,160 +476,7 @@ export default function OrderList() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pedido de Reparacion - ${orderData.num_pedido}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.3;
-            color: #000;
-            background: white;
-            padding: 15mm;
-            max-width: 210mm;
-            margin: 0 auto;
-        }
-        
-        @page {
-            size: A4 portrait;
-            margin: 15mm;
-        }
-        
-        @media print {
-            body {
-                padding: 0;
-                margin: 0;
-            }
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-        }
-        
-        .logo-section h1 {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 0;
-        }
-        
-        .header-right {
-            text-align: right;
-            font-size: 10px;
-        }
-        
-        .document-title {
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-transform: uppercase;
-        }
-        
-        .info-section {
-            margin-bottom: 15px;
-        }
-        
-        .info-row {
-            display: flex;
-            margin-bottom: 8px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            width: 140px;
-            flex-shrink: 0;
-        }
-        
-        .info-value {
-            flex: 1;
-        }
-        
-        .two-column {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-        
-        .column {
-            width: 48%;
-        }
-        
-        .column h3 {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 3px;
-        }
-        
-        .notes-section {
-            margin: 15px 0;
-        }
-        
-        .notes-section h3 {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .notes-content {
-            font-size: 10px;
-            line-height: 1.4;
-        }
-        
-        .table-container {
-            margin: 15px 0;
-            text-align: center;
-        }
-        
-        .table-container h3 {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-        }
-        
-        th, td {
-            border: 1px solid #000;
-            padding: 4px 6px;
-            text-align: left;
-            vertical-align: top;
-        }
-        
-        th {
-            background: #f0f0f0;
-            font-weight: bold;
-        }
-        
-        .footer-instructions {
-            margin-top: 20px;
-            font-size: 10px;
-            line-height: 1.4;
-        }
-        
-        .footer-instructions p {
-            margin-bottom: 5px;
-            text-align: center;
-        }
-        
-        .guarantee {
-            font-weight: bold;
-        }
-    </style>
+    <link rel="stylesheet" href="./css/estilo_html_ext.css">
 </head>
 <body>
     <div class="header">
@@ -670,7 +517,7 @@ export default function OrderList() {
     </div>
     
     <div class="notes-section">
-        <h3>Notas a tener en cuenta en la reparación (averia declarada, requisitos reparación, etc):</h3>
+        <h3>Observaciones a tener en cuenta en la reparación:</h3>
         <div class="notes-content">
             ${orderData.averia_declarada || 'Avería no especificada'}
         </div>
@@ -698,7 +545,7 @@ export default function OrderList() {
         <p>Para una mejor trazabilidad, hagan referencia en todas las comunicaciones a nuestro número de Carta de Pedido de Reparación.</p>
         <p>A la entrega del material reparado incluyan la documentación de calidad requerida por nuestras Especificaciones Técnicas.</p>
         <p>CODIGOS DP PARA PETICIONES DE REPARACION SIN NÚMERO DE PEDIDO (POR SERVICIOS)</p>
-        <p>DP16000069: ALMACÉN 140 || DP16000073: ALMACÉN 141</p>
+        <p><strong>DP16000069: ALMACÉN 140 || DP16000073: ALMACÉN 141</strong></p>
     </div>
 </body>
 </html>`;
