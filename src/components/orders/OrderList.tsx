@@ -476,7 +476,7 @@ export default function OrderList() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pedido de Reparacion - ${orderData.num_pedido}</title>
-    <link rel="stylesheet" href="./css/estilo_html_ext.css">
+    <link rel="stylesheet" href="/css/estilo_html_ext.css">
 </head>
 <body>
     <div class="header">
