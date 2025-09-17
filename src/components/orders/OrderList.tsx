@@ -412,8 +412,17 @@ export default function OrderList() {
           throw new Error('No se pudieron obtener los datos del pedido');
         }
 
+        // Obtener el logo en base64
+        const response = await fetch('/images/logo_renfe_ext.jpg');
+        const blob = await response.blob();
+        const logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+
         // Generar HTML directamente con formato A4 vertical
-        const documentHTML = generateProveedorExternoHTML(orderData);
+        const documentHTML = generateProveedorExternoHTML(orderData, logoBase64 as string);
 
         setGeneratedHTML(documentHTML);
         setShowPrintModal(true);
@@ -436,7 +445,7 @@ export default function OrderList() {
     /*
      Nueva función para generar HTML con formato A4 vertical estilo minimalista
      */
-    const generateProveedorExternoHTML = (orderData: any) => {
+    const generateProveedorExternoHTML = (orderData: any, logoBase64: string) => {
       const formatDate = (dateString: string) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -630,12 +639,12 @@ export default function OrderList() {
 <body>
     <div class="header">
         <div class="logo-section">
-            <img src="/images/logo_renfe_ext.jpg" alt="Logo Renfe" style="height: 50px; width: auto;">
+            <img src="${logoBase64}" alt="Logo Renfe" style="height: 50px; width: auto;">
         </div>
         <div class="header-right">
         <div>Número de Pedido de Reparación: ${orderData.num_pedido || 'N/A'}</div>    
         <div>Fecha Envio: ${formatDate(orderData.fecha_envio)}</div>
-        <div>Garantia (No Conformidad): ${orderData.informacion_nc}</div>
+        <div>Garantia (No Conformidad): ${orderData.informacion_nc || 'No Procede'}</div>
         </div>
     </div>
     
