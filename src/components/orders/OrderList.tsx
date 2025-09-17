@@ -461,7 +461,7 @@ export default function OrderList() {
 
         return lineasPedido.map((linea) => `
       <tr>
-        <td style="text-align: center;">${linea.matricula || 'N/A'}</td>
+        <td style="text-align: center;">${linea.matricula_89 || 'N/A'}</td>
         <td>${linea.descripcion || 'N/A'}</td>
         <td style="text-align: center;">${linea.nenv || '0'}</td>
         <td style="text-align: center;">${linea.nsenv || 'N/A'}</td>
