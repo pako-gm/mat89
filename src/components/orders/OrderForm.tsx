@@ -1028,6 +1028,7 @@ export default function OrderForm({
                     />
                     <label
                       htmlFor="fileInput"
+                      //codigo cambiado para deshabilitar la subida de archivos
                       // Removemos htmlFor para que no esté asociado al input 
                       className="flex flex-col items-center justify-center cursor-pointer h-full pointer-events-none opacity-50"
                       // Removemos cursor-pointer y agregamos opacity-50 para indicar que no es interactivo
