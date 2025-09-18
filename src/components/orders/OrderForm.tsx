@@ -1028,7 +1028,9 @@ export default function OrderForm({
                     />
                     <label
                       htmlFor="fileInput"
-                      className="flex flex-col items-center justify-center cursor-pointer h-full"
+                      // Removemos htmlFor para que no esté asociado al input 
+                      className="flex flex-col items-center justify-center cursor-pointer h-full pointer-events-none opacity-50"
+                      // Removemos cursor-pointer y agregamos opacity-50 para indicar que no es interactivo
                     >
                       <Upload className="h-4 w-4 text-gray-400" />
                       <p className="text-xs text-gray-600 text-center mt-1">
