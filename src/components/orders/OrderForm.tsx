@@ -8,12 +8,12 @@ import { hasAnyRole } from "@/lib/auth";
 import { filterManualChangeHistory, formatDateToDDMMYYYY } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
-  DialogFooter 
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send, User, Clock, Edit2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -21,12 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
@@ -54,7 +54,7 @@ export default function OrderForm({
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [dragActive, setDragActive] = useState(false);
-  const [suppliers, setSuppliers] = useState<{id: string; name: string}[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
     registration: string;
@@ -68,7 +68,7 @@ export default function OrderForm({
     orderLines: false
   });
   const [inEditMode, setInEditMode] = useState(!viewMode); // Estado para controlar el modo actual
-  
+
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
 
@@ -88,18 +88,18 @@ export default function OrderForm({
       declaredDamage: initialOrder.declaredDamage || "",
       shipmentDocumentation: initialOrder.shipmentDocumentation || [],
       changeHistory: initialOrder.changeHistory || [],
-      orderLines: initialOrder.orderLines?.length > 0 
+      orderLines: initialOrder.orderLines?.length > 0
         ? initialOrder.orderLines.map(line => ({
-            ...line,
-            quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
-          }))
+          ...line,
+          quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+        }))
         : [{
-            id: uuidv4(),
-            registration: "",
-            partDescription: "",
-            quantity: 1,
-            serialNumber: ""
-          }]
+          id: uuidv4(),
+          registration: "",
+          partDescription: "",
+          quantity: 1,
+          serialNumber: ""
+        }]
     };
   });
 
@@ -120,20 +120,20 @@ export default function OrderForm({
         declaredDamage: initialOrder.declaredDamage || "",
         shipmentDocumentation: initialOrder.shipmentDocumentation || [],
         changeHistory: initialOrder.changeHistory || [],
-        orderLines: initialOrder.orderLines?.length > 0 
+        orderLines: initialOrder.orderLines?.length > 0
           ? initialOrder.orderLines.map(line => ({
-              ...line,
-              quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
-            }))
+            ...line,
+            quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+          }))
           : [{
-              id: uuidv4(),
-              registration: "",
-              partDescription: "",
-              quantity: 1,
-              serialNumber: ""
-            }]
+            id: uuidv4(),
+            registration: "",
+            partDescription: "",
+            quantity: 1,
+            serialNumber: ""
+          }]
       });
-      
+
       // Set initial mode based on viewMode prop
       setInEditMode(!viewMode);
 
@@ -162,7 +162,7 @@ export default function OrderForm({
         });
       }
     };
-    
+
     if (open) {
       loadSuppliers();
       //checkUserAuthentication();
@@ -196,9 +196,9 @@ export default function OrderForm({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (isReadOnly) return;
-    
+
     const { name, value } = e.target;
-    
+
     // Validate dismantle date is before shipment date
     if (name === "dismantleDate") {
       if (order.shipmentDate && value > order.shipmentDate) {
@@ -210,7 +210,7 @@ export default function OrderForm({
         return;
       }
     }
-    
+
     // Validate shipment date is after dismantle date
     if (name === "shipmentDate") {
       if (order.dismantleDate && value < order.dismantleDate) {
@@ -263,7 +263,7 @@ export default function OrderForm({
 
   const handleSelectChange = (name: string, value: string) => {
     if (isReadOnly) return;
-    
+
     if (name === "warehouse") {
       // Update order number when warehouse changes
       const warehouseNum = value.replace('ALM', '');
@@ -277,7 +277,7 @@ export default function OrderForm({
       }));
       return;
     }
-    
+
     if (name === "supplier") {
       // Find the selected supplier to get both ID and name
       const selectedSupplier = suppliers.find(s => s.id === value);
@@ -287,7 +287,7 @@ export default function OrderForm({
           supplierId: selectedSupplier.id,
           supplierName: selectedSupplier.name
         }));
-        
+
         // Clear supplier error
         if (errors.supplier) {
           setErrors(prev => ({ ...prev, supplier: false }));
@@ -295,7 +295,7 @@ export default function OrderForm({
       }
       return;
     }
-    
+
     setOrder(prev => ({
       ...prev,
       [name]: value
@@ -304,7 +304,7 @@ export default function OrderForm({
 
   const handleSwitchChange = (checked: boolean) => {
     if (isReadOnly) return;
-    
+
     setOrder(prev => ({
       ...prev,
       warranty: checked,
@@ -314,7 +314,7 @@ export default function OrderForm({
 
   const handleOrderLineUpdate = (id: string, data: Partial<OrderLine>) => {
     if (isReadOnly) return;
-    
+
     setOrder(prev => ({
       ...prev,
       orderLines: prev.orderLines.map(line => {
@@ -330,7 +330,7 @@ export default function OrderForm({
         return line;
       })
     }));
-    
+
     // Clear orderLines error when user starts typing in registration field
     if ('registration' in data && data.registration && errors.orderLines) {
       setErrors(prev => ({
@@ -343,7 +343,7 @@ export default function OrderForm({
   // Nueva función para manejar la actualización de matrícula con autorrellenado
   const handleMaterialRegistrationChange = (lineId: string, registration: string, description?: string) => {
     if (isReadOnly) return;
-    
+
     setOrder(prev => ({
       ...prev,
       orderLines: prev.orderLines.map(line => {
@@ -370,7 +370,7 @@ export default function OrderForm({
   // Nueva función para manejar material no encontrado
   const handleMaterialNotFound = (registration: string, lineId?: string) => {
     if (isReadOnly) return;
-    
+
     // Encontrar el ID de línea si no se proporciona
     let targetLineId = lineId;
     if (!targetLineId) {
@@ -388,7 +388,7 @@ export default function OrderForm({
   // Nueva función para manejar cancelación del modal
   const handleMaterialNotFoundCancel = () => {
     const { lineId } = materialNotFoundModal;
-    
+
     // Limpiar el campo de matrícula de la línea específica
     if (lineId) {
       setOrder(prev => ({
@@ -423,17 +423,17 @@ export default function OrderForm({
     setMaterialNotFoundModal({ open: false, registration: "", lineId: "" });
     // Cerrar el formulario actual y navegar a materiales
     onClose();
-    navigate('/materiales', { 
-      state: { 
-        newMaterial: true, 
-        registrationPreset: materialNotFoundModal.registration 
-      } 
+    navigate('/materiales', {
+      state: {
+        newMaterial: true,
+        registrationPreset: materialNotFoundModal.registration
+      }
     });
   };
 
   const handleOrderLineDelete = (id: string) => {
     if (isReadOnly) return;
-    
+
     if (order.orderLines.length > 1) {
       setOrder(prev => ({
         ...prev,
@@ -446,26 +446,26 @@ export default function OrderForm({
 
   const addOrderLine = () => {
     if (isReadOnly) return;
-    
+
     // Check if there are any existing lines with empty registration
     const hasEmptyRegistration = order.orderLines.some(line => !String(line.registration).trim());
-    
+
     if (hasEmptyRegistration) {
       toast({
         variant: "destructive",
         title: "Error de validación",
         description: "No pueden haber líneas vacías",
       });
-      
+
       // Set orderLines error to highlight the problematic lines
       setErrors(prev => ({
         ...prev,
         orderLines: true
       }));
-      
+
       return; // Don't add the new line
     }
-    
+
     // If all existing lines have registration, add the new line
     setOrder(prev => ({
       ...prev,
@@ -482,27 +482,27 @@ export default function OrderForm({
   // MEJORADO: Función para agregar comentarios con mejor logging
   const handleAddComment = async () => {
     if (isReadOnly) return;
-    
+
     if (newComment.trim()) {
       console.log('=== AGREGANDO COMENTARIO ===');
       console.log('Texto del comentario:', newComment.trim());
-      
+
       try {
         // Obtener el email del usuario actual
         const { data: { user } } = await supabase.auth.getUser();
         const userEmail = user?.email || 'usuario@mat89.com';
-        
+
         console.log('Usuario actual:', userEmail);
-        
+
         const newChange = {
           id: uuidv4(),
           date: new Date().toISOString(),
           user: userEmail,
           description: newComment.trim()
         };
-        
+
         console.log('Nuevo comentario creado:', newChange);
-        
+
         setOrder(prev => {
           const updatedHistory = [...prev.changeHistory, newChange];
           console.log('ChangeHistory actualizado:', updatedHistory);
@@ -514,12 +514,12 @@ export default function OrderForm({
 
         setNewComment("");
         setIsCommentOpen(false);
-        
+
         toast({
           title: "Comentario agregado",
           description: "El comentario se ha agregado al pedido. Recuerde guardar los cambios.",
         });
-        
+
         console.log('=== COMENTARIO AGREGADO EXITOSAMENTE ===');
       } catch (error) {
         console.error('Error al agregar comentario:', error);
@@ -534,7 +534,7 @@ export default function OrderForm({
 
   const handleDrag = (e: React.DragEvent) => {
     if (isReadOnly) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -554,7 +554,7 @@ export default function OrderForm({
 
   const handleDrop = (e: React.DragEvent) => {
     if (isReadOnly) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -583,7 +583,7 @@ export default function OrderForm({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isReadOnly) return;
-    
+
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
       if (order.shipmentDocumentation.length + files.length > 4) {
@@ -608,7 +608,7 @@ export default function OrderForm({
 
   const removeFile = (fileName: string) => {
     if (isReadOnly) return;
-    
+
     setOrder(prev => ({
       ...prev,
       shipmentDocumentation: prev.shipmentDocumentation.filter(f => f !== fileName)
@@ -618,7 +618,7 @@ export default function OrderForm({
   const validateForm = () => {
     // Check if there's at least one order line with a registration
     const hasValidOrderLine = order.orderLines.some(line => String(line.registration).trim() !== "");
-    
+
     const newErrors = {
       supplier: !order.supplierId,
       vehicle: !order.vehicle.trim(),
@@ -626,35 +626,35 @@ export default function OrderForm({
       shipmentDate: !order.shipmentDate,
       orderLines: !hasValidOrderLine
     };
-    
+
     setErrors(newErrors);
-    
+
     return !Object.values(newErrors).some(Boolean);
   };
 
   const checkUserAuthentication = async () => {
     try {
       const { data, error } = await supabase.auth.getUser();
-      
+
       if (error) {
         console.error("Authentication error:", error);
         setAuthError("Error de autenticación: " + error.message);
         return false;
       }
-      
+
       if (!data.user || !data.user.id) {
         setAuthError("No se ha podido verificar su sesión. Por favor, inicie sesión nuevamente.");
         return false;
       }
-      
+
       // Verificar permisos del usuario según su rol
       const hasPermission = await hasAnyRole(['ADMINISTRADOR', 'EDICION']);
-      
+
       if (!hasPermission) {
         setAuthError("No tiene permisos suficientes para realizar esta acción.");
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error("Error checking authentication:", error);
@@ -666,13 +666,13 @@ export default function OrderForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         variant: "destructive",
         title: "Error de validación",
         description: "Por favor, corrija los campos marcados en rojo.",
-      });      
+      });
       return;
     }
 
@@ -681,35 +681,35 @@ export default function OrderForm({
     if (!isAuthenticated) {
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       let updatedOrder = { ...order };
-      
+
       // Ensure all order lines have valid quantities before saving
       updatedOrder.orderLines = updatedOrder.orderLines.map(line => ({
         ...line,
         quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
       }));
-      
+
       console.log('=== GUARDANDO PEDIDO ===');
       console.log('ChangeHistory antes de guardar:', updatedOrder.changeHistory);
-      
+
       await saveOrder(updatedOrder);
-      
+
       console.log('=== PEDIDO GUARDADO EXITOSAMENTE ===');
-      
+
       onSave();
-      
+
     } catch (error) {
       console.error("Error saving order:", error);
       let errorMessage = "No se pudo guardar el pedido. Por favor, inténtelo de nuevo.";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       toast({
         variant: "destructive",
         title: "Error",
@@ -742,7 +742,7 @@ export default function OrderForm({
     const selectedOption = options.find(opt => opt.id === value || opt.code === value || opt.value === value);
     return (
       <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
-                  {selectedOption ? getLabel(selectedOption) : "--"}
+        {selectedOption ? getLabel(selectedOption) : "--"}
       </div>
     );
   };
@@ -754,8 +754,8 @@ export default function OrderForm({
           <DialogHeader>
             <DialogTitle>{getTitle()}</DialogTitle>
           </DialogHeader>
-          
-          
+
+
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -784,8 +784,8 @@ export default function OrderForm({
                 {isReadOnly ? (
                   renderReadOnlySelect(order.supplierId, suppliers, (s) => s.name)
                 ) : (
-                  <Select 
-                    value={order.supplierId} 
+                  <Select
+                    value={order.supplierId}
                     onValueChange={(value) => handleSelectChange("supplier", value)}
                   >
                     <SelectTrigger className={`h-9 border-[#4C4C4C] ${errors.supplier ? 'border-red-500' : ''}`}>
@@ -795,8 +795,8 @@ export default function OrderForm({
                     </SelectTrigger>
                     <SelectContent className="max-h-[280px] overflow-y-auto">
                       {suppliers.map(supplier => (
-                        <SelectItem 
-                          key={supplier.id} 
+                        <SelectItem
+                          key={supplier.id}
                           value={supplier.id}
                           className="py-2.5 px-3 text-sm hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
                         >
@@ -813,8 +813,8 @@ export default function OrderForm({
                 {isReadOnly ? (
                   renderReadOnlySelect(order.warehouse, warehouses, (w) => w.code)
                 ) : (
-                  <Select 
-                    value={order.warehouse} 
+                  <Select
+                    value={order.warehouse}
                     onValueChange={(value) => handleSelectChange("warehouse", value)}
                     defaultValue="ALM141"
                   >
@@ -868,7 +868,7 @@ export default function OrderForm({
                   />
                 )}
               </div>
-              
+
               <div className="flex items-center justify-end space-x-2 pt-6">
                 <Label htmlFor="warranty" className="text-sm">Garantía</Label>
                 {isReadOnly ? (
@@ -884,7 +884,7 @@ export default function OrderForm({
                   />
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="nonConformityReport" className="text-sm mb-1">Informe No Conformidad</Label>
                 {isReadOnly ? (
@@ -919,8 +919,8 @@ export default function OrderForm({
                   <span className="text-red-500">*</span> Fecha Desmonte
                   {errors.dismantleDate && !isReadOnly && (
                     <span className="text-red-500 text-xs ml-2">
-                      {order.shipmentDate && order.dismantleDate > order.shipmentDate 
-                        ? "Debe ser anterior a la fecha de envío" 
+                      {order.shipmentDate && order.dismantleDate > order.shipmentDate
+                        ? "Debe ser anterior a la fecha de envío"
                         : "Campo requerido"}
                     </span>
                   )}
@@ -939,7 +939,7 @@ export default function OrderForm({
                   />
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="shipmentDate" className="text-sm mb-1">
                   <span className="text-red-500">*</span> Fecha Envío
@@ -991,7 +991,7 @@ export default function OrderForm({
                   />
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="shipmentDocumentation" className="text-sm mb-1">Documentación Envío</Label>
                 {isReadOnly ? (
@@ -1010,9 +1010,8 @@ export default function OrderForm({
                   </div>
                 ) : (
                   <div
-                    className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${
-                      dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
-                    } flex flex-col h-[100px]`}
+                    className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
+                      } flex flex-col h-[100px]`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
@@ -1031,7 +1030,7 @@ export default function OrderForm({
                       //codigo cambiado para deshabilitar la subida de archivos
                       // Removemos htmlFor para que no esté asociado al input 
                       className="flex flex-col items-center justify-center cursor-pointer h-full pointer-events-none opacity-50"
-                      // Removemos cursor-pointer y agregamos opacity-50 para indicar que no es interactivo
+                    // Removemos cursor-pointer y agregamos opacity-50 para indicar que no es interactivo
                     >
                       <Upload className="h-4 w-4 text-gray-400" />
                       <p className="text-xs text-gray-600 text-center mt-1">
@@ -1129,16 +1128,18 @@ export default function OrderForm({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsCommentOpen(true)}
-                  //DESACTIVAMOS BOTON DE COMENTARIOS, YA SE ARREGLARA MAS ADELANTE 
-                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  // Removemos onClick
+                  className="text-[#91268F] border-[#91268F] h-10 px-4 text-sm mt-7 flex items-center gap-2 opacity-50 cursor-not-allowed"
+                // Removemos hover states y agregamos cursor-not-allowed
+                //onClick={() => setIsCommentOpen(true)}
+                //className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Agregar Comentario
                 </Button>
               )}
             </div>
-            
+
             {/* MEJORADO: Modal de comentarios con mejor diseño */}
             {isCommentOpen && (
               <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -1189,9 +1190,9 @@ export default function OrderForm({
                   )}
                 </h2>
                 {!isReadOnly && (
-                  <Button 
+                  <Button
                     type="button"
-                    variant="outline" 
+                    variant="outline"
                     onClick={addOrderLine}
                     className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
                   >
@@ -1199,7 +1200,7 @@ export default function OrderForm({
                   </Button>
                 )}
               </div>
-              
+
               <Card className={`border-gray-200 ${errors.orderLines && !isReadOnly ? 'border-red-500' : ''}`}>
                 <CardContent className="p-4">
                   <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 mb-2">
@@ -1228,7 +1229,7 @@ export default function OrderForm({
                             }
                           }}
                           value={String(line.registration)}
-                          onChange={(registration, description) => 
+                          onChange={(registration, description) =>
                             handleMaterialRegistrationChange(line.id, registration, description)
                           }
                           onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
@@ -1237,7 +1238,7 @@ export default function OrderForm({
                           error={errors.orderLines && !String(line.registration).trim()}
                         />
                       )}
-                      
+
                       {isReadOnly ? (
                         <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
                           {line.partDescription}
@@ -1255,7 +1256,7 @@ export default function OrderForm({
                           readOnly
                         />
                       )}
-                      
+
                       {isReadOnly ? (
                         <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
                           {line.quantity}
@@ -1274,7 +1275,7 @@ export default function OrderForm({
                           className="h-9 border-[#4C4C4C] focus:border-[#91268F]"
                         />
                       )}
-                      
+
                       {isReadOnly ? (
                         <div className="h-9 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm flex items-center">
                           {line.serialNumber}
@@ -1291,23 +1292,23 @@ export default function OrderForm({
                           className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
                         />
                       )}
-                      
+
                       <div className="flex space-x-1">
                         {!isReadOnly && (
                           <>
-                            <Button 
+                            <Button
                               type="button"
-                              variant="ghost" 
+                              variant="ghost"
                               size="sm"
                               className="p-0 h-8 w-8"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
-                            
+
                             {order.orderLines.length > 1 && (
-                              <Button 
+                              <Button
                                 type="button"
-                                variant="ghost" 
+                                variant="ghost"
                                 size="sm"
                                 className="p-0 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => handleOrderLineDelete(line.id)}
@@ -1323,12 +1324,12 @@ export default function OrderForm({
                 </CardContent>
               </Card>
             </div>
-            
+
             <DialogFooter className="mt-6">
               {viewMode && !inEditMode ? (
                 // Modo vista: mostrar botón Modificar Pedido
                 <>
-                  <Button 
+                  <Button
                     type="button"
                     variant="outline"
                     onClick={handleEditMode}
@@ -1347,8 +1348,8 @@ export default function OrderForm({
                   <Button variant="outline" type="button" onClick={handleCancelEdit}>
                     Cancelar
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
                     disabled={loading}
                   >
