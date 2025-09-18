@@ -1130,7 +1130,8 @@ export default function OrderForm({
                   type="button"
                   variant="outline"
                   onClick={() => setIsCommentOpen(true)}
-                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2"
+                  //DESACTIVAMOS BOTON DE COMENTARIOS, YA SE ARREGLARA MAS ADELANTE 
+                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Agregar Comentario
