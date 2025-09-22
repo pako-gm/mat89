@@ -180,7 +180,7 @@ export default function MaterialForm({
       }
     };
 
-    const timeoutId = setTimeout(checkRegistration, 500);
+    const timeoutId = setTimeout(checkRegistration, 2000); //de 500ms se ha AUMENTADO A 2000ms PARA EVITAR DEMASIADAS CONSULTAS
     return () => clearTimeout(timeoutId);
   }, [formData.registration, formData.id, isEditing]);
 
@@ -356,7 +356,8 @@ export default function MaterialForm({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      {/* estaba en 600px: sm:max-w-[900px] */}
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Material" : "Nuevo Material"}
