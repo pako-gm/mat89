@@ -60,6 +60,7 @@ export default function OrderForm({
     registration: string;
     lineId: string;
   }>({ open: false, registration: "", lineId: "" });
+  const [newlyAddedLineId, setNewlyAddedLineId] = useState<string | null>(null);
   const [errors, setErrors] = useState({
     supplier: false,
     vehicle: false,
@@ -168,6 +169,16 @@ export default function OrderForm({
       //checkUserAuthentication();
     }
   }, [open, toast]);
+
+  useEffect(() => {
+    if (newlyAddedLineId) {
+      const newRef = materialInputRefs.current.get(newlyAddedLineId);
+      if (newRef) {
+        newRef.focus();
+        setNewlyAddedLineId(null);
+      }
+    }
+  }, [order.orderLines, newlyAddedLineId]);
 
   // Función para cambiar al modo de edición
   const handleEditMode = () => {
@@ -467,16 +478,18 @@ export default function OrderForm({
     }
 
     // If all existing lines have registration, add the new line
+    const newLineId = uuidv4();
     setOrder(prev => ({
       ...prev,
       orderLines: [...prev.orderLines, {
-        id: uuidv4(),
+        id: newLineId,
         registration: "",
         partDescription: "",
         quantity: 1,
         serialNumber: ""
       }]
     }));
+    setNewlyAddedLineId(newLineId);
   };
 
   // MEJORADO: Función para agregar comentarios con mejor logging
