@@ -395,14 +395,8 @@ export default function OrderList() {
     };
 
     // Función para procesar proveedores externos - MODIFICADA
-    const procesarProveedorExterno = async (numeroPedido: string) => {
+    const procesarProveedorExterno = async (orderData: any) => {
       try {
-        // Obtener datos completos del pedido
-        const orderData = await fetchCompleteOrderData(numeroPedido);
-        if (!orderData) {
-          throw new Error('No se pudieron obtener los datos del pedido');
-        }
-
         // Obtener el logo en base64
         const response = await fetch('/images/logo_renfe_ext.jpg');
         const blob = await response.blob();
