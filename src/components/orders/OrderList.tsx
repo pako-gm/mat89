@@ -628,28 +628,6 @@ export default function OrderList() {
       }
     };
 
-    // (Eliminada la función replaceTemplatePlaceholders porque no se utiliza)
-
-    // Función para reemplazar logo
-    //const replaceLogo = (html: string) => {
-    // Logo embebido en base64 - Imagen simple de Renfe
-    //const logoBase64 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkYwMDAwIi8+Cjx0ZXh0IHg9IjEwIiB5PSIzMCIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCI+UkVORkU8L3RleHQ+Cjx0ZXh0IHg9IjEwIiB5PSI0NSIgZmlsbD0iI0ZGRkZGRiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5JbmdlbmllcsOtYSB5IE1hbnRlbmltaWVudG88L3RleHQ+Cjwvc3ZnPgo=`;
-
-    // Buscar y reemplazar el div del logo específico
-    //let replacedHtml = html.replace(
-    //<div\s+class="logo"[^>]*>.*?<\/div>/gi,
-    //`<div class="logo"><img width="200" height="50" src="${logoBase64}" alt="Logo Renfe" style="max-width: 100%; height: auto;"></div>`
-    //);
-
-    // Buscar también el patrón "🚄 Logo Renfe" y reemplazarlo
-    //replacedHtml = replacedHtml.replace(
-    //🚄\s*Logo\s*Renfe/gi,
-    //`<img width="200" height="50" src="${logoBase64}" alt="Logo Renfe" style="max-width: 100%; height: auto;">`
-    //);
-
-    //return replacedHtml;
-    // };
-
     // Funciones del modal de impresión
     const handleSave = () => {
       try {
