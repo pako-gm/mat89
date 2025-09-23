@@ -267,7 +267,7 @@ export default function OrderForm({
     if (name === "warehouse") {
       // Update order number when warehouse changes
       const warehouseNum = value.replace('ALM', '');
-      const sequential = order.orderNumber.split('/')[2] || '1001';
+      const sequential = order.orderNumber.split('/')[2] || '1000';
       const currentYear = new Date().getFullYear().toString().slice(-2);
       const newOrderNumber = `${warehouseNum}/${currentYear}/${sequential}`;
       setOrder(prev => ({
@@ -490,7 +490,7 @@ export default function OrderForm({
       try {
         // Obtener el email del usuario actual
         const { data: { user } } = await supabase.auth.getUser();
-        const userEmail = user?.email || 'usuario@mat89.com';
+        const userEmail = user?.email || 'admin@renfe.es';
 
         console.log('Usuario actual:', userEmail);
 

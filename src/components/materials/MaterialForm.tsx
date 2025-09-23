@@ -452,7 +452,7 @@ export default function MaterialForm({
               value={formData.description}
               onChange={handleChange}
               className={`h-9 ${formErrors.description ? 'border-red-500 focus:border-red-500' : ''}`}
-              placeholder="Descripcion Pieza de Maximo."
+              placeholder="Descripcion de la Pieza copiada de Maximo."
             />
             {formErrors.description && (
               <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>

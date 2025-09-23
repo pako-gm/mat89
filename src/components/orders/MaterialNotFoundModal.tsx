@@ -119,8 +119,8 @@ export default function MaterialNotFoundModal({
         
         <div className="py-4">
           <p className="text-sm text-gray-600 leading-relaxed">
-            ¿Desea dar de alta este material en el sistema? 
-            Esto le permitirá crear un nuevo registro de material con esta matrícula.
+            ¿Desea dar de alta esta matricula en el sistema? 
+            Pulse el botón "Dar de Alta" para crear un nuevo registro.
           </p>
         </div>
         

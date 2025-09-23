@@ -229,14 +229,14 @@ import { supabase } from "@/lib/supabase";
 - **Éxito**: Tonos verdes para confirmación
 
 ### 2. Layout Responsivo
-- **Ancho máximo**: 600px en pantallas medianas
+- **Ancho máximo**: 600px en pantallas medianas (cambiado a 900px)
 - **Altura máxima**: 90vh con scroll
 - **Grid**: 2 columnas para campos relacionados
 
 ## Consideraciones de Rendimiento
 
 ### 1. Debounce
-- 500ms para verificación de duplicados
+- 500ms para verificación de duplicados (cambiado a 2000ms)
 - Evita consultas excesivas a la base de datos
 
 ### 2. Cleanup de Efectos

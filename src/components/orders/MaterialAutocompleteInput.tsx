@@ -75,8 +75,9 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
         }
       }
     };
-
-    const timeoutId = setTimeout(validateAndAutofill, 500);
+    // Retrasar la validación a 1000ms para evitar múltiples llamadas rápidas
+    //anteriormente estaba en 500ms, ver markdown
+    const timeoutId = setTimeout(validateAndAutofill, 1000);
     return () => clearTimeout(timeoutId);
   }, [value, onChange, onMaterialNotFound]);
 
