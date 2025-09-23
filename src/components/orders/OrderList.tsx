@@ -272,20 +272,11 @@ export default function OrderList() {
     };
 
     const handleLanzarParAccept = async () => {
-      if (!orderNumberInput.trim()) {
+      if (!orderNumberInput.trim() || orderNumberInput.length !== 4) {
         toast({
           variant: "destructive",
-          title: "Campo requerido",
-          description: "Por favor, introduce las últimas 4 cifras del pedido.",
-        });
-        return;
-      }
-
-      if (orderNumberInput.length !== 4) {
-        toast({
-          variant: "destructive",
-          title: "Formato incorrecto",
-          description: "Debes introducir exactamente 4 dígitos.",
+          title: "Entrada inválida",
+          description: "Por favor, introduce exactamente 4 dígitos del pedido.",
         });
         return;
       }
@@ -293,7 +284,6 @@ export default function OrderList() {
       try {
         // Buscar el pedido por las 4 últimas cifras
         const orderFound = await findOrderByLastDigits(orderNumberInput);
-
         if (!orderFound) {
           toast({
             variant: "destructive",
@@ -305,7 +295,6 @@ export default function OrderList() {
 
         // Obtener información del proveedor
         const supplier = await getSupplierInfo(orderFound.proveedor_id);
-
         if (!supplier) {
           toast({
             variant: "destructive",
@@ -315,21 +304,30 @@ export default function OrderList() {
           return;
         }
 
-        // Lógica condicional basada en es_externo
+        // 1. Fetch data ONCE before branching
+        const orderData = await fetchCompleteOrderData(orderFound.num_pedido);
+        if (!orderData) {
+          toast({
+            variant: "destructive",
+            title: "Error de datos",
+            description: "No se pudieron obtener los datos completos del pedido.",
+          });
+          return;
+        }
+
+        // 2. Pass the fetched data to the appropriate function
         if (supplier.es_externo === true) {
-          // Llamar a función para proveedores externos
-          await procesarProveedorExterno(orderFound.num_pedido);
+          await procesarProveedorExterno(orderData);
         } else {
-          // Llamar a función para proveedores internos
-          await procesarProveedorInterno(orderFound.num_pedido);
+          await procesarProveedorInterno(orderData);
         }
 
       } catch (error) {
         console.error('Error processing PAR:', error);
         toast({
           variant: "destructive",
-          title: "Error de conexión",
-          description: "No se pudo conectar con la base de datos. Inténtelo de nuevo.",
+          title: "Error en el proceso",
+          description: "Ocurrió un error al procesar el PAR. Inténtelo de nuevo.",
         });
       }
 
