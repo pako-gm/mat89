@@ -545,14 +545,8 @@ export default function OrderList() {
     //** FIN DEL CODIGO GENERACION PAR EXTERNO */
 
     // Función para procesar proveedores internos
-    const procesarProveedorInterno = async (numeroPedido: string) => {
+    const procesarProveedorInterno = async (orderData: any) => {
       try {
-        // Obtener datos completos del pedido
-        const orderData = await fetchCompleteOrderData(numeroPedido);
-        if (!orderData) {
-          throw new Error('No se pudieron obtener los datos del pedido');
-        }
-
         // Generar Excel usando la plantilla interna
         const excelBuffer = await generateInternalSupplierExcel(orderData);
 
@@ -563,7 +557,7 @@ export default function OrderList() {
 
         // Generar nombre de archivo con timestamp
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
-        const fileName = `PAR_Interno_${numeroPedido.replace(/\//g, '_')}_${timestamp}.xlsx`;
+        const fileName = `PAR_Interno_${orderData.num_pedido.replace(/\//g, '_')}_${timestamp}.xlsx`;
 
         // Descargar archivo
         saveAs(blob, fileName);
