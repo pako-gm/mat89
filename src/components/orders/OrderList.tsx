@@ -37,6 +37,8 @@ import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
 import { generateInternalSupplierExcel } from "@/lib/excelGenerator";
 import { saveAs } from "file-saver";
+// Importar XLSX-Populate
+import XlsxPopulate from "xlsx-populate";
 
 export default function OrderList() {
   const [searchParams] = useSearchParams();
@@ -394,7 +396,7 @@ export default function OrderList() {
       }
     };
 
-    // Función para procesar proveedores externos - MODIFICADA
+    // Función para procesar proveedores externos
     const procesarProveedorExterno = async (orderData: any) => {
       try {
         // Obtener el logo en base64
@@ -427,9 +429,7 @@ export default function OrderList() {
       }
     };
 
-    /*
-     Nueva función para generar HTML con formato A4 vertical estilo minimalista
-     */
+    //Nueva función para generar HTML con formato A4 vertical estilo minimalista
     const generateProveedorExternoHTML = (orderData: any, logoBase64: string) => {
       const formatDate = (dateString: string) => {
         if (!dateString) return '';
@@ -542,18 +542,99 @@ export default function OrderList() {
 </body>
 </html>`;
     };
-    //** FIN DEL CODIGO GENERACION PAR EXTERNO */
+    //FIN DEL CODIGO GENERACION PAR EXTERNO
 
-    // Función para procesar proveedores internos
-    const procesarProveedorInterno = async (orderData: any) => {
-      try {
-        // Generar Excel usando la plantilla interna
-        const excelBuffer = await generateInternalSupplierExcel(orderData);
+  // Función MEJORADA para procesar proveedores internos con XLSX-Populate
+  const procesarProveedorInterno = async (orderData: any) => {
+    try {
+      // 1. Cargar la plantilla Excel desde public/templates/
+      const templateResponse = await fetch('/plantillas/int_excel_template.xlsx');
+      if (!templateResponse.ok) {
+        throw new Error('No se pudo cargar la plantilla Excel. Verifique que el archivo existe en /public/plantillas/');
+      }
 
-        // Crear blob y descargar
-        const blob = new Blob([excelBuffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      const templateBlob = await templateResponse.blob();
+      const templateArrayBuffer = await templateBlob.arrayBuffer();
+
+      // 2. Cargar la plantilla con XLSX-Populate
+      const workbook = await XlsxPopulate.fromDataAsync(templateArrayBuffer);
+      const sheet = workbook.sheet(0); // Primera hoja
+
+      // 3. Obtener datos del pedido
+      const proveedor = orderData.tbl_proveedores || {};
+      const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
+
+      // 4. Función auxiliar para formatear fechas
+      const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
         });
+      };
+
+      // 5. Función para calcular fecha_necesidad (fecha_envio + 15 días)
+      const calcularFechaNecesidad = (fechaEnvio: string) => {
+        if (!fechaEnvio) return '';
+        const fecha = new Date(fechaEnvio);
+        fecha.setDate(fecha.getDate() + 15);
+        return formatDate(fecha.toISOString());
+      };
+
+      // 6. Rellenar datos de cabecera en posiciones específicas
+      sheet.cell("D4").value(proveedor.nombre || ''); // tbl_proveedores.nombre
+      sheet.cell("F2").value(formatDate(orderData.fecha_envio )); // tbl_pedidos_rep.fecha_envio
+      sheet.cell("F4").value(orderData.num_pedido || ''); // tbl_pedidos_rep.numero_pedido
+
+      // 7. Función para obtener descripción del material por matrícula
+      const obtenerDescripcionMaterial = async (matricula: string) => {
+        try {
+          const { data: material, error } = await supabase
+            .from('tbl_materiales')
+            .select('descripcion')
+            .eq('matricula', matricula)
+            .single();
+
+          if (error || !material) {
+            console.warn(`No se encontró descripción para matrícula: ${matricula}`);
+            return 'Descripción no disponible';
+          }
+
+          return material.descripcion;
+        } catch (error) {
+          console.error('Error obteniendo descripción del material:', error);
+          return 'Error al obtener descripción';
+        }
+      };
+
+      // 8. Procesar líneas de pedido a partir de la fila 7
+      let currentRow = 7;
+      
+      for (const linea of lineasPedido) {
+        // Obtener descripción del material
+        const descripcion = await obtenerDescripcionMaterial(linea.matricula_89 || '');
+
+        // Rellenar cada línea en su fila correspondiente
+        sheet.cell(`B${currentRow}`).value(descripcion); // tbl_materiales.descripcion
+        sheet.cell(`C${currentRow}`).value(orderData.vehiculo || ''); // tbl_pedidos_rep.vehiculo
+        sheet.cell(`D${currentRow}`).value(linea.nsenv || ''); // tbl_ln_pedidos_rep.nsenv
+        sheet.cell(`E${currentRow}`).value(linea.matricula_89 || ''); // tbl_materiales.matricula
+        sheet.cell(`F${currentRow}`).value(linea.alm_envia || ''); // tbl_ln_pedidos_rep.alm_envia
+        sheet.cell(`G${currentRow}`).value(linea.nenv || ''); // tbl_ln_pedidos_rep.nenv
+        sheet.cell(`H${currentRow}`).value(calcularFechaNecesidad(orderData.fecha_envio)); // fecha_necesidad (fecha_envio + 15 días)
+
+        currentRow++;
+      }
+
+      // 9. Generar el archivo Excel final
+      const outputBuffer = await workbook.outputAsync();
+
+      // 10. Crear blob y descargar
+      const blob = new Blob([outputBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
 
         // Generar nombre de archivo con timestamp
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
