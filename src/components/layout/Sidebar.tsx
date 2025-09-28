@@ -135,13 +135,13 @@ export default function Sidebar() {
                 path="/materiales" 
                 active={currentPath === "/materiales"}
               />
-              <SidebarItem 
+              {/* <SidebarItem 
                 icon={<Database className="h-4 w-4" />}
                 label="Ver Datos Capturados" 
                 path="/datos-capturados" 
                 active={currentPath === "/datos-capturados"}
                 disabled={true}
-              />
+              /> */}
             </>
           )}
           <SidebarItem 
