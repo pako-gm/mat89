@@ -407,6 +407,7 @@ export default function OrderList() {
         });
 
         // Generar HTML directamente con formato A4 vertical
+        //NOTA, HAY QUE SUSTITURLO POR LA HOJA HTML CORRESPONDIENTE
         const documentHTML = generateProveedorExternoHTML(orderData, logoBase64 as string);
 
         setGeneratedHTML(documentHTML);
