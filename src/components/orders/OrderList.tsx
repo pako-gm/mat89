@@ -622,7 +622,7 @@ export default function OrderList() {
           sheet.cell(`C${currentRow}`).value(orderData.vehiculo || ''); // tbl_pedidos_rep.vehiculo
           sheet.cell(`D${currentRow}`).value(linea.nsenv || ''); // tbl_ln_pedidos_rep.nsenv
           sheet.cell(`E${currentRow}`).value(linea.matricula_89 || ''); // tbl_materiales.matricula
-          sheet.cell(`F${currentRow}`).value(linea.alm_envia || ''); // tbl_ln_pedidos_rep.alm_envia
+          sheet.cell(`F${currentRow}`).value(orderData.alm_envia || ''); // tbl_pedidos_rep.alm_envia
           sheet.cell(`G${currentRow}`).value(linea.nenv || ''); // tbl_ln_pedidos_rep.nenv
           sheet.cell(`H${currentRow}`).value(calcularFechaNecesidad(orderData.fecha_envio)); // fecha_necesidad (fecha_envio + 15 días)
 
