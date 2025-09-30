@@ -7,12 +7,19 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      buffer: 'buffer',
     },
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   define: {
-    global: {},
+    global: 'globalThis',
+    'process.env': {},
   },
 });
