@@ -595,7 +595,7 @@ export default function OrderList() {
             const { data: material, error } = await supabase
               .from('tbl_materiales')
               .select('descripcion')
-              .eq('matricula', matricula)
+              .eq('matricula_89', matricula)
               .single();
 
             if (error || !material) {
