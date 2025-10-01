@@ -695,6 +695,10 @@ export default function OrderList() {
           description: "El documento HTML se ha descargado correctamente.",
         });
 
+        // Cerrar el modal después de guardar
+        setShowPrintModal(false);
+        setGeneratedHTML('');
+
       } catch (error) {
         console.error('Error saving file:', error);
         toast({
@@ -899,9 +903,9 @@ export default function OrderList() {
             <div className="py-4">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-2">
                     Últimas 4 cifras del pedido
-                  </label>
+                  </label> */}
                   <Input
                     id="orderNumber"
                     type="text"
@@ -948,9 +952,9 @@ export default function OrderList() {
 
             <div className="flex gap-6 py-4">
               <div className="flex-1">
-                <p className="text-lg mb-4">El documento PAR se ha generado.</p>
+                {/* <p className="text-lg mb-4">El documento PAR se ha generado.</p> */}
                 <p className="text-sm text-gray-600 mb-6">
-                  Puede guardar el documento HTML en su equipo o cancelar la operación.
+                  El documento generado se guardará en la carpeta de descargas de tu equipo.
                 </p>
 
                 <div className="flex gap-3">
