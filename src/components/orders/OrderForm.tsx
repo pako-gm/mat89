@@ -78,7 +78,6 @@ export default function OrderForm({
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [initialOrderState, setInitialOrderState] = useState<Order | null>(null);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -146,7 +145,6 @@ export default function OrderForm({
       };
 
       setOrder(newOrder);
-      setInitialOrderState(JSON.parse(JSON.stringify(newOrder))); // Deep copy for comparison
       setHasChanges(false);
 
       // Clear errors when opening
@@ -181,29 +179,12 @@ export default function OrderForm({
     }
   }, [open, toast]);
 
-  // Detect changes in the order
-  useEffect(() => {
-    if (initialOrderState && open) {
-      const currentState = JSON.stringify(order);
-      const originalState = JSON.stringify(initialOrderState);
-      const hasChanged = currentState !== originalState;
-
-      if (hasChanged) {
-        console.log('Changes detected!');
-        console.log('Current:', order);
-        console.log('Original:', initialOrderState);
-      }
-
-      // Solo actualizar si el valor realmente cambió
-      setHasChanges(prev => {
-        if (prev !== hasChanged) {
-          console.log('Updating hasChanges to:', hasChanged);
-          return hasChanged;
-        }
-        return prev;
-      });
+  // Mark as changed whenever user modifies something
+  const markAsChanged = () => {
+    if (!hasChanges) {
+      setHasChanges(true);
     }
-  }, [order, initialOrderState, open]);
+  };
 
   // Handle close with confirmation if there are changes
   const handleClose = () => {
@@ -238,7 +219,7 @@ export default function OrderForm({
   const isReadOnly = false;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-
+    markAsChanged(); // Mark as changed when user types
     const { name, value } = e.target;
 
     // Validate dismantle date is before shipment date
@@ -305,6 +286,7 @@ export default function OrderForm({
 
   const handleSelectChange = (name: string, value: string) => {
     if (isReadOnly) return;
+    markAsChanged();
 
     if (name === "warehouse") {
       // Update order number when warehouse changes
@@ -346,6 +328,7 @@ export default function OrderForm({
 
   const handleSwitchChange = (checked: boolean) => {
     if (isReadOnly) return;
+    markAsChanged();
 
     setOrder(prev => ({
       ...prev,
@@ -356,6 +339,7 @@ export default function OrderForm({
 
   const handleOrderLineUpdate = (id: string, data: Partial<OrderLine>) => {
     if (isReadOnly) return;
+    markAsChanged();
 
     setOrder(prev => ({
       ...prev,
