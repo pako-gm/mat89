@@ -476,26 +476,45 @@ export default function OrderList() {
             box-sizing: border-box;
         }
 
+        html {
+            width: 210mm;
+            height: 297mm;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 11px;
             line-height: 1.3;
             color: #000;
             background: white;
+            width: 210mm;
+            min-height: 297mm;
             padding: 15mm;
-            max-width: 210mm;
             margin: 0 auto;
+            box-sizing: border-box;
         }
 
         @page {
             size: A4 portrait;
-            margin: 15mm;
+            margin: 0;
         }
 
         @media print {
-            body {
-                padding: 0;
+            html, body {
+                width: 210mm;
+                height: 297mm;
                 margin: 0;
+                padding: 0;
+            }
+
+            body {
+                padding: 15mm;
+            }
+        }
+
+        @media screen {
+            body {
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
             }
         }
 
