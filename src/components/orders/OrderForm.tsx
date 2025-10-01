@@ -11,10 +11,21 @@ import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./Mater
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send, User, Clock, Edit2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,7 +48,6 @@ interface OrderFormProps {
   onClose: () => void;
   onSave: () => void;
   isEditing: boolean;
-  viewMode?: boolean; // Nueva prop para controlar el modo de vista
 }
 
 export default function OrderForm({
@@ -45,8 +55,7 @@ export default function OrderForm({
   open,
   onClose,
   onSave,
-  isEditing: initialIsEditing,
-  viewMode = false
+  isEditing: initialIsEditing
 }: OrderFormProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,7 +76,9 @@ export default function OrderForm({
     shipmentDate: false,
     orderLines: false
   });
-  const [inEditMode, setInEditMode] = useState(!viewMode); // Estado para controlar el modo actual
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [initialOrderState, setInitialOrderState] = useState<Order | null>(null);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -106,7 +117,7 @@ export default function OrderForm({
   // Reset form when order changes or dialog opens/closes
   useEffect(() => {
     if (open) {
-      setOrder({
+      const newOrder = {
         id: initialOrder.id || uuidv4(),
         orderNumber: initialOrder.orderNumber || "",
         warehouse: initialOrder.warehouse || "ALM141",
@@ -132,10 +143,11 @@ export default function OrderForm({
             quantity: 1,
             serialNumber: ""
           }]
-      });
+      };
 
-      // Set initial mode based on viewMode prop
-      setInEditMode(!viewMode);
+      setOrder(newOrder);
+      setInitialOrderState(JSON.parse(JSON.stringify(newOrder))); // Deep copy for comparison
+      setHasChanges(false);
 
       // Clear errors when opening
       setErrors({
@@ -146,7 +158,7 @@ export default function OrderForm({
         orderLines: false
       });
     }
-  }, [open, initialOrder, initialIsEditing, viewMode]);
+  }, [open, initialOrder, initialIsEditing]);
 
   useEffect(() => {
     const loadSuppliers = async () => {
@@ -169,33 +181,46 @@ export default function OrderForm({
     }
   }, [open, toast]);
 
-  // Función para cambiar al modo de edición
-  const handleEditMode = () => {
-    setInEditMode(true);
-  };
+  // Detect changes in the order
+  useEffect(() => {
+    if (initialOrderState && open) {
+      const currentState = JSON.stringify(order);
+      const originalState = JSON.stringify(initialOrderState);
+      setHasChanges(currentState !== originalState);
+    }
+  }, [order, initialOrderState, open]);
 
-  // Función para cancelar edición y volver al modo de vista
-  const handleCancelEdit = () => {
-    if (viewMode) {
-      setInEditMode(false);
+  // Handle close with confirmation if there are changes
+  const handleClose = () => {
+    if (hasChanges) {
+      setShowConfirmModal(true);
     } else {
       onClose();
     }
   };
 
-  // Determinar el título basado en el modo actual
-  const getTitle = () => {
-    if (viewMode && !inEditMode) {
-      return "Detalles del Pedido";
-    }
-    return initialIsEditing ? "Editar Pedido" : "Nuevo Pedido";
+  // Discard changes and close
+  const handleDiscardChanges = () => {
+    setShowConfirmModal(false);
+    setHasChanges(false);
+    onClose();
   };
 
-  // Determinar si un campo debe ser solo lectura
-  const isReadOnly = viewMode && !inEditMode;
+  // Save changes and close
+  const handleUpdateOrder = async () => {
+    setShowConfirmModal(false);
+    await handleSubmit();
+  };
+
+  // Determinar el título basado en el modo actual
+  const getTitle = () => {
+    return initialIsEditing ? "Edit Order" : "New Order";
+  };
+
+  // Always in edit mode now
+  const isReadOnly = false;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (isReadOnly) return;
 
     const { name, value } = e.target;
 
@@ -1326,40 +1351,19 @@ export default function OrderForm({
             </div>
 
             <DialogFooter className="mt-6">
-              {viewMode && !inEditMode ? (
-                // Modo vista: mostrar botón Modificar Pedido
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleEditMode}
-                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white flex items-center gap-2"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    Modificar Pedido
-                  </Button>
-                  <Button variant="outline" type="button" onClick={onClose}>
-                    Cancelar
-                  </Button>
-                </>
-              ) : (
-                // Modo edición: mostrar botones de edición
-                <>
-                  <Button variant="outline" type="button" onClick={handleCancelEdit}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-                    disabled={loading}
-                  >
-                    {loading && (
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    )}
-                    {initialIsEditing ? "Actualizar Pedido" : "Guardar Pedido"}
-                  </Button>
-                </>
-              )}
+              <Button variant="outline" type="button" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+                disabled={loading}
+              >
+                {loading && (
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                )}
+                {initialIsEditing ? "Update Order" : "Save Order"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1372,6 +1376,29 @@ export default function OrderForm({
         onCreateMaterial={handleCreateMaterial}
         onCancel={handleMaterialNotFoundCancel}
       />
+
+      {/* Confirmation Modal for unsaved changes */}
+      <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have made changes to this order. What would you like to do?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardChanges}>
+              Discard Changes
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUpdateOrder}
+              className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+            >
+              Update Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

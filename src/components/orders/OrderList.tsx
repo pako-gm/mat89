@@ -917,7 +917,6 @@ export default function OrderList() {
             onClose={handleCloseForm}
             onSave={handleSaveOrder}
             isEditing={isEditing}
-            viewMode={isEditing}
           />
         )}
 
