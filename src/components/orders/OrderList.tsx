@@ -245,21 +245,30 @@ export default function OrderList() {
 
     const handleSaveOrder = async () => {
       const action = isEditing ? "actualizado" : "creado";
-      toast({
-        title: `Pedido ${action}`,
-        description: `El pedido se ha ${action} correctamente`,
-      });
-
-      setShowForm(false);
-      setSelectedOrder(null);
-      setIsEditing(false);
 
       try {
+        // Primero recargar los pedidos
         const updatedOrders = await getOrders();
         setOrders(updatedOrders);
         setFilteredOrders(updatedOrders);
+
+        // Luego cerrar el modal
+        setShowForm(false);
+        setSelectedOrder(null);
+        setIsEditing(false);
+
+        // Mostrar toast después de actualizar
+        toast({
+          title: `Pedido ${action}`,
+          description: `El pedido se ha ${action} correctamente`,
+        });
       } catch (error) {
         console.error('Error refreshing orders:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "El pedido se guardó pero hubo un error al actualizar la lista",
+        });
       }
     };
 

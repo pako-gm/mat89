@@ -731,6 +731,8 @@ export default function OrderForm({
 
       console.log('=== GUARDANDO PEDIDO ===');
       console.log('ChangeHistory antes de guardar:', updatedOrder.changeHistory);
+      console.log('Número de líneas de pedido:', updatedOrder.orderLines.length);
+      console.log('Líneas de pedido:', updatedOrder.orderLines);
 
       await saveOrder(updatedOrder);
 
