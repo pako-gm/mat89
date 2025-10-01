@@ -230,10 +230,60 @@ export default function OrderList() {
       }
     };
 
-    const handleViewDetails = (order: Order) => {
-      setSelectedOrder(order);
-      setIsEditing(true);
-      setShowForm(true);
+    const handleViewDetails = async (order: Order) => {
+      // Recargar el pedido desde la base de datos para tener datos frescos
+      try {
+        const { data: freshOrder, error } = await supabase
+          .from('tbl_pedidos_rep')
+          .select(`
+            *,
+            tbl_proveedores!inner(nombre),
+            tbl_ln_pedidos_rep (*),
+            tbl_historico_cambios (*)
+          `)
+          .eq('id', order.id)
+          .single();
+
+        if (error) throw error;
+
+        if (freshOrder) {
+          const formattedOrder: Order = {
+            id: freshOrder.id,
+            orderNumber: freshOrder.num_pedido,
+            warehouse: freshOrder.alm_envia,
+            supplierId: freshOrder.proveedor_id,
+            supplierName: freshOrder.tbl_proveedores.nombre,
+            vehicle: freshOrder.vehiculo,
+            warranty: freshOrder.garantia,
+            nonConformityReport: freshOrder.informacion_nc,
+            dismantleDate: freshOrder.fecha_desmonte,
+            shipmentDate: freshOrder.fecha_envio,
+            declaredDamage: freshOrder.averia_declarada,
+            shipmentDocumentation: freshOrder.documentacion || [],
+            estadoPedido: freshOrder.estado_pedido || 'PENDIENTE',
+            changeHistory: freshOrder.tbl_historico_cambios || [],
+            orderLines: (freshOrder.tbl_ln_pedidos_rep || []).map((line: any) => ({
+              id: line.id,
+              registration: line.matricula_89,
+              partDescription: line.descripcion,
+              quantity: line.nenv,
+              serialNumber: line.nsenv,
+              completionStatus: line.estado_completado
+            }))
+          };
+
+          setSelectedOrder(formattedOrder);
+          setIsEditing(true);
+          setShowForm(true);
+        }
+      } catch (error) {
+        console.error('Error loading order details:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar el pedido",
+        });
+      }
     };
 
 
