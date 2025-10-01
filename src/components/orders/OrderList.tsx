@@ -540,9 +540,15 @@ export default function OrderList() {
         };
 
         // 6. Rellenar datos de cabecera en posiciones específicas
-        sheet.cell("D4").value(proveedor.nombre || proveedor.proveedor || ''); // tbl_proveedores.nombre o campo alternativo
+        const nombreProveedorParaExcel = proveedor.nombre || proveedor.proveedor || '';
+        console.log('Escribiendo nombre en D4:', nombreProveedorParaExcel); // Debug
+
+        sheet.cell("D4").value(nombreProveedorParaExcel); // tbl_proveedores.nombre
         sheet.cell("F2").value(formatDate(orderData.fecha_envio)); // tbl_pedidos_rep.fecha_envio
         sheet.cell("F4").value(orderData.num_pedido || ''); // tbl_pedidos_rep.numero_pedido
+
+        // Verificar que se escribió correctamente
+        console.log('Valor en D4 después de escribir:', sheet.cell("D4").value()); // Debug
 
         // 7. Función para obtener descripción del material por matrícula
         const obtenerDescripcionMaterial = async (matricula: string) => {
