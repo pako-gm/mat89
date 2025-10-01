@@ -494,9 +494,6 @@ export default function OrderList() {
     // Función MEJORADA para procesar proveedores internos con XLSX-Populate
     const procesarProveedorInterno = async (orderData: any) => {
       try {
-        console.log('OrderData completo:', orderData); // Debug completo
-        console.log('OrderData.tbl_proveedores:', orderData.tbl_proveedores); // Debug específico
-
         // 1. Cargar la plantilla Excel desde public/plantillas/
         const templateResponse = await fetch('/plantillas/int_excel_template.xlsx');
         if (!templateResponse.ok) {
@@ -511,14 +508,8 @@ export default function OrderList() {
         const sheet = workbook.sheet(0); // Primera hoja
 
         // 3. Obtener datos del pedido
-        // Manejar el caso de que tbl_proveedores pueda ser un objeto o un array
-        const proveedor = Array.isArray(orderData.tbl_proveedores)
-          ? orderData.tbl_proveedores[0] || {}
-          : orderData.tbl_proveedores || {};
+        const proveedor = orderData.tbl_proveedores || {};
         const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
-
-        console.log('Proveedor extraído:', proveedor); // Debug
-        console.log('Nombre del proveedor:', proveedor.nombre); // Debug específico del nombre
 
         // 4. Función auxiliar para formatear fechas
         const formatDate = (dateString: string) => {
@@ -540,15 +531,9 @@ export default function OrderList() {
         };
 
         // 6. Rellenar datos de cabecera en posiciones específicas
-        const nombreProveedorParaExcel = proveedor.nombre || proveedor.proveedor || '';
-        console.log('Escribiendo nombre en D4:', nombreProveedorParaExcel); // Debug
-
-        sheet.cell("D4").value(nombreProveedorParaExcel); // tbl_proveedores.nombre
+        sheet.cell("D4").value(proveedor.nombre || ''); // tbl_proveedores.nombre
         sheet.cell("F2").value(formatDate(orderData.fecha_envio)); // tbl_pedidos_rep.fecha_envio
         sheet.cell("F4").value(orderData.num_pedido || ''); // tbl_pedidos_rep.numero_pedido
-
-        // Verificar que se escribió correctamente
-        console.log('Valor en D4 después de escribir:', sheet.cell("D4").value()); // Debug
 
         // 7. Función para obtener descripción del material por matrícula
         const obtenerDescripcionMaterial = async (matricula: string) => {
@@ -600,7 +585,7 @@ export default function OrderList() {
 
         // 11. Generar nombre de archivo: numeroPedido_proveedor_fecha.xlsx
         const numPedido = orderData.num_pedido || 'SinNumero';
-        const nombreProveedor = proveedor.nombre || proveedor.proveedor || 'SinProveedor';
+        const nombreProveedor = proveedor.nombre || 'SinProveedor';
         const fechaEnvio = orderData.fecha_envio;
 
         // Formatear fecha como YYYYMMDD
