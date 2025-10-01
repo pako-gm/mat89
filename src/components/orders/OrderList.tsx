@@ -582,9 +582,28 @@ export default function OrderList() {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
 
-        // 11. Generar nombre de archivo con timestamp
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
-        const fileName = `PAR_Interno_${orderData.num_pedido.replace(/\//g, '_')}_${timestamp}.xlsx`;
+        // 11. Generar nombre de archivo: numeroPedido_proveedor_fecha.xlsx
+        const numPedido = orderData.num_pedido || 'SinNumero';
+        const nombreProveedor = proveedor.nombre || 'SinProveedor';
+        const fechaEnvio = orderData.fecha_envio;
+
+        // Formatear fecha como YYYYMMDD
+        let fechaFormateada = '';
+        if (fechaEnvio) {
+          const date = new Date(fechaEnvio);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          fechaFormateada = `${year}${month}${day}`;
+        } else {
+          fechaFormateada = 'SinFecha';
+        }
+
+        // Limpiar caracteres especiales del número de pedido y nombre del proveedor
+        const numPedidoLimpio = numPedido.replace(/[^a-zA-Z0-9]/g, '_');
+        const proveedorLimpio = nombreProveedor.replace(/[^a-zA-Z0-9]/g, '_');
+
+        const fileName = `${numPedidoLimpio}_${proveedorLimpio}_${fechaFormateada}.xlsx`;
 
         // 12. Descargar archivo
         saveAs(blob, fileName);
@@ -720,7 +739,7 @@ export default function OrderList() {
 
         toast({
           title: "Archivo guardado",
-          description: "El documento HTML se ha descargado correctamente.",
+          description: "El documento HTML se ha generado correctamente.",
         });
 
         // Cerrar el modal después de guardar
