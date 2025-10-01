@@ -61,6 +61,7 @@ export default function OrderList() {
   // PAR generation modal state
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [generatedHTML, setGeneratedHTML] = useState("");
+  const [currentOrderData, setCurrentOrderData] = useState<any>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -411,6 +412,7 @@ export default function OrderList() {
         const documentHTML = await generateProveedorExternoHTML(orderData, logoBase64 as string);
 
         setGeneratedHTML(documentHTML);
+        setCurrentOrderData(orderData); // Guardar datos del pedido para el nombre del archivo
         setShowPrintModal(true);
 
         toast({
@@ -642,6 +644,32 @@ export default function OrderList() {
     // Funciones del modal de impresión
     const handleSave = () => {
       try {
+        // Generar nombre del archivo: numeroPedido_proveedor_fecha
+        let fileName = `documento_PAR_${Date.now()}.html`;
+
+        if (currentOrderData) {
+          const numPedido = currentOrderData.num_pedido || 'SinNumero';
+          const proveedor = currentOrderData.tbl_proveedores?.nombre || 'SinProveedor';
+          const fechaEnvio = currentOrderData.fecha_envio;
+
+          // Formatear fecha como YYYYMMDD
+          let fechaFormateada = '';
+          if (fechaEnvio) {
+            const date = new Date(fechaEnvio);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            fechaFormateada = `${year}${month}${day}`;
+          } else {
+            fechaFormateada = 'SinFecha';
+          }
+
+          // Limpiar caracteres especiales del nombre del proveedor
+          const proveedorLimpio = proveedor.replace(/[^a-zA-Z0-9]/g, '_');
+
+          fileName = `${numPedido}_${proveedorLimpio}_${fechaFormateada}.html`;
+        }
+
         // Crear el contenido HTML completo
         const fullHTML = `<!DOCTYPE html>
 <html>
@@ -680,7 +708,7 @@ export default function OrderList() {
         // Crear elemento de descarga
         const downloadLink = document.createElement('a');
         downloadLink.href = url;
-        downloadLink.download = `documento_PAR_${Date.now()}.html`;
+        downloadLink.download = fileName;
 
         // Simular click para descargar
         document.body.appendChild(downloadLink);
@@ -698,6 +726,7 @@ export default function OrderList() {
         // Cerrar el modal después de guardar
         setShowPrintModal(false);
         setGeneratedHTML('');
+        setCurrentOrderData(null);
 
       } catch (error) {
         console.error('Error saving file:', error);
@@ -712,6 +741,7 @@ export default function OrderList() {
     const handleCancelSave = () => {
       setShowPrintModal(false);
       setGeneratedHTML('');
+      setCurrentOrderData(null);
     };
 
     return (
