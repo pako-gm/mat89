@@ -21,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -493,6 +494,9 @@ export default function OrderList() {
     // Función MEJORADA para procesar proveedores internos con XLSX-Populate
     const procesarProveedorInterno = async (orderData: any) => {
       try {
+        console.log('OrderData completo:', orderData); // Debug completo
+        console.log('OrderData.tbl_proveedores:', orderData.tbl_proveedores); // Debug específico
+
         // 1. Cargar la plantilla Excel desde public/plantillas/
         const templateResponse = await fetch('/plantillas/int_excel_template.xlsx');
         if (!templateResponse.ok) {
@@ -507,8 +511,14 @@ export default function OrderList() {
         const sheet = workbook.sheet(0); // Primera hoja
 
         // 3. Obtener datos del pedido
-        const proveedor = orderData.tbl_proveedores || {};
+        // Manejar el caso de que tbl_proveedores pueda ser un objeto o un array
+        const proveedor = Array.isArray(orderData.tbl_proveedores)
+          ? orderData.tbl_proveedores[0] || {}
+          : orderData.tbl_proveedores || {};
         const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
+
+        console.log('Proveedor extraído:', proveedor); // Debug
+        console.log('Nombre del proveedor:', proveedor.nombre); // Debug específico del nombre
 
         // 4. Función auxiliar para formatear fechas
         const formatDate = (dateString: string) => {
@@ -530,7 +540,7 @@ export default function OrderList() {
         };
 
         // 6. Rellenar datos de cabecera en posiciones específicas
-        sheet.cell("D4").value(proveedor.nombre || ''); // tbl_proveedores.nombre
+        sheet.cell("D4").value(proveedor.nombre || proveedor.proveedor || ''); // tbl_proveedores.nombre o campo alternativo
         sheet.cell("F2").value(formatDate(orderData.fecha_envio)); // tbl_pedidos_rep.fecha_envio
         sheet.cell("F4").value(orderData.num_pedido || ''); // tbl_pedidos_rep.numero_pedido
 
@@ -584,7 +594,7 @@ export default function OrderList() {
 
         // 11. Generar nombre de archivo: numeroPedido_proveedor_fecha.xlsx
         const numPedido = orderData.num_pedido || 'SinNumero';
-        const nombreProveedor = proveedor.nombre || 'SinProveedor';
+        const nombreProveedor = proveedor.nombre || proveedor.proveedor || 'SinProveedor';
         const fechaEnvio = orderData.fecha_envio;
 
         // Formatear fecha como YYYYMMDD
@@ -947,6 +957,9 @@ export default function OrderList() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-xl">Introducir Número de Pedido</DialogTitle>
+              <DialogDescription>
+                Introduce las 4 últimas cifras del número de pedido
+              </DialogDescription>
             </DialogHeader>
 
             <div className="py-4">
@@ -967,10 +980,6 @@ export default function OrderList() {
                     autoFocus
                   />
                 </div>
-
-                <p className="text-sm text-gray-600 text-center">
-                  Introduce las 4 últimas cifras del número de pedido
-                </p>
               </div>
             </div>
 
@@ -997,14 +1006,13 @@ export default function OrderList() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle className="text-xl">Documento PAR generado</DialogTitle>
+              <DialogDescription>
+                El documento generado se guardará en la carpeta de descargas de tu equipo.
+              </DialogDescription>
             </DialogHeader>
 
             <div className="flex gap-6 py-4">
               <div className="flex-1">
-                {/* <p className="text-lg mb-4">El documento PAR se ha generado.</p> */}
-                <p className="text-sm text-gray-600 mb-6">
-                  El documento generado se guardará en la carpeta de descargas de tu equipo.
-                </p>
 
                 <div className="flex gap-3">
                   <Button
