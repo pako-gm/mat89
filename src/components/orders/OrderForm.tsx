@@ -186,7 +186,22 @@ export default function OrderForm({
     if (initialOrderState && open) {
       const currentState = JSON.stringify(order);
       const originalState = JSON.stringify(initialOrderState);
-      setHasChanges(currentState !== originalState);
+      const hasChanged = currentState !== originalState;
+
+      if (hasChanged) {
+        console.log('Changes detected!');
+        console.log('Current:', order);
+        console.log('Original:', initialOrderState);
+      }
+
+      // Solo actualizar si el valor realmente cambió
+      setHasChanges(prev => {
+        if (prev !== hasChanged) {
+          console.log('Updating hasChanges to:', hasChanged);
+          return hasChanged;
+        }
+        return prev;
+      });
     }
   }, [order, initialOrderState, open]);
 
@@ -209,7 +224,9 @@ export default function OrderForm({
   // Save changes and close
   const handleUpdateOrder = async () => {
     setShowConfirmModal(false);
-    await handleSubmit();
+    // Create a fake event to pass to handleSubmit
+    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+    await handleSubmit(fakeEvent);
   };
 
   // Determinar el título basado en el modo actual
