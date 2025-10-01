@@ -214,7 +214,7 @@ export default function OrderForm({
 
   // Determinar el título basado en el modo actual
   const getTitle = () => {
-    return initialIsEditing ? "Edit Order" : "New Order";
+    return initialIsEditing ? "Editar Pedido" : "Nuevo Pedido";
   };
 
   // Always in edit mode now
@@ -1352,7 +1352,7 @@ export default function OrderForm({
 
             <DialogFooter className="mt-6">
               <Button variant="outline" type="button" onClick={handleClose}>
-                Cancel
+                Cancelar
               </Button>
               <Button
                 type="submit"
@@ -1362,7 +1362,7 @@ export default function OrderForm({
                 {loading && (
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                 )}
-                {initialIsEditing ? "Update Order" : "Save Order"}
+                {initialIsEditing ? "Actualizar Pedido" : "Guardar Pedido"}
               </Button>
             </DialogFooter>
           </form>
@@ -1381,20 +1381,20 @@ export default function OrderForm({
       <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
             <AlertDialogDescription>
-              You have made changes to this order. What would you like to do?
+              Has realizado cambios en este pedido. ¿Qué deseas hacer?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleDiscardChanges}>
-              Discard Changes
+              Descartar Cambios
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleUpdateOrder}
               className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
             >
-              Update Order
+              Actualizar Pedido
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
