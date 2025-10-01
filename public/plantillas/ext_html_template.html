@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="es">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento PAR Interno</title>
+    <title>Pedido de Reparacion - {{NUM_PEDIDO}}</title>
     <style>
         * {
             margin: 0;
@@ -12,253 +11,241 @@
             box-sizing: border-box;
         }
 
+        html {
+            width: 210mm;
+            height: 297mm;
+        }
+
         body {
-            font-family: "Courier New", Courier, monospace;
-            font-size: 11pt;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
             line-height: 1.3;
             color: #000;
             background: white;
+            width: 210mm;
+            min-height: 297mm;
             padding: 15mm;
-            max-width: 210mm;
             margin: 0 auto;
+            box-sizing: border-box;
         }
 
         @page {
             size: A4 portrait;
-            margin: 15mm;
-        }
-
-        @media print {
-            body {
-                padding: 0;
-                margin: 0;
-            }
-        }
-
-        .main-table {
-            border-collapse: collapse;
-            border: 1pt solid windowtext;
-            width: 100%;
-        }
-
-        .main-table td {
-            padding: 0cm 5.4pt;
-            vertical-align: top;
-        }
-
-        .header-cell {
-            background: rgb(242, 242, 242);
-            text-align: center;
-            font-weight: bold;
-            font-size: 19px;
-            padding: 0cm 5.4pt;
-            height: 50.1pt;
-            vertical-align: middle;
-            border-bottom: 1pt solid windowtext;
-        }
-
-        .logo-cell {
-            width: 40%;
-            border-right: none;
-            padding: 0cm 5.4pt;
-            vertical-align: middle;
-        }
-
-        .details-cell {
-            width: 60%;
-            border-left: none;
-        }
-
-        .details-table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-
-        .details-table td {
-            padding: 0cm 5.4pt;
-        }
-
-        .label-cell {
-            text-align: right;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .value-cell {
-            text-align: right;
-        }
-
-        .value-cell-big {
-            font-size: 19px;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .section-title {
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .bordered-cell {
-            border: 1pt solid windowtext;
-        }
-        
-        .bordered-cell-top {
-            border-top: 1pt solid windowtext;
-        }
-
-        .bordered-cell-bottom {
-            border-bottom: 1pt solid windowtext;
-        }
-
-        .bordered-cell-left {
-            border-left: 1pt solid windowtext;
-        }
-
-        .bordered-cell-right {
-            border-right: 1pt solid windowtext;
-        }
-
-        .contact-info p {
             margin: 0;
         }
 
-        .observations {
-            font-size: 13px;
+        @media print {
+            html, body {
+                width: 210mm;
+                height: 297mm;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                padding: 15mm;
+            }
         }
 
-        .items-table {
-            border-collapse: collapse;
-            width: 100%;
+        @media screen {
+            body {
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .logo-section h1 {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 11px;
+        }
+
+        .document-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-transform: uppercase;
+        }
+
+        .info-section {
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 140px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            flex: 1;
+        }
+
+        .two-column {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .column {
+            width: 48%;
+        }
+
+        .column h3 {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
+        }
+
+        .notes-section {
+            margin: 15px 0;
+        }
+
+        .notes-section h3 {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .notes-content {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .table-container {
+            margin: 15px 0;
             text-align: center;
         }
 
-        .items-table th,
-        .items-table td {
-            border: 1pt solid windowtext;
-            padding: 0cm 5.4pt;
-            font-size: 13px;
+        .table-container h3 {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .items-table th {
-            background: rgb(217, 217, 217);
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f0f0f0;
             font-weight: bold;
         }
 
-        .footer-text {
-            text-align: center;
-            font-size: 12px;
-            padding: 5.4pt;
+        .footer-instructions {
+            margin-top: 20px;
+            font-size: 11px;
+            line-height: 1.4;
         }
-        .text-center{
+
+        .footer-instructions p {
+            margin-bottom: 5px;
             text-align: center;
+        }
+
+        .guarantee {
+            font-weight: bold;
         }
     </style>
 </head>
-
 <body>
-    <table class="main-table">
-        <tbody>
-            <tr>
-                <td colspan="2" class="header-cell">
-                    Carta de Reparación de Servicios al Exterior (PAR)
-                </td>
-            </tr>
-            <tr>
-                <td class="logo-cell bordered-cell-left">
-                    <img width="211" height="53" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAeAB4AAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCABCAQgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD2aiiigAooooAKKKKACiikoAWisvX/ABBYeG9Na+v5CFztRF5aRvQCszw/rWveIVh1BbC1sNMkOV812eaRfUAYA/Gq5Xa5apycebodPRRRUkBUN3M1vZzzqAWjjZwD0OBmpqq6n/yCrv8A64P/AOgmgB1jO11p9vcOoVpYlcgdASAasVT0f/kC2P8A17R/+girlABRWTr13PB9ht7WQxzXV0iZAz8g5b9BU1zrdhaTyW8krGaMBmjSNmbB74AoA0KKqx6jZy6eNQW4T7KV3eaTgAVBa67YXl0ttC8nmOpdA8TLuUdwSOlAGjRWbPr+m29wYJJzuVwjsEJRGPQFgMA1JdazY2dw1vLKTMqB/LRCzEHPQAe1AF6isu41vT20c3wumS3kBQSohJQ8jpjgj3p/2y20mxto7i5llZlCoWBeWU464AyaANGiqA1vTjYC++0AW5fyyxBGGzjBHUHNVbvWbO6tVhiu5rY3T+VHKIGyTkA4yPfg0AbNFZ0l9YaNHDaNI5fb8kahpJGA7nGT+NWLG/t9RthcWrl4ySMlSOR14NAFmioEvYJL2SzV8zxIHdcHgHpRa3kF6JGt33rHIY2IHG4dQPWgCeiiigAooooArX2o2emWzXN9dRW0K9XkYAZ9KwG+I3hYOUTUWlI/55wO38hXEfGK/aTWbKxDHZBAZCv+0xx/IfrXoPg3S4NM8K6fHHCiO8CySMF5ZmGSSfxrXkSipPqdbowhSjUluyWx8V6LqFrPdQ3gSC2x5skyNGq56csBVP8A4WB4dZmFvdTXWz7xt7aSQD8QK4H4t6pNceIIdLRyILaIOUHQu3c/hiup0fxNpugaHb6fY6HrMrxRjKrYMpd8ckk+pp+zXKn3KeHSpqdnr0Og0fxfoWvTm30+/WScAnymU... [truncated]">
-                </td>
-                <td class="details-cell bordered-cell-right">
-                    <table class="details-table">
-                        <tbody>
-                            <tr>
-                                <td class="label-cell">Num. Pedido Rep.</td>
-                                <td class="value-cell-big">{{num_pedido}}</td>
-                            </tr>
-                            <tr>
-                                <td class="label-cell">Fecha Envío</td>
-                                <td class="value-cell">{{fecha_envio}}</td>
-                            </tr>
-                            <tr>
-                                <td class="label-cell">Garantía</td>
-                                <td class="value-cell">{{información_nc}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-            <tr>
-                <td class="section-title bordered-cell-left">Remitente</td>
-                <td class="section-title bordered-cell-right">Destinatario</td>
-            </tr>
-            <tr>
-                <td class="contact-info bordered-cell-left bordered-cell-bottom">
-                    <p><strong>BM VALENCIA – ALMACEN</strong></p>
-                    <p>Molí de Bonjoch, s/n</p>
-                    <p>46013 Valencia</p>
-                    <p>Tel. 963-357-275 // 392</p>
-                    <p><a href="mailto:almacenvalencia140@renfe.es">almacenvalencia140@renfe.es</a></p>
-                    <p><a href="mailto:almacenvalencia141@renfe.es">almacenvalencia141@renfe.es</a></p>
-                </td>
-                <td class="contact-info bordered-cell-right bordered-cell-bottom">
-                    <p><strong>{{nombre}}</strong></p>
-                    <p>{{direccion}}</p>
-                    <p>{{ciudad}}</p>
-                    <p>{{cod_postal}} - {{provincia}}</p>
-                    <p>{{email_empresa}}</p>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" class="section-title bordered-cell-left bordered-cell-right" style="font-size: 13px;">
-                    Observaciones sobre la Reparacion
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" class="observations bordered-cell-left bordered-cell-right bordered-cell-bottom">
-                    {{avería_declarada}}
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" class="bordered-cell-left bordered-cell-right bordered-cell-bottom">
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th>Matricula</th>
-                                <th>Descripción</th>
-                                <th>Cant.</th>
-                                <th>Núm. Serie</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>{{matricula}}</td>
-                                <td>{{descripcion}}</td>
-                                <td>{{nenv}}</td>
-                                <td>{{nsenv}}</td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" class="footer-text bordered-cell-left bordered-cell-right bordered-cell-bottom">
-                    <p>Envíen oferta económica a las direcciones de correo-e indicadas en este documento. <br>
-                        La oferta será devuelta aceptada, requisito indispensable ANTES de la reparación.</p>
-                    <p>Hagan referencia en todas las comunicaciones a nuestro número de Carta de Pedido de Reparación. Devuelvan el material reparado al Almacén peticionario.</p>
-                    <p>A la entrega, adjunten la documentación de Calidad requerida por nuestras Especificaciones Técnicas.</p>
-                    <p class="text-center">CODIGOS DP PARA PETICIONES DE REPARACION SIN NÚMERO DE PEDIDO (POR SERVICIOS) <br>
-                        <strong>DP16000069: ALMACÉN 140 || DP16000073: ALMACÉN 141</strong>
-                    </p>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</body>
+    <div class="header">
+        <div class="logo-section">
+            <img src="{{LOGO_BASE64}}" alt="Logo Renfe" style="height: 50px; width: auto;">
+        </div>
+        <div class="header-right">
+            <div style="font-size: 16px;"><strong>Número de Pedido de Reparación:</strong> {{NUM_PEDIDO}}</div>
+            <br />
+            <div>Fecha Envio: {{FECHA_ENVIO}}</div>
+            <div>Garantia (No Conformidad): {{INFORMACION_NC}}</div>
+        </div>
+    </div>
 
+    <div class="document-title">
+        Carta de Reparacion de Servicios al Exterior (PAR)
+    </div>
+
+    <div class="two-column">
+        <div class="column">
+            <h3>Remitente:</h3>
+            <div><strong>Base de Mantenimiento de Valencia</strong></div>
+            <div>Camino Moli de Bonjoch, s/n</div>
+            <div>46013 - Valencia</div>
+            <div>Tel. 963-357-275 // 392</div>
+            <div>almacenvalencia140@renfe.es</div>
+            <div>almacenvalencia14@renfe.es</div>
+        </div>
+
+        <div class="column">
+            <h3>Destinatario:</h3>
+            <div><strong>{{PROVEEDOR_NOMBRE}}</strong></div>
+            <div>{{PROVEEDOR_DIRECCION}}</div>
+            <div>{{PROVEEDOR_CP}} - {{PROVEEDOR_CIUDAD}}</div>
+            <div>{{PROVEEDOR_PROVINCIA}}</div>
+            <div>{{PROVEEDOR_EMAIL}}</div>
+        </div>
+    </div>
+
+    <div class="notes-section">
+        <h3>Observaciones a tener en cuenta en la reparación:</h3>
+        <div class="notes-content">
+            {{AVERIA_DECLARADA}}
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">MATRÍCULA</th>
+                    <th style="width: 50%;">DESCRIPCIÓN</th>
+                    <th style="width: 10%;">CANTIDAD</th>
+                    <th style="width: 25%;">NUM. SERIE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{LINEAS_PEDIDO}}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-instructions">
+        <p>Envíen oferta económica y plazo previsto de entrega a las direcciones de correo-e indicadas en este documento.</p>
+        <p>La oferta les será devuelta aceptada, requisito previo indispensable ANTES de proceder a la realización de cualquier reparación.</p>
+        <p>Para una mejor trazabilidad, hagan referencia en todas las comunicaciones a nuestro número de Carta de Pedido de Reparación.</p>
+        <p>A la entrega del material reparado incluyan la documentación de calidad requerida por nuestras Especificaciones Técnicas.</p>
+        <p>CODIGOS DP PARA PETICIONES DE REPARACION SIN NÚMERO DE PEDIDO (POR CONTRATO DE SERVICIOS)</p>
+        <p><strong>DP16000069: ALMACÉN 140 || DP16000073: ALMACÉN 141</strong></p>
+    </div>
+</body>
 </html>

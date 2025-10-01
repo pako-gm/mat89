@@ -407,8 +407,8 @@ export default function OrderList() {
         });
 
         // Generar HTML directamente con formato A4 vertical
-        //NOTA, HAY QUE SUSTITURLO POR LA HOJA HTML CORRESPONDIENTE
-        const documentHTML = generateProveedorExternoHTML(orderData, logoBase64 as string);
+        // Carga la plantilla desde /plantillas/ext_html_template.html
+        const documentHTML = await generateProveedorExternoHTML(orderData, logoBase64 as string);
 
         setGeneratedHTML(documentHTML);
         setShowPrintModal(true);
@@ -430,8 +430,9 @@ export default function OrderList() {
 
     /*
      Nueva función para generar HTML con formato A4 vertical estilo minimalista
+     Carga la plantilla HTML desde /plantillas/ext_html_template.html
      */
-    const generateProveedorExternoHTML = (orderData: any, logoBase64: string) => {
+    const generateProveedorExternoHTML = async (orderData: any, logoBase64: string): Promise<string> => {
       const formatDate = (dateString: string) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -442,6 +443,12 @@ export default function OrderList() {
         });
       };
 
+      // Cargar plantilla HTML
+      const templateResponse = await fetch('/plantillas/ext_html_template.html');
+      if (!templateResponse.ok) {
+        throw new Error('No se pudo cargar la plantilla HTML. Verifique que el archivo existe en /public/plantillas/');
+      }
+      let htmlTemplate = await templateResponse.text();
 
       const proveedor = orderData.tbl_proveedores || {};
       const lineasPedido = orderData.tbl_ln_pedidos_rep || [];
@@ -462,258 +469,22 @@ export default function OrderList() {
     `).join('');
       };
 
-      return `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedido de Reparacion - ${orderData.num_pedido}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      // Reemplazar placeholders en la plantilla
+      htmlTemplate = htmlTemplate
+        .replace(/{{LOGO_BASE64}}/g, logoBase64)
+        .replace(/{{NUM_PEDIDO}}/g, orderData.num_pedido || 'N/A')
+        .replace(/{{FECHA_ENVIO}}/g, formatDate(orderData.fecha_envio))
+        .replace(/{{INFORMACION_NC}}/g, orderData.informacion_nc || 'No Procede')
+        .replace(/{{PROVEEDOR_NOMBRE}}/g, proveedor.nombre || 'N/A')
+        .replace(/{{PROVEEDOR_DIRECCION}}/g, proveedor.direccion || 'N/A')
+        .replace(/{{PROVEEDOR_CP}}/g, proveedor.codigo_postal || 'N/A')
+        .replace(/{{PROVEEDOR_CIUDAD}}/g, proveedor.ciudad || 'N/A')
+        .replace(/{{PROVEEDOR_PROVINCIA}}/g, proveedor.provincia || 'N/A')
+        .replace(/{{PROVEEDOR_EMAIL}}/g, proveedor.email_empresa || 'N/A')
+        .replace(/{{AVERIA_DECLARADA}}/g, orderData.averia_declarada || 'Avería no especificada')
+        .replace(/{{LINEAS_PEDIDO}}/g, generarFilasTabla());
 
-        html {
-            width: 210mm;
-            height: 297mm;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.3;
-            color: #000;
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 15mm;
-            margin: 0 auto;
-            box-sizing: border-box;
-        }
-
-        @page {
-            size: A4 portrait;
-            margin: 0;
-        }
-
-        @media print {
-            html, body {
-                width: 210mm;
-                height: 297mm;
-                margin: 0;
-                padding: 0;
-            }
-
-            body {
-                padding: 15mm;
-            }
-        }
-
-        @media screen {
-            body {
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            }
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-        }
-
-        .logo-section h1 {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 0;
-        }
-
-        .header-right {
-            text-align: right;
-            font-size: 11px;
-        }
-
-        .document-title {
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-transform: uppercase;
-        }
-
-        .info-section {
-            margin-bottom: 15px;
-        }
-
-        .info-row {
-            display: flex;
-            margin-bottom: 8px;
-        }
-
-        .info-label {
-            font-weight: bold;
-            width: 140px;
-            flex-shrink: 0;
-        }
-
-        .info-value {
-            flex: 1;
-        }
-
-        .two-column {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-
-        .column {
-            width: 48%;
-        }
-
-        .column h3 {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 3px;
-        }
-
-        .notes-section {
-            margin: 15px 0;
-        }
-
-        .notes-section h3 {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .notes-content {
-            font-size: 11px;
-            line-height: 1.4;
-        }
-
-        .table-container {
-            margin: 15px 0;
-            text-align: center;
-        }
-
-        .table-container h3 {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-        }
-
-        th, td {
-            border: 1px solid #000;
-            padding: 4px 6px;
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        th {
-            background: #f0f0f0;
-            font-weight: bold;
-        }
-
-        .footer-instructions {
-            margin-top: 20px;
-            font-size: 11px;
-            line-height: 1.4;
-        }
-
-        .footer-instructions p {
-            margin-bottom: 5px;
-            text-align: center;
-        }
-
-        .guarantee {
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="logo-section">
-            <img src="${logoBase64}" alt="Logo Renfe" style="height: 50px; width: auto;">
-        </div>
-        <div class="header-right">
-        <div style="font-size: 16px;"><strong>Número de Pedido de Reparación:</strong> ${orderData.num_pedido || 'N/A'}</div>
-        <br />    
-        <div>Fecha Envio: ${formatDate(orderData.fecha_envio)}</div>
-        <div>Garantia (No Conformidad): ${orderData.informacion_nc || 'No Procede'}</div>
-        </div>
-    </div>
-    
-    <div class="document-title">
-        Carta de Reparacion de Servicios al Exterior (PAR)
-    </div>
-    
-    <div class="two-column">
-        <div class="column">
-            <h3>Remitente:</h3>
-            <div><strong>Base de Mantenimiento de Valencia</strong></div>
-            <div>Camino Moli de Bonjoch, s/n</div>
-            <div>46013 - Valencia</div>
-            <div>Tel. 963-357-275 // 392</div>
-            <div>almacenvalencia140@renfe.es</div>
-            <div>almacenvalencia14@renfe.es</div>
-        </div>
-        
-        <div class="column">
-            <h3>Destinatario:</h3>
-            <div><strong>${proveedor.nombre || 'N/A'}</strong></div>
-            <div>${proveedor.direccion || 'N/A'}</div>
-            <div>${proveedor.codigo_postal || 'N/A'} - ${proveedor.ciudad || 'N/A'}</div>
-            <div>${proveedor.provincia || 'N/A'}</div>
-            <div>${proveedor.email_empresa || 'N/A'}</div>
-        </div>
-    </div>
-    
-    <div class="notes-section">
-        <h3>Observaciones a tener en cuenta en la reparación:</h3>
-        <div class="notes-content">
-            ${orderData.averia_declarada || 'Avería no especificada'}
-        </div>
-    </div>
-    
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 15%;">MATRÍCULA</th>
-                    <th style="width: 50%;">DESCRIPCIÓN</th>
-                    <th style="width: 10%;">CANTIDAD</th>
-                    <th style="width: 25%;">NUM. SERIE</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${generarFilasTabla()}
-            </tbody>
-        </table>
-    </div>
-    
-    <div class="footer-instructions">
-        <p>Envíen oferta económica y plazo previsto de entrega a las direcciones de correo-e indicadas en este documento.</p>
-        <p>La oferta les será devuelta aceptada, requisito previo indispensable ANTES de proceder a la realización de cualquier reparación.</p>
-        <p>Para una mejor trazabilidad, hagan referencia en todas las comunicaciones a nuestro número de Carta de Pedido de Reparación.</p>
-        <p>A la entrega del material reparado incluyan la documentación de calidad requerida por nuestras Especificaciones Técnicas.</p>
-        <p>CODIGOS DP PARA PETICIONES DE REPARACION SIN NÚMERO DE PEDIDO (POR SERVICIOS)</p>
-        <p><strong>DP16000069: ALMACÉN 140 || DP16000073: ALMACÉN 141</strong></p>
-    </div>
-</body>
-</html>`;
+      return htmlTemplate;
     };
     //** FIN DEL CODIGO GENERACION PAR EXTERNO */
 
