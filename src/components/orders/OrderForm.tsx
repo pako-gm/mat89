@@ -181,7 +181,9 @@ export default function OrderForm({
 
   // Mark as changed whenever user modifies something
   const markAsChanged = () => {
+    console.log('markAsChanged called, current hasChanges:', hasChanges);
     if (!hasChanges) {
+      console.log('Setting hasChanges to true');
       setHasChanges(true);
     }
   };
@@ -369,6 +371,7 @@ export default function OrderForm({
   // Nueva función para manejar la actualización de matrícula con autorrellenado
   const handleMaterialRegistrationChange = (lineId: string, registration: string, description?: string) => {
     if (isReadOnly) return;
+    markAsChanged();
 
     setOrder(prev => ({
       ...prev,
@@ -460,6 +463,9 @@ export default function OrderForm({
   const handleOrderLineDelete = (id: string) => {
     if (isReadOnly) return;
 
+    console.log('Deleting order line, marking as changed');
+    markAsChanged();
+
     if (order.orderLines.length > 1) {
       setOrder(prev => ({
         ...prev,
@@ -467,6 +473,8 @@ export default function OrderForm({
       }));
       // Limpiar referencia del input
       materialInputRefs.current.delete(id);
+    } else {
+      console.log('Cannot delete - only one line remaining');
     }
   };
 
@@ -492,6 +500,7 @@ export default function OrderForm({
       return; // Don't add the new line
     }
 
+    markAsChanged();
     // If all existing lines have registration, add the new line
     setOrder(prev => ({
       ...prev,
@@ -634,6 +643,7 @@ export default function OrderForm({
 
   const removeFile = (fileName: string) => {
     if (isReadOnly) return;
+    markAsChanged();
 
     setOrder(prev => ({
       ...prev,
@@ -875,6 +885,7 @@ export default function OrderForm({
                     name="vehicle"
                     value={order.vehicle.replace(/[^\d-]/g, '')}
                     onChange={(e) => {
+                      markAsChanged();
                       let value = e.target.value.replace(/[^\d]/g, '');
                       if (value.length > 3 && !value.includes('-')) {
                         value = value.slice(0, 3) + '-' + value.slice(3);
@@ -923,6 +934,7 @@ export default function OrderForm({
                     value={order.nonConformityReport.toUpperCase()}
                     onChange={(e) => {
                       if (order.warranty) {
+                        markAsChanged();
                         const value = e.target.value.toUpperCase();
                         setOrder(prev => ({
                           ...prev,
@@ -1004,6 +1016,7 @@ export default function OrderForm({
                     name="declaredDamage"
                     value={order.declaredDamage.toUpperCase()}
                     onChange={(e) => {
+                      markAsChanged();
                       const value = e.target.value.toUpperCase();
                       setOrder(prev => ({
                         ...prev,
