@@ -179,22 +179,45 @@ function debugComments(changeHistory: Array<{
 // Función para formatear fecha a DD/MM/YYYY
 export function formatDateToDDMMYYYY(dateString: string | null | undefined): string {
   if (!dateString) return '--';
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // Verificar que la fecha es válida
     if (isNaN(date.getTime())) {
       return '--';
     }
-    
+
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-    
+
     return `${day}/${month}/${year}`;
   } catch (error) {
     console.error('Error formatting date:', error);
     return '--';
+  }
+}
+
+// Función para formatear comentarios con formato: YYYY-MM-DD HH:mm:ss - usuario@email.com
+export function formatCommentTimestamp(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (error) {
+    console.error('Error formatting comment timestamp:', error);
+    return dateString;
   }
 }

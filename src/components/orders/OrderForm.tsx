@@ -5,7 +5,7 @@ import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
-import { filterManualChangeHistory, formatDateToDDMMYYYY } from "@/lib/utils";
+import { filterManualChangeHistory, formatDateToDDMMYYYY, formatCommentTimestamp } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import {
@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send, User, Clock, Edit2 } from "lucide-react";
+import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,8 @@ export default function OrderForm({
   const [loading, setLoading] = useState(false);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+  const MAX_COMMENT_LENGTH = 1000;
   const [dragActive, setDragActive] = useState(false);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
@@ -527,57 +529,74 @@ export default function OrderForm({
     }));
   };
 
-  // MEJORADO: Función para agregar comentarios con mejor logging
+  // Función para agregar comentarios
   const handleAddComment = async () => {
     if (isReadOnly) return;
 
-    if (newComment.trim()) {
-      console.log('=== AGREGANDO COMENTARIO ===');
-      console.log('Texto del comentario:', newComment.trim());
+    const trimmedComment = newComment.trim();
+    if (!trimmedComment) return;
 
-      try {
-        // Obtener el email del usuario actual
-        const { data: { user } } = await supabase.auth.getUser();
-        const userEmail = user?.email || 'admin@renfe.es';
+    try {
+      // Obtener el email del usuario actual autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email || 'admin@renfe.es';
 
-        console.log('Usuario actual:', userEmail);
+      // Crear comentario con timestamp del servidor (formato ISO)
+      const newChange = {
+        id: uuidv4(),
+        date: new Date().toISOString(), // El servidor generará el timestamp real
+        user: userEmail,
+        description: sanitizeComment(trimmedComment)
+      };
 
-        const newChange = {
-          id: uuidv4(),
-          date: new Date().toISOString(),
-          user: userEmail,
-          description: newComment.trim()
-        };
+      // Insertar al inicio del array para orden descendente
+      setOrder(prev => ({
+        ...prev,
+        changeHistory: [newChange, ...prev.changeHistory]
+      }));
 
-        console.log('Nuevo comentario creado:', newChange);
+      setNewComment("");
+      setIsCommentOpen(false);
+      markAsChanged();
 
-        setOrder(prev => {
-          const updatedHistory = [...prev.changeHistory, newChange];
-          console.log('ChangeHistory actualizado:', updatedHistory);
-          return {
-            ...prev,
-            changeHistory: updatedHistory
-          };
-        });
-
-        setNewComment("");
-        setIsCommentOpen(false);
-
-        toast({
-          title: "Comentario agregado",
-          description: "El comentario se ha agregado al pedido. Recuerde guardar los cambios.",
-        });
-
-        console.log('=== COMENTARIO AGREGADO EXITOSAMENTE ===');
-      } catch (error) {
-        console.error('Error al agregar comentario:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo agregar el comentario.",
-        });
-      }
+      toast({
+        title: "Comentario agregado",
+        description: "El comentario se ha agregado correctamente.",
+      });
+    } catch (error) {
+      console.error('Error al agregar comentario:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo agregar el comentario. Intente nuevamente.",
+      });
     }
+  };
+
+  // Sanitización de comentarios (escape HTML pero preserva saltos de línea)
+  const sanitizeComment = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  };
+
+  // Función para manejar cierre del modal con confirmación
+  const handleCloseCommentModal = () => {
+    if (newComment.trim()) {
+      setShowCloseConfirmation(true);
+    } else {
+      setIsCommentOpen(false);
+      setNewComment("");
+    }
+  };
+
+  const confirmCloseCommentModal = () => {
+    setShowCloseConfirmation(false);
+    setIsCommentOpen(false);
+    setNewComment("");
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -1150,27 +1169,15 @@ export default function OrderForm({
                       <div className="divide-y divide-gray-200">
                         {manualChangeHistory.map((item, i) => (
                           <div key={i} className="p-4 bg-white hover:bg-gray-50 transition-colors">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-[#91268F] rounded-full flex items-center justify-center">
-                                  <User className="h-4 w-4 text-white" />
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {item.user || 'Usuario desconocido'}
-                                  </span>
-                                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {formatDateToDDMMYYYY(item.date)}
-                                  </span>
-                                </div>
-                                <div className="text-sm text-gray-800 bg-gray-100 rounded-lg p-3 border-l-4 border-l-[#91268F]">
-                                  {item.description}
-                                </div>
-                              </div>
+                            <div className="text-xs font-mono text-gray-600 mb-2">
+                              {formatCommentTimestamp(item.date)} - {item.user || 'Usuario desconocido'}
                             </div>
+                            <div
+                              className="text-sm text-gray-800 whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{
+                                __html: item.description.replace(/\n/g, '<br>')
+                              }}
+                            />
                           </div>
                         ))}
                       </div>
@@ -1179,7 +1186,7 @@ export default function OrderForm({
                         <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                         <p>No hay comentarios registrados</p>
                         <p className="text-xs text-gray-400 mt-1">
-                          Use el botón "Agregar Comentario" para añadir observaciones
+                          Use el botón "Agregar Comentario" para añadir observaciones (numero RMA, numero contrato Serv. Ext., detalles del envío, etc.)
                         </p>
                       </div>
                     )}
@@ -1190,11 +1197,8 @@ export default function OrderForm({
                 <Button
                   type="button"
                   variant="outline"
-                  // Removemos onClick
-                  className="text-[#91268F] border-[#91268F] h-10 px-4 text-sm mt-7 flex items-center gap-2 opacity-50 cursor-not-allowed"
-                // Removemos hover states y agregamos cursor-not-allowed
-                //onClick={() => setIsCommentOpen(true)}
-                //className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setIsCommentOpen(true)}
+                  className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white h-10 px-4 text-sm mt-7 flex items-center gap-2"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Agregar Comentario
@@ -1202,44 +1206,88 @@ export default function OrderForm({
               )}
             </div>
 
-            {/* MEJORADO: Modal de comentarios con mejor diseño */}
+            {/* Modal de comentarios */}
             {isCommentOpen && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <div
+                className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+                onClick={handleCloseCommentModal}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    handleCloseCommentModal();
+                  }
+                }}
+              >
+                <div
+                  className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center gap-2 mb-4">
                     <MessageCircle className="h-5 w-5 text-[#91268F]" />
                     <h3 className="text-lg font-medium">Agregar Comentario</h3>
                   </div>
                   <Textarea
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Escriba su comentario aquí..."
-                    className="min-h-[100px] resize-none border-[#4C4C4C] focus:border-[#91268F]"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= MAX_COMMENT_LENGTH) {
+                        setNewComment(value);
+                      }
+                    }}
+                    placeholder="Escribe tu comentario sobre el pedido..."
+                    className="min-h-[120px] resize-none border-[#4C4C4C] focus:border-[#91268F]"
                     autoFocus
                   />
+                  <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                    <span>
+                      {newComment.length}/{MAX_COMMENT_LENGTH} caracteres
+                    </span>
+                    {newComment.length >= MAX_COMMENT_LENGTH && (
+                      <span className="text-red-500">Límite alcanzado</span>
+                    )}
+                  </div>
                   <div className="flex justify-end gap-2 mt-4">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => {
-                        setIsCommentOpen(false);
-                        setNewComment("");
-                      }}
+                      onClick={handleCloseCommentModal}
                     >
                       Cancelar
                     </Button>
                     <Button
                       onClick={handleAddComment}
                       disabled={!newComment.trim()}
-                      className="bg-[#91268F] hover:bg-[#7A1F79] text-white flex items-center gap-2"
+                      className="bg-[#91268F] hover:bg-[#7A1F79] text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Send className="h-4 w-4" />
-                      Agregar
+                      Guardar Comentario
                     </Button>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Modal de confirmación al cerrar */}
+            <AlertDialog open={showCloseConfirmation} onOpenChange={setShowCloseConfirmation}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Descartar comentario</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tienes texto sin guardar. ¿Estás seguro de que deseas cerrar sin guardar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setShowCloseConfirmation(false)}>
+                    Continuar editando
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmCloseCommentModal}
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    Descartar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
