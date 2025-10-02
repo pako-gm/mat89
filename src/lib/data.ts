@@ -449,12 +449,14 @@ export const getOrders = async () => {
         serialNumber: line.nsenv,
         estadoCompletado: line.estado_completado || false
       })),
-      changeHistory: order.tbl_historico_cambios.map((change: any) => ({
-        id: change.id,
-        date: change.created_at,
-        user: change.usuario || 'usuario@mat89.com',
-        description: change.descripcion_cambio
-      }))
+      changeHistory: order.tbl_historico_cambios
+        .filter((change: any) => change.descripcion_cambio && change.descripcion_cambio.trim())
+        .map((change: any) => ({
+          id: change.id,
+          date: change.created_at,
+          user: change.usuario || 'usuario@mat89.com',
+          description: change.descripcion_cambio
+        }))
     }));
   } catch (error) {
     console.error('Error fetching orders:', error);

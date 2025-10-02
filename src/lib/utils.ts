@@ -32,20 +32,9 @@ export function filterManualChangeHistory(changeHistory: Array<{
     /^Material\s+eliminado$/i
   ];
 
-  console.log('=== FILTRANDO CHANGE HISTORY ===');
-  console.log('Total items recibidos:', changeHistory.length);
-
-  const filtered = changeHistory.filter(change => {
-    console.log('Procesando item:', {
-      id: change.id,
-      user: change.user,
-      description: change.description,
-      date: change.date
-    });
-
+  return changeHistory.filter(change => {
     // Verificar que el comentario existe y no está vacío
     if (!change.description || !change.description.trim()) {
-      console.log('  -> Descartado: descripción vacía');
       return false;
     }
 
@@ -55,7 +44,6 @@ export function filterManualChangeHistory(changeHistory: Array<{
     );
 
     if (hasAutomaticPattern) {
-      console.log('  -> Descartado: patrón automático');
       return false;
     }
 
@@ -63,18 +51,11 @@ export function filterManualChangeHistory(changeHistory: Array<{
     const isSystemUser = /^(SISTEMA|system|auto)$/i.test(change.user.trim());
 
     if (isSystemUser) {
-      console.log('  -> Descartado: usuario sistema');
       return false;
     }
 
-    console.log('  -> ACEPTADO');
     return true;
   });
-
-  console.log('Total items filtrados:', filtered.length);
-  console.log('=== FIN FILTRADO ===');
-
-  return filtered;
 }
 
 // Función para formatear fecha según especificación: [DD/MM/YYYY HH:MM]
