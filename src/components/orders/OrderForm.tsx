@@ -78,6 +78,7 @@ export default function OrderForm({
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -174,15 +175,25 @@ export default function OrderForm({
     };
 
     if (open) {
+      setIsInitialLoad(true);
       loadSuppliers();
       //checkUserAuthentication();
+      // Disable initial load flag after a short delay to allow initial rendering
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      // Reset flags when closing
+      setHasChanges(false);
+      setIsInitialLoad(true);
     }
   }, [open, toast]);
 
   // Mark as changed whenever user modifies something
   const markAsChanged = () => {
-    console.log('markAsChanged called, current hasChanges:', hasChanges);
-    if (!hasChanges) {
+    console.log('markAsChanged called, isInitialLoad:', isInitialLoad, 'hasChanges:', hasChanges);
+    if (!isInitialLoad && !hasChanges) {
       console.log('Setting hasChanges to true');
       setHasChanges(true);
     }

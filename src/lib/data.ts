@@ -344,6 +344,19 @@ export const saveOrder = async (order: Order) => {
       throw new Error(orderError.message);
     }
 
+    // Delete orphaned order lines (lines that were removed from the order)
+    const currentLineIds = order.orderLines.map(line => line.id);
+    const { error: deleteError } = await supabase
+      .from('tbl_ln_pedidos_rep')
+      .delete()
+      .eq('pedido_id', order.id)
+      .not('id', 'in', `(${currentLineIds.join(',')})`);
+
+    if (deleteError) {
+      console.error("Error deleting orphaned lines:", deleteError);
+      throw new Error(deleteError.message);
+    }
+
     // Save order lines using upsert
     const { error: linesError } = await supabase
       .from('tbl_ln_pedidos_rep')
