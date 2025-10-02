@@ -74,7 +74,8 @@ export default function OrderForm({
     vehicle: false,
     dismantleDate: false,
     shipmentDate: false,
-    orderLines: false
+    orderLines: false,
+    nonConformityReport: false
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -154,7 +155,8 @@ export default function OrderForm({
         vehicle: false,
         dismantleDate: false,
         shipmentDate: false,
-        orderLines: false
+        orderLines: false,
+        nonConformityReport: false
       });
     }
   }, [open, initialOrder, initialIsEditing]);
@@ -671,7 +673,8 @@ export default function OrderForm({
       vehicle: !order.vehicle.trim(),
       dismantleDate: !order.dismantleDate,
       shipmentDate: !order.shipmentDate,
-      orderLines: !hasValidOrderLine
+      orderLines: !hasValidOrderLine,
+      nonConformityReport: order.warranty && !order.nonConformityReport.trim()
     };
 
     setErrors(newErrors);
@@ -936,7 +939,10 @@ export default function OrderForm({
               </div>
 
               <div>
-                <Label htmlFor="nonConformityReport" className="text-sm mb-1">Informe No Conformidad</Label>
+                <Label htmlFor="nonConformityReport" className="text-sm mb-1">
+                  Informe No Conformidad
+                  {errors.nonConformityReport && <span className="text-red-500 ml-1">*</span>}
+                </Label>
                 {isReadOnly ? (
                   renderReadOnlyInput(order.nonConformityReport, "Informe NC")
                 ) : (
@@ -953,12 +959,16 @@ export default function OrderForm({
                           ...prev,
                           nonConformityReport: value
                         }));
+                        // Clear error when user types
+                        if (errors.nonConformityReport) {
+                          setErrors(prev => ({ ...prev, nonConformityReport: false }));
+                        }
                       }
                     }}
                     onFocus={(e) => e.target.placeholder = ""}
                     onBlur={(e) => e.target.placeholder = "Informe NC"}
                     placeholder="Informe NC"
-                    className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${!order.warranty ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] text-[#4C4C4C] ${!order.warranty ? 'bg-gray-100 cursor-not-allowed' : ''} ${errors.nonConformityReport ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
                 )}
               </div>
