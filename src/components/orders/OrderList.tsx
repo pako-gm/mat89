@@ -261,7 +261,14 @@ export default function OrderList() {
             declaredDamage: freshOrder.averia_declarada,
             shipmentDocumentation: freshOrder.documentacion || [],
             estadoPedido: freshOrder.estado_pedido || 'PENDIENTE',
-            changeHistory: freshOrder.tbl_historico_cambios || [],
+            changeHistory: (freshOrder.tbl_historico_cambios || [])
+              .filter((change: any) => change.descripcion_cambio && change.descripcion_cambio.trim())
+              .map((change: any) => ({
+                id: change.id,
+                date: change.created_at,
+                user: change.usuario || 'usuario@mat89.com',
+                description: change.descripcion_cambio
+              })),
             orderLines: (freshOrder.tbl_ln_pedidos_rep || []).map((line: any) => ({
               id: line.id,
               registration: line.matricula_89,
