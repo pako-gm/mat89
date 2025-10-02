@@ -32,26 +32,49 @@ export function filterManualChangeHistory(changeHistory: Array<{
     /^Material\s+eliminado$/i
   ];
 
-  return changeHistory.filter(change => {
+  console.log('=== FILTRANDO CHANGE HISTORY ===');
+  console.log('Total items recibidos:', changeHistory.length);
+
+  const filtered = changeHistory.filter(change => {
+    console.log('Procesando item:', {
+      id: change.id,
+      user: change.user,
+      description: change.description,
+      date: change.date
+    });
+
     // Verificar que el comentario existe y no está vacío
     if (!change.description || !change.description.trim()) {
+      console.log('  -> Descartado: descripción vacía');
       return false;
     }
 
     // Filtrar por patrones de texto automático
-    const hasAutomaticPattern = automaticPatterns.some(pattern => 
+    const hasAutomaticPattern = automaticPatterns.some(pattern =>
       pattern.test(change.description.trim())
     );
-    
+
+    if (hasAutomaticPattern) {
+      console.log('  -> Descartado: patrón automático');
+      return false;
+    }
+
     // Filtrar comentarios que parecen ser del sistema (usuario SISTEMA)
     const isSystemUser = /^(SISTEMA|system|auto)$/i.test(change.user.trim());
-    
-    // CORREGIDO: Eliminar filtro de longitud mínima para permitir comentarios cortos
-    // CORREGIDO: Ser más específico con el filtro de usuario del sistema
-    
-    // Mantener comentarios que NO son automáticos y NO son del sistema
-    return !hasAutomaticPattern && !isSystemUser;
+
+    if (isSystemUser) {
+      console.log('  -> Descartado: usuario sistema');
+      return false;
+    }
+
+    console.log('  -> ACEPTADO');
+    return true;
   });
+
+  console.log('Total items filtrados:', filtered.length);
+  console.log('=== FIN FILTRADO ===');
+
+  return filtered;
 }
 
 // Función para formatear fecha según especificación: [DD/MM/YYYY HH:MM]
