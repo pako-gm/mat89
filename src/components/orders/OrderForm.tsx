@@ -1172,16 +1172,19 @@ export default function OrderForm({
                     {manualChangeHistory.length > 0 ? (
                       <div className="divide-y divide-gray-200">
                         {manualChangeHistory.map((item, i) => (
-                          <div key={i} className="p-4 bg-white hover:bg-gray-50 transition-colors">
-                            <div className="text-xs font-mono text-gray-600 mb-2">
-                              {formatCommentTimestamp(item.date)} - {item.user || 'Usuario desconocido'}
+                          <div key={i} className="p-3 bg-white hover:bg-gray-50 transition-colors">
+                            <div className="text-sm text-gray-800">
+                              <span className="italic text-gray-600">
+                                {formatCommentTimestamp(item.date)} - {item.user || 'Usuario desconocido'}
+                              </span>
+                              <span className="mx-2">-</span>
+                              <span
+                                className="whitespace-pre-wrap"
+                                dangerouslySetInnerHTML={{
+                                  __html: item.description.replace(/\n/g, '<br>')
+                                }}
+                              />
                             </div>
-                            <div
-                              className="text-sm text-gray-800 whitespace-pre-wrap"
-                              dangerouslySetInnerHTML={{
-                                __html: item.description.replace(/\n/g, '<br>')
-                              }}
-                            />
                           </div>
                         ))}
                       </div>
