@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { Order, OrderLine } from "@/types";
@@ -544,7 +544,7 @@ export default function OrderForm({
       // Crear comentario con timestamp del servidor (formato ISO)
       const newChange = {
         id: uuidv4(),
-        date: new Date().toISOString(), // El servidor generará el timestamp real
+        date: new Date().toISOString(),
         user: userEmail,
         description: sanitizeComment(trimmedComment)
       };
@@ -555,10 +555,12 @@ export default function OrderForm({
         changeHistory: [newChange, ...prev.changeHistory]
       }));
 
-      setNewComment("");
+      // Cerrar modal y limpiar estado
       setIsCommentOpen(false);
+      setNewComment("");
       markAsChanged();
 
+      // Mostrar notificación de éxito
       toast({
         title: "Comentario agregado",
         description: "El comentario se ha agregado correctamente.",
@@ -792,7 +794,9 @@ export default function OrderForm({
   };
 
   // Filtrar solo comentarios manuales para mostrar en el histórico
-  const manualChangeHistory = filterManualChangeHistory(order.changeHistory);
+  const manualChangeHistory = useMemo(() => {
+    return filterManualChangeHistory(order.changeHistory);
+  }, [order.changeHistory]);
 
   // Función para renderizar un input en modo lectura
   const renderReadOnlyInput = (value: string, placeholder?: string) => (
@@ -1210,17 +1214,13 @@ export default function OrderForm({
             {isCommentOpen && (
               <div
                 className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
-                onClick={handleCloseCommentModal}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) {
                     handleCloseCommentModal();
                   }
                 }}
               >
-                <div
-                  className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                   <div className="flex items-center gap-2 mb-4">
                     <MessageCircle className="h-5 w-5 text-[#91268F]" />
                     <h3 className="text-lg font-medium">Agregar Comentario</h3>
@@ -1231,6 +1231,12 @@ export default function OrderForm({
                       const value = e.target.value;
                       if (value.length <= MAX_COMMENT_LENGTH) {
                         setNewComment(value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleCloseCommentModal();
                       }
                     }}
                     placeholder="Escribe tu comentario sobre el pedido..."
@@ -1249,12 +1255,21 @@ export default function OrderForm({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleCloseCommentModal}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCloseCommentModal();
+                      }}
                     >
                       Cancelar
                     </Button>
                     <Button
-                      onClick={handleAddComment}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddComment();
+                      }}
                       disabled={!newComment.trim()}
                       className="bg-[#91268F] hover:bg-[#7A1F79] text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >

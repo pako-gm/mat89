@@ -377,22 +377,25 @@ export const saveOrder = async (order: Order) => {
     }
 
     // Save change history using upsert to prevent duplicates
-    if (order.changeHistory.length > 0) {
+    // Filter out items with empty or undefined descriptions
+    const validChangeHistory = order.changeHistory.filter(change =>
+      change.description && change.description.trim().length > 0
+    );
+
+    if (validChangeHistory.length > 0) {
+      const historyToSave = validChangeHistory.map(change => ({
+        id: change.id,
+        pedido_id: order.id,
+        descripcion_cambio: change.description,
+        usuario: change.user || userData.user?.email || 'SISTEMA',
+        ...(change.date ? { created_at: change.date } : {})
+      }));
+
       const { error: historyError } = await supabase
         .from('tbl_historico_cambios')
-        .upsert(
-          order.changeHistory.map(change => ({
-            id: change.id, // Include the ID for upsert to work correctly
-            pedido_id: order.id,
-            descripcion_cambio: change.description,
-            usuario: change.user || userData.user?.email || 'SISTEMA',
-            // Don't override created_at if it exists (for existing comments)
-            ...(change.date ? { created_at: change.date } : {})
-          })),
-          {
-            onConflict: 'id' // Specify the conflict resolution column
-          }
-        );
+        .upsert(historyToSave, {
+          onConflict: 'id'
+        });
 
       if (historyError) {
         console.error("Error saving change history:", historyError);
@@ -446,7 +449,7 @@ export const getOrders = async () => {
         serialNumber: line.nsenv,
         estadoCompletado: line.estado_completado || false
       })),
-      changeHistory: order.tbl_historico_cambios.map(change => ({
+      changeHistory: order.tbl_historico_cambios.map((change: any) => ({
         id: change.id,
         date: change.created_at,
         user: change.usuario || 'usuario@mat89.com',
