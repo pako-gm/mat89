@@ -38,8 +38,8 @@ export default function Layout() {
         <div className="flex justify-end items-center px-6 py-2 border-b">
           <div className="flex items-center gap-4">
             {userRole && (
-              <span className="text-sm text-gray-600">
-                Rol: <span className="font-medium">{userRole}</span>
+              <span className="text-[11px] text-gray-600">
+                Rol: <span className="font-medium">{userRole.charAt(0) + userRole.slice(1).toLowerCase()}</span>
               </span>
             )}
             <Button
@@ -49,7 +49,7 @@ export default function Layout() {
               className="text-gray-700 hover:bg-gray-100 h-8 px-2"
             >
               <LogOut className="h-4 w-4 mr-1" />
-              <span className="text-xs">Cerrar sesión</span>
+              <span className="text-[11px]">Cerrar sesión</span>
             </Button>
           </div>
         </div>
