@@ -42,7 +42,7 @@ CREATE POLICY "Los usuarios pueden eliminar sus documentos"
       usuario_email = auth.email() OR
       EXISTS (
         SELECT 1 FROM user_profiles
-        WHERE user_id = auth.uid() AND role = 'ADMINISTRADOR'
+        WHERE email = auth.email() AND role = 'ADMINISTRADOR'
       )
     )
   );
