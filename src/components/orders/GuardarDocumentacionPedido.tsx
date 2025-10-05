@@ -225,74 +225,7 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
 
   return (
     <div className="space-y-4">
-      {/* Layout horizontal: Instrucciones + Formulario (100% ancho) */}
-      <div className="flex gap-4 w-full">
-        {/* Columna izquierda: Instrucciones */}
-        <div className="flex-1">
-          <Alert className="bg-blue-50 border-l-4 border-blue-500 p-3 h-full">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="ml-2">
-              <strong className="block mb-2 text-sm">Cómo adjuntar documentación:</strong>
-              <ol className="list-decimal ml-5 space-y-1 text-xs">
-                <li>Sube el archivo a tu OneDrive empresarial</li>
-                <li>Genera un enlace compartido (clic derecho → Compartir)</li>
-                <li>Pega el enlace en el formulario</li>
-              </ol>
-              <a
-                href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
-              >
-                Ver guía completa <ExternalLink className="w-3 h-3" />
-              </a>
-            </AlertDescription>
-          </Alert>
-        </div>
-
-        {/* Columna derecha: Formulario */}
-        <div className="flex-1 space-y-3 border rounded-md p-4 bg-gray-50">
-          <div>
-            <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
-              Nombre del documento *
-            </Label>
-            <Input
-              id="nombreDoc"
-              type="text"
-              value={nombreDoc}
-              onChange={(e) => setNombreDoc(e.target.value)}
-              placeholder="Ej: Albarán de envío.pdf"
-              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="urlDoc" className="text-sm font-medium text-gray-700">
-              Enlace de OneDrive *
-            </Label>
-            <Input
-              id="urlDoc"
-              type="url"
-              value={urlDoc}
-              onChange={(e) => setUrlDoc(e.target.value)}
-              placeholder="https://1drv.ms/..."
-              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
-            />
-          </div>
-
-          <Button
-            type="button"
-            onClick={(e) => guardarDocumento(e as any)}
-            disabled={loading}
-            className="w-full"
-            style={{ backgroundColor: '#91268F' }}
-          >
-            {loading ? 'Guardando...' : 'Guardar Documento'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Lista de documentos guardados (100% ancho) */}
+      {/* Lista de documentos guardados (100% ancho) - PRIMERO */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-700">Documentos adjuntos</h3>
 
@@ -359,6 +292,73 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
             ))}
           </div>
         )}
+      </div>
+
+      {/* Layout horizontal: Formulario (izquierda) + Instrucciones (derecha) */}
+      <div className="flex gap-4 w-full">
+        {/* Columna izquierda: Formulario */}
+        <div className="flex-1 space-y-3 border rounded-md p-4 bg-gray-50">
+          <div>
+            <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
+              Nombre del documento *
+            </Label>
+            <Input
+              id="nombreDoc"
+              type="text"
+              value={nombreDoc}
+              onChange={(e) => setNombreDoc(e.target.value)}
+              placeholder="Ej: Albarán de envío.pdf"
+              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="urlDoc" className="text-sm font-medium text-gray-700">
+              Enlace de OneDrive *
+            </Label>
+            <Input
+              id="urlDoc"
+              type="url"
+              value={urlDoc}
+              onChange={(e) => setUrlDoc(e.target.value)}
+              placeholder="https://1drv.ms/..."
+              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={(e) => guardarDocumento(e as any)}
+            disabled={loading}
+            className="w-full"
+            style={{ backgroundColor: '#91268F' }}
+          >
+            {loading ? 'Guardando...' : 'Guardar Documento'}
+          </Button>
+        </div>
+
+        {/* Columna derecha: Instrucciones */}
+        <div className="flex-1">
+          <Alert className="bg-blue-50 border-l-4 border-blue-500 p-3 h-full">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="ml-2">
+              <strong className="block mb-2 text-sm">Cómo adjuntar documentación:</strong>
+              <ol className="list-decimal ml-5 space-y-1 text-xs">
+                <li>Sube el archivo a tu OneDrive empresarial</li>
+                <li>Genera un enlace compartido (clic derecho → Compartir)</li>
+                <li>Pega el enlace en el formulario</li>
+              </ol>
+              <a
+                href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
+              >
+                Ver guía completa <ExternalLink className="w-3 h-3" />
+              </a>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     </div>
   );
