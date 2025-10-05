@@ -118,14 +118,8 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
   const guardarDocumento = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
 
-    console.log('=== INICIANDO GUARDADO DE DOCUMENTO ===');
-    console.log('Nombre documento:', nombreDoc);
-    console.log('URL documento:', urlDoc);
-    console.log('Pedido ID:', pedidoId);
-
     // Validaciones
     if (!nombreDoc.trim()) {
-      console.log('❌ Validación falló: Nombre vacío');
       toast({
         title: "Error",
         description: "El nombre del documento es requerido",
@@ -135,8 +129,6 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
     }
 
     if (!urlDoc.trim() || !validarUrlOneDrive(urlDoc)) {
-      console.log('❌ Validación falló: URL no válida');
-      console.log('URL ingresada:', urlDoc);
       toast({
         title: "Error",
         description: "URL de OneDrive no válida. Debe contener '1drv.ms', 'sharepoint.com', 'onedrive.live.com' o '-my.sharepoint.com'",
@@ -145,28 +137,17 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       return;
     }
 
-    console.log('✅ Validaciones pasadas');
     setLoading(true);
 
     try {
       // Obtener usuario autenticado
-      console.log('Obteniendo usuario autenticado...');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      if (userError) {
-        console.error('❌ Error al obtener usuario:', userError);
-        throw userError;
-      }
-
-      if (!user) {
-        console.error('❌ Usuario no autenticado');
+      if (userError || !user) {
         throw new Error('Usuario no autenticado');
       }
 
-      console.log('✅ Usuario autenticado:', user.email);
-
       const tipoArchivo = extraerTipoArchivo(nombreDoc);
-      console.log('Tipo de archivo extraído:', tipoArchivo);
 
       const documentoData = {
         pedido_id: pedidoId,
@@ -177,27 +158,12 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
         usuario_email: user.email || 'Sin email',
       };
 
-      console.log('📝 Datos a insertar:', documentoData);
-
       // Insertar documento en Supabase
-      console.log('Insertando en tbl_documentos_pedido...');
-      const { data: insertData, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('tbl_documentos_pedido')
-        .insert(documentoData)
-        .select();
+        .insert(documentoData);
 
-      if (insertError) {
-        console.error('❌ Error en insert:', insertError);
-        console.error('Detalles del error:', {
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint,
-          code: insertError.code
-        });
-        throw insertError;
-      }
-
-      console.log('✅ Documento insertado exitosamente:', insertData);
+      if (insertError) throw insertError;
 
       toast({
         title: "Éxito",
@@ -207,10 +173,9 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       // Limpiar formulario y recargar lista
       setNombreDoc('');
       setUrlDoc('');
-      console.log('Recargando lista de documentos...');
       await cargarDocumentos();
     } catch (error) {
-      console.error('❌ ERROR AL GUARDAR DOCUMENTO:', error);
+      console.error('Error al guardar documento:', error);
       toast({
         title: "Error",
         description: "Error al guardar documento",
@@ -218,7 +183,6 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       });
     } finally {
       setLoading(false);
-      console.log('=== FIN GUARDADO DE DOCUMENTO ===');
     }
   };
 
@@ -260,70 +224,78 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
   };
 
   return (
-    <div className="space-y-6">
-      {/* Alert con instrucciones */}
-      <Alert className="bg-blue-50 border-l-4 border-blue-500 p-4">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="ml-2">
-          <strong className="block mb-2">Cómo adjuntar documentación al pedido:</strong>
-          <ol className="list-decimal ml-5 space-y-1 text-sm">
-            <li>Sube el archivo a tu OneDrive empresarial</li>
-            <li>Genera un enlace compartido (clic derecho → Compartir)</li>
-            <li>Pega el enlace en el formulario abajo</li>
-          </ol>
-          <a
-            href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline text-sm mt-2 inline-flex items-center gap-1"
+    <div className="space-y-4">
+      {/* Título de la sección */}
+      <h3 className="text-sm font-semibold text-gray-700">Documentación Envío</h3>
+
+      {/* Layout horizontal: Instrucciones + Formulario (100% ancho) */}
+      <div className="flex gap-4 w-full">
+        {/* Columna izquierda: Instrucciones */}
+        <div className="flex-1">
+          <Alert className="bg-blue-50 border-l-4 border-blue-500 p-3 h-full">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="ml-2">
+              <strong className="block mb-2 text-sm">Cómo adjuntar documentación:</strong>
+              <ol className="list-decimal ml-5 space-y-1 text-xs">
+                <li>Sube el archivo a tu OneDrive empresarial</li>
+                <li>Genera un enlace compartido (clic derecho → Compartir)</li>
+                <li>Pega el enlace en el formulario</li>
+              </ol>
+              <a
+                href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
+              >
+                Ver guía completa <ExternalLink className="w-3 h-3" />
+              </a>
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        {/* Columna derecha: Formulario */}
+        <div className="flex-1 space-y-3 border rounded-md p-4 bg-gray-50">
+          <div>
+            <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
+              Nombre del documento *
+            </Label>
+            <Input
+              id="nombreDoc"
+              type="text"
+              value={nombreDoc}
+              onChange={(e) => setNombreDoc(e.target.value)}
+              placeholder="Ej: Albarán de envío.pdf"
+              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="urlDoc" className="text-sm font-medium text-gray-700">
+              Enlace de OneDrive *
+            </Label>
+            <Input
+              id="urlDoc"
+              type="url"
+              value={urlDoc}
+              onChange={(e) => setUrlDoc(e.target.value)}
+              placeholder="https://1drv.ms/..."
+              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={(e) => guardarDocumento(e as any)}
+            disabled={loading}
+            className="w-full"
+            style={{ backgroundColor: '#91268F' }}
           >
-            Ver guía completa <ExternalLink className="w-3 h-3" />
-          </a>
-        </AlertDescription>
-      </Alert>
-
-      {/* Formulario para añadir documentos */}
-      <div className="space-y-4 border rounded-md p-4 bg-gray-50">
-        <div>
-          <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
-            Nombre del documento *
-          </Label>
-          <Input
-            id="nombreDoc"
-            type="text"
-            value={nombreDoc}
-            onChange={(e) => setNombreDoc(e.target.value)}
-            placeholder="Ej: Albarán de envío.pdf"
-            className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
-          />
+            {loading ? 'Guardando...' : 'Guardar Documento'}
+          </Button>
         </div>
-
-        <div>
-          <Label htmlFor="urlDoc" className="text-sm font-medium text-gray-700">
-            Enlace de OneDrive *
-          </Label>
-          <Input
-            id="urlDoc"
-            type="url"
-            value={urlDoc}
-            onChange={(e) => setUrlDoc(e.target.value)}
-            placeholder="https://1drv.ms/..."
-            className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
-          />
-        </div>
-
-        <Button
-          type="button"
-          onClick={(e) => guardarDocumento(e as any)}
-          disabled={loading}
-          className="w-full"
-          style={{ backgroundColor: '#91268F' }}
-        >
-          {loading ? 'Guardando...' : 'Guardar Documento'}
-        </Button>
       </div>
 
-      {/* Lista de documentos guardados */}
+      {/* Lista de documentos guardados (100% ancho) */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-700">Documentos adjuntos</h3>
 
