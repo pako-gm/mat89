@@ -118,8 +118,14 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
   const guardarDocumento = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
 
+    console.log('=== INICIANDO GUARDADO DE DOCUMENTO ===');
+    console.log('Nombre documento:', nombreDoc);
+    console.log('URL documento:', urlDoc);
+    console.log('Pedido ID:', pedidoId);
+
     // Validaciones
     if (!nombreDoc.trim()) {
+      console.log('❌ Validación falló: Nombre vacío');
       toast({
         title: "Error",
         description: "El nombre del documento es requerido",
@@ -129,6 +135,8 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
     }
 
     if (!urlDoc.trim() || !validarUrlOneDrive(urlDoc)) {
+      console.log('❌ Validación falló: URL no válida');
+      console.log('URL ingresada:', urlDoc);
       toast({
         title: "Error",
         description: "URL de OneDrive no válida. Debe contener '1drv.ms', 'sharepoint.com', 'onedrive.live.com' o '-my.sharepoint.com'",
@@ -137,31 +145,59 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       return;
     }
 
+    console.log('✅ Validaciones pasadas');
     setLoading(true);
 
     try {
       // Obtener usuario autenticado
+      console.log('Obteniendo usuario autenticado...');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      if (userError || !user) {
+      if (userError) {
+        console.error('❌ Error al obtener usuario:', userError);
+        throw userError;
+      }
+
+      if (!user) {
+        console.error('❌ Usuario no autenticado');
         throw new Error('Usuario no autenticado');
       }
 
+      console.log('✅ Usuario autenticado:', user.email);
+
       const tipoArchivo = extraerTipoArchivo(nombreDoc);
+      console.log('Tipo de archivo extraído:', tipoArchivo);
+
+      const documentoData = {
+        pedido_id: pedidoId,
+        nombre_documento: nombreDoc.trim(),
+        url_onedrive: urlDoc.trim(),
+        tipo_archivo: tipoArchivo,
+        fecha_subida: new Date().toISOString(),
+        usuario_email: user.email || 'Sin email',
+      };
+
+      console.log('📝 Datos a insertar:', documentoData);
 
       // Insertar documento en Supabase
-      const { error: insertError } = await supabase
+      console.log('Insertando en tbl_documentos_pedido...');
+      const { data: insertData, error: insertError } = await supabase
         .from('tbl_documentos_pedido')
-        .insert({
-          pedido_id: pedidoId,
-          nombre_documento: nombreDoc.trim(),
-          url_onedrive: urlDoc.trim(),
-          tipo_archivo: tipoArchivo,
-          fecha_subida: new Date().toISOString(),
-          usuario_email: user.email || 'Sin email',
-        });
+        .insert(documentoData)
+        .select();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('❌ Error en insert:', insertError);
+        console.error('Detalles del error:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        });
+        throw insertError;
+      }
+
+      console.log('✅ Documento insertado exitosamente:', insertData);
 
       toast({
         title: "Éxito",
@@ -171,9 +207,10 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       // Limpiar formulario y recargar lista
       setNombreDoc('');
       setUrlDoc('');
+      console.log('Recargando lista de documentos...');
       await cargarDocumentos();
     } catch (error) {
-      console.error('Error al guardar documento:', error);
+      console.error('❌ ERROR AL GUARDAR DOCUMENTO:', error);
       toast({
         title: "Error",
         description: "Error al guardar documento",
@@ -181,6 +218,7 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       });
     } finally {
       setLoading(false);
+      console.log('=== FIN GUARDADO DE DOCUMENTO ===');
     }
   };
 
@@ -245,7 +283,7 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
       </Alert>
 
       {/* Formulario para añadir documentos */}
-      <form onSubmit={guardarDocumento} className="space-y-4 border rounded-md p-4 bg-gray-50">
+      <div className="space-y-4 border rounded-md p-4 bg-gray-50">
         <div>
           <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
             Nombre del documento *
@@ -256,7 +294,6 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
             value={nombreDoc}
             onChange={(e) => setNombreDoc(e.target.value)}
             placeholder="Ej: Albarán de envío.pdf"
-            required
             className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
           />
         </div>
@@ -271,21 +308,20 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
             value={urlDoc}
             onChange={(e) => setUrlDoc(e.target.value)}
             placeholder="https://1drv.ms/..."
-            required
-            pattern="https://.*"
             className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
           />
         </div>
 
         <Button
-          type="submit"
+          type="button"
+          onClick={(e) => guardarDocumento(e as any)}
           disabled={loading}
           className="w-full"
           style={{ backgroundColor: '#91268F' }}
         >
           {loading ? 'Guardando...' : 'Guardar Documento'}
         </Button>
-      </form>
+      </div>
 
       {/* Lista de documentos guardados */}
       <div className="space-y-2">
