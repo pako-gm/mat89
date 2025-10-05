@@ -225,9 +225,6 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
 
   return (
     <div className="space-y-4">
-      {/* Título de la sección */}
-      <h3 className="text-sm font-semibold text-gray-700">Documentación Envío</h3>
-
       {/* Layout horizontal: Instrucciones + Formulario (100% ancho) */}
       <div className="flex gap-4 w-full">
         {/* Columna izquierda: Instrucciones */}
