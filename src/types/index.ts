@@ -38,6 +38,7 @@ export interface Order {
   orderLines: OrderLine[];
   estadoPedido?: 'PENDIENTE' | 'COMPLETADO';
   deleted?: boolean;
+  cancelado?: boolean;
 }
 
 export interface OrderLine {

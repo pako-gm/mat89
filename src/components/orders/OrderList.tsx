@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Order } from "@/types";
 import OrderForm from "./OrderForm";
-import { warehouses, getOrders, deleteOrder } from "@/lib/data";
+import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Search, Star, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Search, Star, Trash2, Check } from "lucide-react";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -45,8 +45,10 @@ export default function OrderList() {
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
 
@@ -192,11 +194,6 @@ export default function OrderList() {
       }
     };
 
-    const confirmDeleteOrder = (orderId: string) => {
-      setOrderToDelete(orderId);
-      setShowDeleteConfirmation(true);
-    };
-
     const handleDeleteOrder = async () => {
       setShowDeleteConfirmation(false);
       try {
@@ -219,6 +216,52 @@ export default function OrderList() {
       setOrderToDelete(null);
     };
 
+    const confirmCancelOrder = (orderId: string) => {
+      setOrderToCancel(orderId);
+      setShowCancelConfirmation(true);
+    };
+
+    const handleCancelOrder = async () => {
+      setShowCancelConfirmation(false);
+      try {
+        if (!orderToCancel) return;
+        await cancelOrder(orderToCancel);
+        const updatedOrders = await getOrders();
+        setOrders(updatedOrders);
+        setFilteredOrders(updatedOrders);
+        toast({
+          title: "Pedido cancelado",
+          description: "El pedido se ha cancelado correctamente",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cancelar el pedido. Por favor, inténtelo de nuevo.",
+        });
+      }
+      setOrderToCancel(null);
+    };
+
+    const handleReactivateOrder = async (orderId: string) => {
+      try {
+        await reactivateOrder(orderId);
+        const updatedOrders = await getOrders();
+        setOrders(updatedOrders);
+        setFilteredOrders(updatedOrders);
+        toast({
+          title: "Pedido reactivado",
+          description: "El pedido se ha reactivado correctamente",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo reactivar el pedido. Por favor, inténtelo de nuevo.",
+        });
+      }
+    };
+
     const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
     const indexOfLastOrder = currentPage * ordersPerPage;
     const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
@@ -231,6 +274,16 @@ export default function OrderList() {
     };
 
     const handleViewDetails = async (order: Order) => {
+      // No permitir abrir pedidos cancelados
+      if (order.cancelado) {
+        toast({
+          variant: "destructive",
+          title: "Pedido cancelado",
+          description: "Este pedido está cancelado y no se puede editar. Reactívalo primero.",
+        });
+        return;
+      }
+
       // Recargar el pedido desde la base de datos para tener datos frescos
       try {
         const { data: freshOrder, error } = await supabase
@@ -885,33 +938,82 @@ export default function OrderList() {
                 currentOrders.map((order) => (
                   <TableRow
                     key={order.id}
-                    className="hover:bg-gray-50 transition-colors duration-200"
+                    className={`transition-colors duration-200 ${
+                      order.cancelado
+                        ? 'bg-red-50 hover:bg-red-100'
+                        : 'hover:bg-gray-50'
+                    }`}
                   >
-                    <TableCell className="font-medium cursor-pointer" onClick={() => handleViewDetails(order)}>
+                    <TableCell
+                      className={`font-medium ${!order.cancelado ? 'cursor-pointer' : ''} ${
+                        order.cancelado ? 'line-through text-red-600' : ''
+                      }`}
+                      onClick={() => !order.cancelado && handleViewDetails(order)}
+                    >
                       {order.orderNumber}
                     </TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>
-                      <span className="inline-flex items-center justify-center rounded-md border bg-gray-50 px-2 py-1 text-xs">
+                    <TableCell
+                      className={!order.cancelado ? 'cursor-pointer' : ''}
+                      onClick={() => !order.cancelado && handleViewDetails(order)}
+                    >
+                      <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs ${
+                        order.cancelado ? 'bg-red-100 border-red-300 line-through text-red-600' : 'bg-gray-50'
+                      }`}>
                         {order.warehouse}
                       </span>
                     </TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>{order.supplierName}</TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>{order.vehicle}</TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleViewDetails(order)}>
+                    <TableCell
+                      className={`${!order.cancelado ? 'cursor-pointer' : ''} ${
+                        order.cancelado ? 'line-through text-red-600' : ''
+                      }`}
+                      onClick={() => !order.cancelado && handleViewDetails(order)}
+                    >
+                      {order.supplierName}
+                    </TableCell>
+                    <TableCell
+                      className={`${!order.cancelado ? 'cursor-pointer' : ''} ${
+                        order.cancelado ? 'line-through text-red-600' : ''
+                      }`}
+                      onClick={() => !order.cancelado && handleViewDetails(order)}
+                    >
+                      {order.vehicle}
+                    </TableCell>
+                    <TableCell
+                      className={`${!order.cancelado ? 'cursor-pointer' : ''} ${
+                        order.cancelado ? 'line-through text-red-600' : ''
+                      }`}
+                      onClick={() => !order.cancelado && handleViewDetails(order)}
+                    >
                       {order.shipmentDate ? format(new Date(order.shipmentDate), 'dd/MM/yyyy') : '--'}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmDeleteOrder(order.id);
-                        }}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 h-8 w-8"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {!order.cancelado ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmCancelOrder(order.id);
+                            }}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 h-8 w-8"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReactivateOrder(order.id);
+                            }}
+                            className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2 h-8 w-8"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -1003,6 +1105,28 @@ export default function OrderList() {
                 onClick={handleDeleteOrder}
               >
                 Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showCancelConfirmation} onOpenChange={setShowCancelConfirmation}>
+          <AlertDialogContent className="bg-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl">Cancelar pedido</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-600">
+                Vas a cancelar el pedido. Pulsa 'Cancelar Pedido' para deshabilitarlo o pulsa 'Volver' para cerrar esta pantalla.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
+                Volver
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={handleCancelOrder}
+              >
+                Cancelar Pedido
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

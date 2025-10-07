@@ -441,6 +441,7 @@ export const getOrders = async () => {
       declaredDamage: order.averia_declarada,
       shipmentDocumentation: order.documentacion || [],
       estadoPedido: order.estado_pedido || 'PENDIENTE',
+      cancelado: order.cancelado || false,
       orderLines: order.tbl_ln_pedidos_rep.map(line => ({
         id: line.id,
         registration: line.matricula_89 || "",
@@ -473,7 +474,35 @@ export const deleteOrder = async (orderId: string) => {
   if (error) {
     throw error;
   }
-  
+
+  return true;
+};
+
+// Nueva función para cancelar (deshabilitar) un pedido
+export const cancelOrder = async (orderId: string) => {
+  const { error } = await supabase
+    .from('tbl_pedidos_rep')
+    .update({ cancelado: true })
+    .eq('id', orderId);
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
+};
+
+// Nueva función para reactivar un pedido cancelado
+export const reactivateOrder = async (orderId: string) => {
+  const { error } = await supabase
+    .from('tbl_pedidos_rep')
+    .update({ cancelado: false })
+    .eq('id', orderId);
+
+  if (error) {
+    throw error;
+  }
+
   return true;
 };
 
@@ -588,6 +617,7 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
       declaredDamage: order.averia_declarada,
       shipmentDocumentation: order.documentacion || [],
       estadoPedido: order.estado_pedido || 'PENDIENTE',
+      cancelado: order.cancelado || false,
       changeHistory: [],
       orderLines: order.tbl_ln_pedidos_rep.map(line => ({
         id: line.id,
@@ -596,7 +626,7 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
         quantity: line.nenv,
         serialNumber: line.nsenv,
         estadoCompletado: line.estado_completado || false,
-        totalReceived: line.tbl_recepciones 
+        totalReceived: line.tbl_recepciones
           ? line.tbl_recepciones.reduce((total: number, reception: any) => {
               return total + (reception.n_rec || 0);
             }, 0)
