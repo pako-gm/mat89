@@ -100,8 +100,12 @@ export default function LoginPage() {
       // Pero podríamos agregar una verificación adicional aquí si es necesario
 
       // Enviar correo de recuperación con Supabase
+      //CODIGO ORIGINAL:
+      //const { error } = await supabase.auth.api.resetPasswordForEmail(resetEmail, {
+      //  redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
+      //});
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
+        redirectTo: `http://localhost:5173/reset-password`, // Ajusta tu puerto
       });
 
       if (error) {
