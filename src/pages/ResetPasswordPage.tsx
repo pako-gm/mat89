@@ -310,8 +310,11 @@ export default function ResetPasswordPage() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center text-xs text-gray-500">
-          © fgm-dev 2025 - Sistema de Gestión de Reparación de Componentes
+        <CardFooter className="flex flex-col items-center text-xs text-gray-500">
+          <p>
+            <span className="font-bold" style={{ color: '#91268F' }}>{'{'}</span>© fgm-dev<span className="font-bold" style={{ color: '#91268F' }}>{'}'}</span> {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`}
+          </p>
+          <p>Sistema de Gestión de Reparación de Componentes</p>
         </CardFooter>
       </Card>
     </div>

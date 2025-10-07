@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { GuardarDocumentacionPedido } from "./GuardarDocumentacionPedido";
 
 interface OrderFormProps {
   order: Order;
@@ -1051,9 +1052,9 @@ export default function OrderForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div>
-                <Label htmlFor="declaredDamage" className="text-sm mb-1">Avería Declarada</Label>
+                <Label htmlFor="declaredDamage" className="text-sm mb-1 block">Avería Declarada</Label>
                 {isReadOnly ? (
                   renderReadOnlyTextarea(order.declaredDamage, "Apuntado en Tarjeta Identificativa")
                 ) : (
@@ -1078,76 +1079,11 @@ export default function OrderForm({
               </div>
 
               <div>
-                <Label htmlFor="shipmentDocumentation" className="text-sm mb-1">Documentación Envío</Label>
-                {isReadOnly ? (
-                  <div className="min-h-[100px] p-4 border border-gray-300 rounded-md bg-gray-50">
-                    {order.shipmentDocumentation.length > 0 ? (
-                      <div className="space-y-1">
-                        {order.shipmentDocumentation.map((file, index) => (
-                          <div key={index} className="flex items-center bg-white p-1 rounded-md border text-xs">
-                            <span className="truncate">{file}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-gray-500 text-sm">No hay documentación adjunta</div>
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className={`mt-1 p-4 border border-dashed rounded-md bg-gray-50 min-h-[100px] relative ${dragActive ? 'border-[#91268F] bg-[#91268F]/5' : ''
-                      } flex flex-col h-[100px]`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                  >
-                    <input
-                      type="file"
-                      id="fileInput"
-                      multiple
-                      accept=".pdf,.jpeg,.jpg,.xlsx,.zip"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="fileInput"
-                      //codigo cambiado para deshabilitar la subida de archivos
-                      // Removemos htmlFor para que no esté asociado al input 
-                      className="flex flex-col items-center justify-center cursor-pointer h-full pointer-events-none opacity-50"
-                    // Removemos cursor-pointer y agregamos opacity-50 para indicar que no es interactivo
-                    >
-                      <Upload className="h-4 w-4 text-gray-400" />
-                      <p className="text-xs text-gray-600 text-center mt-1">
-                        Arrastra y suelta aquí la documentación asociada al envío o{" "}
-                        <span className="text-[#91268F]">haga clic para seleccionar</span>
-                      </p>
-                      <p className="text-[10px] text-gray-500 text-center mt-0.5">
-                        Tipos permitidos: .pdf, .jpeg, .xlsx, .zip (máx. 4 archivos, 5 MB cada uno)
-                      </p>
-                    </label>
-
-                    {order.shipmentDocumentation.length > 0 && (
-                      <div className="mt-2 space-y-1 overflow-y-auto">
-                        {order.shipmentDocumentation.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between bg-white p-1 rounded-md border text-[10px]"
-                          >
-                            <span className="truncate max-w-[200px]">{file}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFile(file)}
-                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {/* <Label className="text-sm mb-1 block">Documentación Envío</Label> */}
+                {order.id && <GuardarDocumentacionPedido pedidoId={order.id} />}
+                {!order.id && (
+                  <div className="p-4 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-500">
+                    Guarde el pedido primero para poder adjuntar documentación
                   </div>
                 )}
               </div>
