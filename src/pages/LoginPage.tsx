@@ -319,7 +319,7 @@ export default function LoginPage() {
             )}
           </CardContent>
           <CardFooter className="flex justify-center text-xs text-gray-500">
-            © fgm-dev {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
+            © <span className="font-bold" style={{ color: '#91268F' }}>{'{'}</span>fgm-dev<span className="font-bold" style={{ color: '#91268F' }}>{'}'}</span> {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
           </CardFooter>
         </Card>
       </div>
