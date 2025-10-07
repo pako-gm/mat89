@@ -34,6 +34,7 @@ import {
   AlertCircle,
   Paperclip
 } from 'lucide-react';
+import { VideoPlayer } from '@/components/VideoPlayer';
 
 interface DocumentoPedido {
   id: string;
@@ -55,6 +56,7 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
   const [urlDoc, setUrlDoc] = useState('');
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [videoPlayerOpen, setVideoPlayerOpen] = useState(false);
   const { toast } = useToast();
 
   // Cargar documentos al montar el componente
@@ -253,25 +255,24 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Adjuntar documentación al pedido</DialogTitle>
+              <DialogTitle>Guardar documentación del pedido</DialogTitle>
               <DialogDescription>
                 <Alert className="bg-blue-50 border-l-4 border-blue-500 p-3 mt-2">
                   <AlertCircle className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="ml-2">
-                    <strong className="block mb-2 text-sm">Cómo adjuntar documentación:</strong>
+                    <strong className="block mb-2 text-sm">Cómo adjuntar documentación al pedido:</strong>
                     <ol className="list-decimal ml-5 space-y-1 text-xs">
-                      <li>Sube el archivo a tu OneDrive empresarial</li>
-                      <li>Genera un enlace compartido (clic derecho → Compartir)</li>
-                      <li>Pega el enlace en el formulario abajo</li>
+                      <li>Sube el archivo al OneDrive empresarial (Almacenes_Valencia → Gestion_Reparaciones) </li>
+                      <li>Genera un enlace compartido (clic derecho → Copiar Vinculo)</li>
+                      <li>Pega el vinculo en el formulario (Enlace)</li>
+                      <li>Asigna un nombre al documento (ej: Albarán de envío.pdf)</li>
                     </ol>
-                    <a
-                      href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => setVideoPlayerOpen(true)}
                       className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
                     >
-                      Ver guía completa <ExternalLink className="w-3 h-3" />
-                    </a>
+                      Ver VideoTutorial <ExternalLink className="w-3 h-3" />
+                    </button>
                   </AlertDescription>
                 </Alert>
               </DialogDescription>
@@ -385,6 +386,13 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
           ))}
         </div>
       )}
+
+      {/* Video Player Popup */}
+      <VideoPlayer
+        videoSrc="/videos/tutorial-onedrive.mp4"
+        isOpen={videoPlayerOpen}
+        onClose={() => setVideoPlayerOpen(false)}
+      />
     </div>
   );
 }
