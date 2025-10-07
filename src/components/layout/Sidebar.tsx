@@ -170,6 +170,13 @@ export default function Sidebar() {
           <p className="text-sm font-medium text-gray-700 mb-4">Cargando...</p>
         )}
       </div>
+
+      {/* Footer with dynamic copyright */}
+      <div className="p-3 border-t border-gray-200 text-center">
+        <p className="text-xs text-gray-500">
+          © {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} Mat89
+        </p>
+      </div>
     </div>
   );
 }
