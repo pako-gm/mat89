@@ -219,7 +219,7 @@ export default function LoginPage() {
                     <Input
                       id="resetEmail"
                       type="email"
-                      placeholder="usuario@r****.es"
+                      placeholder="introduce tu correo-e de empresa"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
                       required
