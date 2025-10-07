@@ -1079,7 +1079,7 @@ export default function OrderForm({
               </div>
 
               <div>
-                <Label className="text-sm mb-1 block">Documentación Envío</Label>
+                {/* <Label className="text-sm mb-1 block">Documentación Envío</Label> */}
                 {order.id && <GuardarDocumentacionPedido pedidoId={order.id} />}
                 {!order.id && (
                   <div className="p-4 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-500">

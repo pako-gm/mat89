@@ -238,7 +238,7 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
     <div className="space-y-4">
       {/* Header con título y botón Añadir */}
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-semibold text-gray-700">Documentos adjuntos</h3>
+        <h3 className="text-sm font-semibold text-gray-800">Documentacion del Pedido</h3>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
