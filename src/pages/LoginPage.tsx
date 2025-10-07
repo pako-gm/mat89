@@ -99,14 +99,15 @@ export default function LoginPage() {
       // Verificar si el correo existe en la base de datos (opcional, Supabase lo hace por nosotros)
       // Pero podríamos agregar una verificación adicional aquí si es necesario
 
-      // Enviar correo de recuperación con Supabase
+      //Enviar correo de recuperación con Supabase
       //CODIGO ORIGINAL:
-      //const { error } = await supabase.auth.api.resetPasswordForEmail(resetEmail, {
-      //  redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
-      //});
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `http://localhost:5173/reset-password`, // Ajusta tu puerto
+      const { error } = await supabase.auth.api.resetPasswordForEmail(resetEmail, {
+       redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
       });
+      //CODIGO DE PRUEBA PARA CORRER EN LOCALHOST:
+      // const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      //   redirectTo: `http://localhost:5173/reset-password`, // Ajusta tu puerto
+      // });
 
       if (error) {
         throw error;
