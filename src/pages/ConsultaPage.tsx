@@ -316,7 +316,7 @@ export default function ConsultaPage() {
                 <td>${formatDate(record.fechaRecepc)}</td>
                 <td>${record.cantRec !== null ? record.cantRec : '--'}</td>
                 <td>${record.numSerieRec || '--'}</td>
-                <td>${record.estadoRecepc ? `<span class="status-${record.estadoRecepc.toLowerCase().replace(' ', '-')}">${record.estadoRecepc}</span>` : '--'}</td>
+                <td>${record.estadoRecepc ? `<span class="status-${record.estadoRecepc.toLowerCase().replace(' ', '-')}">${record.estadoRecepc}</span>` : '<span class="status-sin-recepcionar">SIN RECEPCIONAR</span>'}</td>
                 <td>${record.observaciones || '--'}</td>
               </tr>
             `).join('')}
