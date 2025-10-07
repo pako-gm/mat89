@@ -14,6 +14,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import {
@@ -23,7 +31,8 @@ import {
   Archive,
   ExternalLink,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Paperclip
 } from 'lucide-react';
 
 interface DocumentoPedido {
@@ -45,6 +54,7 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
   const [nombreDoc, setNombreDoc] = useState('');
   const [urlDoc, setUrlDoc] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Cargar documentos al montar el componente
@@ -170,9 +180,10 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
         description: "Documento guardado correctamente",
       });
 
-      // Limpiar formulario y recargar lista
+      // Limpiar formulario, cerrar dialog y recargar lista
       setNombreDoc('');
       setUrlDoc('');
+      setDialogOpen(false);
       await cargarDocumentos();
     } catch (error) {
       console.error('Error al guardar documento:', error);
@@ -225,141 +236,155 @@ export function GuardarDocumentacionPedido({ pedidoId }: GuardarDocumentacionPed
 
   return (
     <div className="space-y-4">
-      {/* Lista de documentos guardados (100% ancho) - PRIMERO */}
-      <div className="space-y-2">
+      {/* Header con título y botón Añadir */}
+      <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold text-gray-700">Documentos adjuntos</h3>
 
-        {documentos.length === 0 ? (
-          <div className="border rounded-md p-6 text-center text-gray-500">
-            <p className="mb-1">No hay documentos adjuntos</p>
-            <p className="text-sm">Usa el formulario superior para añadir documentación al pedido</p>
-          </div>
-        ) : (
-          <div className="border rounded-md divide-y">
-            {documentos.map((doc) => (
-              <div
-                key={doc.id}
-                className="p-3 hover:bg-gray-50 flex justify-between items-center transition-colors"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  {obtenerIconoArchivo(doc.tipo_archivo)}
-                  <div className="flex-1">
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Paperclip className="h-4 w-4" />
+              Añadir
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Adjuntar documentación al pedido</DialogTitle>
+              <DialogDescription>
+                <Alert className="bg-blue-50 border-l-4 border-blue-500 p-3 mt-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="ml-2">
+                    <strong className="block mb-2 text-sm">Cómo adjuntar documentación:</strong>
+                    <ol className="list-decimal ml-5 space-y-1 text-xs">
+                      <li>Sube el archivo a tu OneDrive empresarial</li>
+                      <li>Genera un enlace compartido (clic derecho → Compartir)</li>
+                      <li>Pega el enlace en el formulario abajo</li>
+                    </ol>
                     <a
-                      href={doc.url_onedrive}
+                      href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline font-medium inline-flex items-center gap-1"
+                      className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
                     >
-                      {doc.nombre_documento}
-                      <ExternalLink className="w-3 h-3" />
+                      Ver guía completa <ExternalLink className="w-3 h-3" />
                     </a>
-                    <p className="text-xs text-gray-500">
-                      Subido por {doc.usuario_email} el {formatearFecha(doc.fecha_subida)}
-                    </p>
-                  </div>
-                </div>
+                  </AlertDescription>
+                </Alert>
+              </DialogDescription>
+            </DialogHeader>
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="hover:text-red-600 transition-colors"
-                      aria-label="Eliminar documento"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción no se puede deshacer. El documento "{doc.nombre_documento}" será eliminado permanentemente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => eliminarDocumento(doc.id)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+            {/* Formulario dentro del popup */}
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
+                  Nombre del documento *
+                </Label>
+                <Input
+                  id="nombreDoc"
+                  type="text"
+                  value={nombreDoc}
+                  onChange={(e) => setNombreDoc(e.target.value)}
+                  placeholder="Ej: Albarán de envío.pdf"
+                  className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
+                />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Layout horizontal: Formulario (izquierda) + Instrucciones (derecha) */}
-      <div className="flex gap-4 w-full">
-        {/* Columna izquierda: Formulario */}
-        <div className="flex-1 space-y-3 border rounded-md p-4 bg-gray-50">
-          <div>
-            <Label htmlFor="nombreDoc" className="text-sm font-medium text-gray-700">
-              Nombre del documento *
-            </Label>
-            <Input
-              id="nombreDoc"
-              type="text"
-              value={nombreDoc}
-              onChange={(e) => setNombreDoc(e.target.value)}
-              placeholder="Ej: Albarán de envío.pdf"
-              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
-            />
-          </div>
+              <div>
+                <Label htmlFor="urlDoc" className="text-sm font-medium text-gray-700">
+                  Enlace de OneDrive *
+                </Label>
+                <Input
+                  id="urlDoc"
+                  type="url"
+                  value={urlDoc}
+                  onChange={(e) => setUrlDoc(e.target.value)}
+                  placeholder="https://1drv.ms/..."
+                  className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
+                />
+              </div>
 
-          <div>
-            <Label htmlFor="urlDoc" className="text-sm font-medium text-gray-700">
-              Enlace de OneDrive *
-            </Label>
-            <Input
-              id="urlDoc"
-              type="url"
-              value={urlDoc}
-              onChange={(e) => setUrlDoc(e.target.value)}
-              placeholder="https://1drv.ms/..."
-              className="w-full border-gray-300 rounded-md focus:border-purple-600 mt-1"
-            />
-          </div>
-
-          <Button
-            type="button"
-            onClick={(e) => guardarDocumento(e as any)}
-            disabled={loading}
-            className="w-full"
-            style={{ backgroundColor: '#91268F' }}
-          >
-            {loading ? 'Guardando...' : 'Guardar Documento'}
-          </Button>
-        </div>
-
-        {/* Columna derecha: Instrucciones */}
-        <div className="flex-1">
-          <Alert className="bg-blue-50 border-l-4 border-blue-500 p-3 h-full">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="ml-2">
-              <strong className="block mb-2 text-sm">Cómo adjuntar documentación:</strong>
-              <ol className="list-decimal ml-5 space-y-1 text-xs">
-                <li>Sube el archivo a tu OneDrive empresarial</li>
-                <li>Genera un enlace compartido (clic derecho → Compartir)</li>
-                <li>Pega el enlace en el formulario</li>
-              </ol>
-              <a
-                href="https://support.microsoft.com/es-es/office/compartir-archivos-de-onedrive-9fcc2f7d-de0c-4cec-93b0-a82024800c07"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
+              <Button
+                type="button"
+                onClick={(e) => guardarDocumento(e as any)}
+                disabled={loading}
+                className="w-full"
+                style={{ backgroundColor: '#91268F' }}
               >
-                Ver guía completa <ExternalLink className="w-3 h-3" />
-              </a>
-            </AlertDescription>
-          </Alert>
-        </div>
+                {loading ? 'Guardando...' : 'Guardar Documento'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Lista de documentos guardados */}
+      {documentos.length === 0 ? (
+        <div className="border rounded-md p-6 text-center text-gray-500">
+          <p className="mb-1">No hay documentos adjuntos</p>
+          <p className="text-sm">Usa el botón "Añadir" para adjuntar documentación al pedido</p>
+        </div>
+      ) : (
+        <div className="border rounded-md divide-y">
+          {documentos.map((doc) => (
+            <div
+              key={doc.id}
+              className="p-3 hover:bg-gray-50 flex justify-between items-center transition-colors"
+            >
+              <div className="flex items-center gap-3 flex-1">
+                {obtenerIconoArchivo(doc.tipo_archivo)}
+                <div className="flex-1">
+                  <a
+                    href={doc.url_onedrive}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    {doc.nombre_documento}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <p className="text-xs text-gray-500">
+                    Subido por {doc.usuario_email} el {formatearFecha(doc.fecha_subida)}
+                  </p>
+                </div>
+              </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-red-600 transition-colors"
+                    aria-label="Eliminar documento"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción no se puede deshacer. El documento "{doc.nombre_documento}" será eliminado permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => eliminarDocumento(doc.id)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Eliminar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

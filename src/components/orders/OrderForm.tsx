@@ -1052,9 +1052,9 @@ export default function OrderForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div>
-                <Label htmlFor="declaredDamage" className="text-sm mb-1">Avería Declarada</Label>
+                <Label htmlFor="declaredDamage" className="text-sm mb-1 block">Avería Declarada</Label>
                 {isReadOnly ? (
                   renderReadOnlyTextarea(order.declaredDamage, "Apuntado en Tarjeta Identificativa")
                 ) : (
@@ -1079,7 +1079,7 @@ export default function OrderForm({
               </div>
 
               <div>
-                <Label className="text-sm mb-2 block">Documentación Envío</Label>
+                <Label className="text-sm mb-1 block">Documentación Envío</Label>
                 {order.id && <GuardarDocumentacionPedido pedidoId={order.id} />}
                 {!order.id && (
                   <div className="p-4 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-500">
