@@ -319,7 +319,7 @@ export default function LoginPage() {
             )}
           </CardContent>
           <CardFooter className="flex justify-center text-xs text-gray-500">
-            © fgm-dev 2025 - Sistema de Gestión de Reparación de Componentes
+            © fgm-dev {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
           </CardFooter>
         </Card>
       </div>
