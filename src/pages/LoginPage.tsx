@@ -195,8 +195,8 @@ export default function LoginPage() {
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
                   <h3 className="font-medium">Correo enviado</h3>
                   <p className="text-sm mt-1">
-                    Si el correo existe en nuestra base de datos, recibirás un enlace para restablecer tu contraseña.
-                    Por favor, revisa tu bandeja de entrada y sigue las instrucciones.
+                    Si la direccion de correo-e existe en nuestra base de datos, recibirás un enlace para restablecer tu contraseña.
+                    Por favor, revisa tu bandeja de entrada, incluida la bandeja de spam y sigue las instrucciones.
                   </p>
                   <p className="text-sm mt-2">
                     El enlace caducará en 24 horas por seguridad.
@@ -318,8 +318,11 @@ export default function LoginPage() {
               </form>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center text-xs text-gray-500">
-            © <span className="font-bold" style={{ color: '#91268F' }}>{'{'}</span>fgm-dev<span className="font-bold" style={{ color: '#91268F' }}>{'}'}</span> {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
+          <CardFooter className="flex flex-col items-center text-xs text-gray-500">
+            <p>
+              <span className="font-bold" style={{ color: '#91268F' }}>{'{'}</span>© fgm-dev<span className="font-bold" style={{ color: '#91268F' }}>{'}'}</span> {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`}
+            </p>
+            <p>Sistema de Gestión de Reparación de Componentes</p>
           </CardFooter>
         </Card>
       </div>
