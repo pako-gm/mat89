@@ -174,7 +174,8 @@ export default function Sidebar() {
       {/* Footer with dynamic copyright */}
       <div className="p-3 border-t border-gray-200 text-center">
         <p className="text-xs text-gray-500">
-          © {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - fgm-dev</p>
+          © <span className="text-blue-600">{'{'}</span>fgm-dev<span className="text-blue-600">{'}'}</span> {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`}
+        </p>
       </div>
     </div>
   );
