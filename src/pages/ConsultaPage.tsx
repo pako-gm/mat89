@@ -324,7 +324,7 @@ export default function ConsultaPage() {
         </table>
         
         <div class="footer">
-          © <span style="color: #91268F; font-weight: bold;">{</span>fgm-dev<span style="color: #91268F; font-weight: bold;">}</span> ${new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
+          <span style="color: #91268F; font-weight: bold;">{</span>© fgm-dev<span style="color: #91268F; font-weight: bold;">}</span> ${new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
         </div>
       </body>
       </html>
