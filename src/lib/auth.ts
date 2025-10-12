@@ -19,16 +19,16 @@ const hasRole = async (role: 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS'): Promise
     // Then check the user's role in our profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
-      .eq('id', sessionData.user.id)
+      .select('user_role')
+      .eq('user_id', sessionData.user.id)
       .maybeSingle();
-      
+
     if (profileError) {
       console.error('Error getting user profile:', profileError);
       return false;
     }
-    
-    return profileData?.role === role;
+
+    return profileData?.user_role === role;
   } catch (error) {
     console.error('Error checking user role:', error);
     return false;
@@ -53,16 +53,16 @@ export const hasAnyRole = async (roles: ('ADMINISTRADOR' | 'EDICION' | 'CONSULTA
     // Then check the user's role in our profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
-      .eq('id', sessionData.user.id)
+      .select('user_role')
+      .eq('user_id', sessionData.user.id)
       .maybeSingle();
-      
+
     if (profileError) {
       console.error('Error getting user profile:', profileError);
       return false;
     }
-    
-    return roles.includes(profileData?.role as any);
+
+    return roles.includes(profileData?.user_role as any);
   } catch (error) {
     console.error('Error checking user roles:', error);
     return false;
@@ -86,16 +86,16 @@ export const getUserRole = async (): Promise<string | null> => {
     // Then get the user's role from our profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
-      .eq('id', sessionData.user.id)
+      .select('user_role')
+      .eq('user_id', sessionData.user.id)
       .maybeSingle();
-      
+
     if (profileError) {
       console.error('Error getting user profile:', profileError);
       return null;
     }
-    
-    return profileData?.role || 'CONSULTAS'; // Default to CONSULTAS if no role found
+
+    return profileData?.user_role || 'CONSULTAS'; // Default to CONSULTAS if no role found
   } catch (error) {
     console.error('Error getting user role:', error);
     return null;

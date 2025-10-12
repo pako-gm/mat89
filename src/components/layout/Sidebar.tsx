@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { getUserRole } from "@/lib/auth";
@@ -144,12 +144,20 @@ export default function Sidebar() {
               /> */}
             </>
           )}
-          <SidebarItem 
+          <SidebarItem
             icon={<FileSearch className="h-4 w-4" />}
-            label="Consultar" 
-            path="/consultar" 
+            label="Consultar"
+            path="/consultar"
             active={currentPath === "/consultar"}
           />
+          {userRole === "ADMINISTRADOR" && (
+            <SidebarItem
+              icon={<Settings className="h-4 w-4" />}
+              label="Panel de Control"
+              path="/panel-control"
+              active={currentPath === "/panel-control"}
+            />
+          )}
         </div>
       </div>
 

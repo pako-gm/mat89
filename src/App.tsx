@@ -8,6 +8,8 @@ import MaterialesPage from "@/pages/MaterialesPage";
 import ConsultaPage from "@/pages/ConsultaPage";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import PanelDeControl from "@/pages/PanelDeControl";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import { supabase } from "@/lib/supabase";
 
@@ -113,6 +115,14 @@ function App() {
             <Route path="proveedores" element={<ProveedoresPage />} />
             <Route path="materiales" element={<MaterialesPage />} />
             <Route path="consultar" element={<ConsultaPage />} />
+            <Route
+              path="panel-control"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <PanelDeControl />
+                </ProtectedRoute>
+              }
+            />
             {/* Add other routes here as they are developed */}
             <Route path="*" element={<RoleBasedRedirect />} />
           </Route>
