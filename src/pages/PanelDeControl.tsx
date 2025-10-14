@@ -121,8 +121,15 @@ export default function PanelDeControl() {
       }));
 
       setAlmacenesDisponibles(mappedData);
-    } catch (error) {
+
+      console.log('Almacenes cargados correctamente:', mappedData.length);
+    } catch (error: any) {
       console.error('Error cargando almacenes:', error);
+      toast({
+        title: "Error al cargar almacenes",
+        description: error.message || "No se pudieron cargar los almacenes disponibles. Verifica los permisos de la tabla.",
+        variant: "destructive",
+      });
     }
   };
 
