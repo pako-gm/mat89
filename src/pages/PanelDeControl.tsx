@@ -442,10 +442,20 @@ export default function PanelDeControl() {
     if (!selectedUserAmbito) return;
 
     try {
-      const { error } = await supabase
+      console.log('=== DEBUG: Guardando ámbitos ===');
+      console.log('Usuario completo:', selectedUserAmbito);
+      console.log('ID del usuario:', selectedUserAmbito.id);
+      console.log('user_id del usuario:', selectedUserAmbito.user_id);
+      console.log('Almacenes seleccionados:', almacenesSeleccionados);
+
+      const { data, error } = await supabase
         .from('user_profiles')
         .update({ ambito_almacenes: almacenesSeleccionados })
-        .eq('id', selectedUserAmbito.id);
+        .eq('id', selectedUserAmbito.id)
+        .select();
+
+      console.log('Respuesta de Supabase - data:', data);
+      console.log('Respuesta de Supabase - error:', error);
 
       if (error) throw error;
 
@@ -458,9 +468,11 @@ export default function PanelDeControl() {
 
       setShowAmbitoModal(false);
     } catch (error: any) {
+      console.error('Error guardando ámbitos:', error);
+      console.error('Error completo:', JSON.stringify(error, null, 2));
       toast({
-        title: "Error",
-        description: "No se pudieron guardar los ámbitos",
+        title: "Error al guardar ámbitos",
+        description: error.message || "No se pudieron guardar los ámbitos. Verifica los permisos de actualización.",
         variant: "destructive",
       });
     }
