@@ -451,7 +451,7 @@ export default function PanelDeControl() {
       const { data, error } = await supabase
         .from('user_profiles')
         .update({ ambito_almacenes: almacenesSeleccionados })
-        .eq('id', selectedUserAmbito.id)
+        .eq('user_id', selectedUserAmbito.user_id)
         .select();
 
       console.log('Respuesta de Supabase - data:', data);
