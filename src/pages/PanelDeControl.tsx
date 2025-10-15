@@ -12,8 +12,7 @@ const COLOR_PRIMARIO = '#91268F';
 
 // Tipos
 interface UserProfile {
-  id: string;
-  user_id: string;
+  user_id: string; // PRIMARY KEY - usado como identificador principal
   name: string | null;
   email: string;
   user_role: string;
@@ -77,7 +76,17 @@ export default function PanelDeControl() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUsers(data || []);
+
+      // Procesar los datos para asegurar que ambito_almacenes sea un array
+      const processedData = (data || []).map(user => ({
+        ...user,
+        ambito_almacenes: Array.isArray(user.ambito_almacenes)
+          ? user.ambito_almacenes
+          : (user.ambito_almacenes ? [] : [])
+      }));
+
+
+      setUsers(processedData);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -216,7 +225,7 @@ export default function PanelDeControl() {
     if (selectedUsers.length === filteredUsers.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(filteredUsers.map(u => u.id));
+      setSelectedUsers(filteredUsers.map(u => u.user_id));
     }
   };
 
@@ -320,7 +329,7 @@ export default function PanelDeControl() {
         .update({
           name: editingUser.name,
         })
-        .eq('id', editingUser.id);
+        .eq('user_id', editingUser.user_id);
 
       if (error) throw error;
 
@@ -343,7 +352,7 @@ export default function PanelDeControl() {
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-    if (userId === currentUserProfile?.id) {
+    if (userId === currentUserProfile?.user_id) {
       toast({
         title: "Acción no permitida",
         description: "No puedes eliminarte a ti mismo",
@@ -362,7 +371,7 @@ export default function PanelDeControl() {
       const { error } = await supabase
         .from('user_profiles')
         .delete()
-        .eq('id', userId);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -386,7 +395,7 @@ export default function PanelDeControl() {
       const { error } = await supabase
         .from('user_profiles')
         .update({ status: newStatus })
-        .eq('id', userId);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -406,7 +415,7 @@ export default function PanelDeControl() {
   };
 
   const handleChangeRole = async (userId: string, newRole: string) => {
-    if (userId === currentUserProfile?.id && newRole !== 'ADMINISTRADOR') {
+    if (userId === currentUserProfile?.user_id && newRole !== 'ADMINISTRADOR') {
       toast({
         title: "Acción no permitida",
         description: "No puedes quitarte el rol de administrador a ti mismo",
@@ -419,7 +428,7 @@ export default function PanelDeControl() {
       const { error } = await supabase
         .from('user_profiles')
         .update({ user_role: newRole })
-        .eq('id', userId);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -442,20 +451,19 @@ export default function PanelDeControl() {
     if (!selectedUserAmbito) return;
 
     try {
-      console.log('=== DEBUG: Guardando ámbitos ===');
-      console.log('Usuario completo:', selectedUserAmbito);
-      console.log('ID del usuario:', selectedUserAmbito.id);
-      console.log('user_id del usuario:', selectedUserAmbito.user_id);
-      console.log('Almacenes seleccionados:', almacenesSeleccionados);
+      console.log('🔵 Guardando:', {
+        user_id: selectedUserAmbito.user_id,
+        almacenes_a_guardar: almacenesSeleccionados,
+        cantidad: almacenesSeleccionados.length
+      });
 
       const { data, error } = await supabase
         .from('user_profiles')
         .update({ ambito_almacenes: almacenesSeleccionados })
         .eq('user_id', selectedUserAmbito.user_id)
-        .select();
+        .select('user_id, ambito_almacenes');
 
-      console.log('Respuesta de Supabase - data:', data);
-      console.log('Respuesta de Supabase - error:', error);
+      console.log('🟢 Respuesta UPDATE:', { data, error });
 
       if (error) throw error;
 
@@ -463,16 +471,15 @@ export default function PanelDeControl() {
 
       toast({
         title: "Ámbitos actualizados",
-        description: "Los almacenes visibles se guardaron correctamente",
+        description: `${almacenesSeleccionados.length} almacenes guardados correctamente`,
       });
 
       setShowAmbitoModal(false);
     } catch (error: any) {
-      console.error('Error guardando ámbitos:', error);
-      console.error('Error completo:', JSON.stringify(error, null, 2));
+      console.error('🔴 Error guardando ámbitos:', error);
       toast({
         title: "Error al guardar ámbitos",
-        description: error.message || "No se pudieron guardar los ámbitos. Verifica los permisos de actualización.",
+        description: error.message || "No se pudieron guardar los ámbitos",
         variant: "destructive",
       });
     }
@@ -578,15 +585,15 @@ export default function PanelDeControl() {
                   .slice(startIndex, endIndex)
                   .map((user) => (
                     <tr
-                      key={user.id}
+                      key={user.user_id}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
                       {/* Checkbox */}
                       <td className="py-4 px-6">
                         <input
                           type="checkbox"
-                          checked={selectedUsers.includes(user.id)}
-                          onChange={() => toggleUserSelection(user.id)}
+                          checked={selectedUsers.includes(user.user_id)}
+                          onChange={() => toggleUserSelection(user.user_id)}
                           className="w-4 h-4 rounded cursor-pointer"
                         />
                       </td>
@@ -612,7 +619,7 @@ export default function PanelDeControl() {
                       <td className="py-4 px-6">
                         <select
                           value={user.status || 'PENDIENTE'}
-                          onChange={(e) => handleChangeStatus(user.id, e.target.value)}
+                          onChange={(e) => handleChangeStatus(user.user_id, e.target.value)}
                           className={`${getStatusColor(user.status)} text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer border-none outline-none`}
                         >
                           <option value="ACTIVO" className="bg-white text-gray-800">Activo</option>
@@ -625,7 +632,7 @@ export default function PanelDeControl() {
                       <td className="py-4 px-6">
                         <select
                           value={user.user_role || 'CONSULTAS'}
-                          onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                          onChange={(e) => handleChangeRole(user.user_id, e.target.value)}
                           className="px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-700 cursor-pointer"
                         >
                           <option value="ADMINISTRADOR">Administrador</option>
@@ -670,7 +677,7 @@ export default function PanelDeControl() {
                             <Edit2 className="w-4 h-4 text-gray-600" />
                           </button>
                           <button
-                            onClick={() => handleDeleteUser(user.id, user.name || user.email)}
+                            onClick={() => handleDeleteUser(user.user_id, user.name || user.email)}
                             className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                             title="Eliminar usuario"
                           >
