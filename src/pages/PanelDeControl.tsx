@@ -85,6 +85,11 @@ export default function PanelDeControl() {
           : (user.ambito_almacenes ? [] : [])
       }));
 
+      console.log('🟡 Usuarios recargados después de guardar:', processedData.map(u => ({
+        email: u.email,
+        ambito_almacenes: u.ambito_almacenes,
+        cantidad: u.ambito_almacenes?.length || 0
+      })));
 
       setUsers(processedData);
     } catch (error: any) {
