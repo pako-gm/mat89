@@ -72,26 +72,19 @@ export default function PanelDeControl() {
       setLoading(true);
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('user_id, name, email, user_role, status, created_at, updated_at, ambito_almacenes')
+        .select('id, user_id, nombre_usuario, email, user_role, status, created_at, updated_at, ambito_almacenes, is_active')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      console.log('📦 Datos RAW desde Supabase:', data?.[0]);
-
       // Procesar los datos para asegurar que ambito_almacenes sea un array
       const processedData = (data || []).map(user => ({
         ...user,
+        name: user.nombre_usuario, // Mapear nombre_usuario a name
         ambito_almacenes: Array.isArray(user.ambito_almacenes)
           ? user.ambito_almacenes
           : (user.ambito_almacenes ? [] : [])
       }));
-
-      console.log('🟡 Usuarios recargados después de guardar:', processedData.map(u => ({
-        email: u.email,
-        ambito_almacenes: u.ambito_almacenes,
-        cantidad: u.ambito_almacenes?.length || 0
-      })));
 
       setUsers(processedData);
     } catch (error: any) {
@@ -292,7 +285,7 @@ export default function PanelDeControl() {
         .from('user_profiles')
         .insert([{
           user_id: authData.user!.id,
-          name: newUserData.name || null,
+          nombre_usuario: newUserData.name || null,
           email: newUserData.email,
           user_role: newUserData.user_role,
           status: newUserData.status
@@ -334,7 +327,7 @@ export default function PanelDeControl() {
       const { error } = await supabase
         .from('user_profiles')
         .update({
-          name: editingUser.name,
+          nombre_usuario: editingUser.name,
         })
         .eq('user_id', editingUser.user_id);
 
