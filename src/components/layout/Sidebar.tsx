@@ -69,7 +69,7 @@ export default function Sidebar() {
           const { data: profile, error: profileError } = await supabase
             .from("user_profiles")
             .select("nombre_usuario")
-            .eq("id", user.id)
+            .eq("user_id", user.id)
             .single();
 
           if (profileError) {
