@@ -72,10 +72,12 @@ export default function PanelDeControl() {
       setLoading(true);
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('user_id, name, email, user_role, status, created_at, updated_at, ambito_almacenes')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      console.log('📦 Datos RAW desde Supabase:', data?.[0]);
 
       // Procesar los datos para asegurar que ambito_almacenes sea un array
       const processedData = (data || []).map(user => ({
