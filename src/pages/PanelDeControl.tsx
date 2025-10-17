@@ -274,7 +274,7 @@ export default function PanelDeControl() {
     if (!newUserData.email.toLowerCase().endsWith('@renfe.es')) {
       toast({
         title: "Dominio no permitido",
-        description: "Solo se permiten correos electrónicos con el dominio empresarial",
+        description: "Solo se permiten altas de usuarios con el dominio empresarial",
         variant: "destructive",
       });
       return;
