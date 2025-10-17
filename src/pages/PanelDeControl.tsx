@@ -464,6 +464,8 @@ export default function PanelDeControl() {
         .select('user_id, ambito_almacenes');
 
       console.log('🟢 Respuesta UPDATE:', { data, error });
+      console.log('🟢 ambito_almacenes guardado:', data?.[0]?.ambito_almacenes);
+      console.log('🟢 Tipo:', typeof data?.[0]?.ambito_almacenes, 'Array?', Array.isArray(data?.[0]?.ambito_almacenes));
 
       if (error) throw error;
 
