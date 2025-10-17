@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, LogOut, Settings, X
+  ChevronsLeft, ChevronsRight, LogOut, Settings, X, AlertTriangle
 } from 'lucide-react';
 
 // Constantes de colores
@@ -49,9 +49,11 @@ export default function PanelDeControl() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAmbitoModal, setShowAmbitoModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedUserAmbito, setSelectedUserAmbito] = useState<UserProfile | null>(null);
+  const [userToDelete, setUserToDelete] = useState<{ userId: string; userName: string } | null>(null);
 
   // Estados de formularios
   const [newUserData, setNewUserData] = useState({
@@ -268,6 +270,16 @@ export default function PanelDeControl() {
       return;
     }
 
+    // Validar que el email sea del dominio @renfe.es
+    if (!newUserData.email.toLowerCase().endsWith('@renfe.es')) {
+      toast({
+        title: "Dominio no permitido",
+        description: "Solo se permiten correos electrónicos con el dominio empresarial",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Crear usuario en Auth (requiere permisos de admin)
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -351,7 +363,7 @@ export default function PanelDeControl() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  const handleDeleteUser = (userId: string, userName: string) => {
     if (userId === currentUserProfile?.user_id) {
       toast({
         title: "Acción no permitida",
@@ -361,30 +373,46 @@ export default function PanelDeControl() {
       return;
     }
 
-    const confirmDelete = window.confirm(
-      `¿Estás seguro de que deseas eliminar a ${userName}? Esta acción no se puede deshacer.`
-    );
+    // Mostrar modal de confirmación
+    setUserToDelete({ userId, userName });
+    setShowDeleteModal(true);
+  };
 
-    if (!confirmDelete) return;
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
 
     try {
-      const { error } = await supabase
+      // 1. Eliminar del sistema de autenticación (auth.users)
+      // Nota: Esta operación requiere privilegios de admin
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        userToDelete.userId
+      );
+
+      if (authError) {
+        console.warn('No se pudo eliminar de auth.users (puede requerir función Edge):', authError);
+      }
+
+      // 2. Eliminar perfil de usuario
+      const { error: profileError } = await supabase
         .from('user_profiles')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', userToDelete.userId);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
       await fetchUsers();
 
       toast({
         title: "Usuario eliminado",
-        description: `${userName} ha sido eliminado correctamente`,
+        description: `${userToDelete.userName} ha sido eliminado correctamente`,
       });
+
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "No se pudo eliminar el usuario",
+        description: error.message || "No se pudo eliminar el usuario",
         variant: "destructive",
       });
     }
@@ -824,7 +852,7 @@ export default function PanelDeControl() {
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="usuario@ejemplo.com"
+                  placeholder="usuario@renfe.es"
                 />
               </div>
 
@@ -1041,6 +1069,56 @@ export default function PanelDeControl() {
               >
                 Guardar Cambios
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Confirmación de Eliminación */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex flex-col items-center text-center">
+              {/* Icono de advertencia */}
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+
+              {/* Título */}
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                ¿Eliminar Usuario?
+              </h2>
+
+              {/* Mensaje */}
+              <p className="text-gray-600 mb-2">
+                ¿Estás seguro de que deseas eliminar a
+              </p>
+              <p className="font-semibold text-gray-800 mb-4">
+                {userToDelete.userName}?
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                Esta acción no se puede deshacer. El usuario será eliminado permanentemente del sistema.
+              </p>
+
+              {/* Botones */}
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setUserToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
         </div>
