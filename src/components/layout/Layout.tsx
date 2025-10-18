@@ -5,19 +5,26 @@ import { getUserRole, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Layout() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserData = async () => {
       const role = await getUserRole();
       setUserRole(role);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email ?? "");
+      }
     };
-    
-    fetchUserRole();
+
+    fetchUserData();
   }, []);
 
   const handleSignOut = async () => {
@@ -35,21 +42,18 @@ export default function Layout() {
         <Sidebar />
       </div>
       <div className="flex-1 overflow-auto">
-        <div className="flex justify-end items-center px-6 py-2 border-b">
-          <div className="flex items-center gap-4">
-            {userRole && (
-              <span className="text-[11px] text-gray-600">
-                Rol: <span className="font-medium">{userRole.charAt(0) + userRole.slice(1).toLowerCase()}</span>
-              </span>
-            )}
+        <div className="flex justify-end items-center px-6 py-3 border-b bg-white">
+          <div className="flex items-center gap-3 px-4 py-2">
+            <div className="flex flex-col items-start">
+              <span className="text-xs text-gray-600">Sesión iniciada como:</span>
+              <span className="text-sm font-medium text-gray-800">{userEmail}</span>
+            </div>
             <Button
-              variant="ghost"
-              size="sm"
               onClick={handleSignOut}
-              className="text-gray-700 hover:bg-gray-100 h-8 px-2"
+              className="bg-red-500 hover:bg-red-600 text-white h-9 px-4"
             >
-              <LogOut className="h-4 w-4 mr-1" />
-              <span className="text-[11px]">Cerrar sesión</span>
+              <LogOut className="h-4 w-4 mr-2" />
+              Cerrar Sesión
             </Button>
           </div>
         </div>

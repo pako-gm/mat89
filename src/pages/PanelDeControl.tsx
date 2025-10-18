@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, LogOut, Settings, X, AlertTriangle
+  ChevronsLeft, ChevronsRight, Settings, X, AlertTriangle, User, AlertCircle, ChevronDown
 } from 'lucide-react';
 
 // Constantes de colores
@@ -28,18 +27,18 @@ interface Almacen {
 }
 
 export default function PanelDeControl() {
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Estados principales
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
 
   // Estados de filtros y búsqueda
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [filterRole, setFilterRole] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
 
   // Estados de paginación
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -102,7 +101,6 @@ export default function PanelDeControl() {
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user);
 
     if (user) {
       const { data } = await supabase
@@ -155,25 +153,6 @@ export default function PanelDeControl() {
       setAlmacenesSeleccionados(selectedUserAmbito.ambito_almacenes || []);
     }
   }, [selectedUserAmbito]);
-
-  // ============ FUNCIONES DE AUTENTICACIÓN ============
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión correctamente",
-      });
-      navigate('/login');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
-        variant: "destructive",
-      });
-    }
-  };
 
   // ============ FUNCIONES AUXILIARES ============
 
@@ -237,8 +216,18 @@ export default function PanelDeControl() {
     const matchSearch =
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchSearch;
+
+    const matchRole = filterRole === '' || user.user_role === filterRole;
+    const matchStatus = filterStatus === '' || user.status === filterStatus;
+
+    return matchSearch && matchRole && matchStatus;
   });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterRole('');
+    setFilterStatus('');
+  };
 
   // ============ FUNCIONES DE PAGINACIÓN ============
 
@@ -534,8 +523,8 @@ export default function PanelDeControl() {
 
       {/* Barra de filtros y búsqueda */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Izquierda - Botón Add User */}
+        <div className="flex items-center gap-4 w-full">
+          {/* Botón Add User */}
           <button
             onClick={() => setShowAddUserModal(true)}
             className="flex items-center gap-2 px-6 py-3 text-white rounded-full hover:opacity-90 transition-colors shadow-md"
@@ -545,37 +534,61 @@ export default function PanelDeControl() {
             <span className="font-medium">Agregar Usuario</span>
           </button>
 
-          {/* Centro - Búsqueda */}
-          <div className="flex items-center gap-4 flex-1 justify-center">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar usuarios..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-72 pl-12 pr-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-200"
-                style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
-              />
-            </div>
+          {/* Búsqueda - Ocupa todo el espacio disponible */}
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar usuarios..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-200"
+              style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
+            />
           </div>
 
-          {/* Derecha - Info sesión */}
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Sesión iniciada como:</p>
-              <p className="font-semibold text-gray-900">
-                {currentUser?.email || 'Cargando...'}
-              </p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-md"
+          {/* Filtro Rol */}
+          <div className="relative w-48">
+            <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="w-full pl-12 pr-10 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-200 appearance-none cursor-pointer text-gray-600"
+              style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
             >
-              <LogOut className="w-4 h-4" />
-              <span className="font-medium">Cerrar Sesión</span>
-            </button>
+              <option value="">Roles</option>
+              <option value="ADMINISTRADOR">Administrador</option>
+              <option value="EDICION">Edición</option>
+              <option value="CONSULTAS">Consultas</option>
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
+
+          {/* Filtro Status */}
+          <div className="relative w-48">
+            <AlertCircle className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full pl-12 pr-10 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-200 appearance-none cursor-pointer text-gray-600"
+              style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
+            >
+              <option value="">Estados</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="INACTIVO">Inactivo</option>
+              <option value="PENDIENTE">Pendiente</option>
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+          </div>
+
+          {/* Botón Borrar Filtros */}
+          <button
+            onClick={clearFilters}
+            className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+            title="Borrar filtros"
+          >
+            <Trash2 className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+          </button>
         </div>
       </div>
 

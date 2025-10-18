@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Database, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
 import { getUserRole } from "@/lib/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarItemProps {
   icon?: React.ReactNode;
@@ -53,49 +51,15 @@ const SidebarItem = ({ icon, label, path, active, disabled }: SidebarItemProps) 
 
 export default function Sidebar() {
   const currentPath = window.location.pathname;
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [userRole, setUserRole] = useState<string | null>(null);
-  
+
   useEffect(() => {
-    const getCurrentUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserEmail(user.email ?? "");
-
-          // Fetch user name from user_profiles table
-          const { data: profile, error: profileError } = await supabase
-            .from("user_profiles")
-            .select("nombre_usuario")
-            .eq("user_id", user.id)
-            .single();
-
-          if (profileError) {
-            // This can happen if no profile row exists yet for the user.
-            console.log("Could not fetch user profile, using fallback:", profileError.message);
-          }
-
-          // Use name from profile, or fallback to the part of the email before '@'
-          const name = profile?.nombre_usuario || user.email?.split('@')[0] || "";
-          setUserName(name);
-          
-          // Get user role
-          const role = await getUserRole();
-          setUserRole(role);
-        }
-      } catch (error) {
-        console.error("Error getting user:", error);
-      }
+    const fetchUserRole = async () => {
+      const role = await getUserRole();
+      setUserRole(role);
     };
-    
-    getCurrentUser();
 
-    // Generate a random avatar URL on component mount
-    const randomAvatarId = Math.floor(Math.random() * 16) + 1; // Assuming avatars 1-16 exist
-    const url = `https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-${randomAvatarId}.png`;
-    setAvatarUrl(url);
+    fetchUserRole();
   }, []);
 
   return (
@@ -159,24 +123,6 @@ export default function Sidebar() {
             />
           )}
         </div>
-      </div>
-
-      {/* User section at bottom */}
-      <div className="flex flex-col items-center p-4 border-t border-gray-200 mt-auto">
-        <Avatar className="h-16 w-16 mb-2">
-          <AvatarImage src={avatarUrl} alt={userName || "User Avatar"} />
-          <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
-        </Avatar>
-        {userEmail ? (
-          <div className="text-center w-full px-2 mb-4">
-            <p className="text-sm font-semibold text-gray-800 capitalize break-words">
-              {userName}
-            </p>
-            <p className="text-xs text-gray-500 break-all">{userEmail}</p>
-          </div>
-        ) : (
-          <p className="text-sm font-medium text-gray-700 mb-4">Cargando...</p>
-        )}
       </div>
 
       {/* Footer with dynamic copyright */}
