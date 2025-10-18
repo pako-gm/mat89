@@ -26,7 +26,6 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   className = "",
   error = false
 }, ref) => {
-  const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
   const [suggestions, setSuggestions] = useState<Material[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -51,19 +50,25 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   // Búsqueda incremental de sugerencias
   useEffect(() => {
     const searchSuggestions = async () => {
+      console.log('[MaterialAutocompleteInput] Value:', value, 'Length:', value.length);
+
       // Solo buscar si tiene al menos 4 dígitos y empieza con 89
       if (value.length >= 4 && value.startsWith('89') && value.length < 8) {
+        console.log('[MaterialAutocompleteInput] Searching suggestions for:', value);
         try {
           const results = await searchMaterialsByRegistration(value);
+          console.log('[MaterialAutocompleteInput] Results:', results);
           setSuggestions(results.slice(0, 5)); // Máximo 5 sugerencias
           setShowDropdown(results.length > 0);
           setSelectedIndex(-1);
+          console.log('[MaterialAutocompleteInput] Dropdown visible:', results.length > 0);
         } catch (error) {
-          console.error('Error searching materials:', error);
+          console.error('[MaterialAutocompleteInput] Error searching materials:', error);
           setSuggestions([]);
           setShowDropdown(false);
         }
       } else {
+        console.log('[MaterialAutocompleteInput] Not searching - conditions not met');
         setSuggestions([]);
         setShowDropdown(false);
       }
@@ -89,7 +94,6 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
     const validateAndAutofill = async () => {
       // Solo validar si la matrícula tiene 8 dígitos y empieza con 89
       if (value.length === 8 && value.startsWith('89')) {
-        setIsValidating(true);
         setValidationError("");
         try {
           const material = await getMaterialByRegistration(parseInt(value));
@@ -102,8 +106,6 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
           }
         } catch (error) {
           console.error('Error validating material:', error);
-        } finally {
-          setIsValidating(false);
         }
       }
     };
@@ -234,13 +236,6 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
         <div className="text-xs text-red-500 mt-1 flex items-center gap-1">
           <AlertCircle className="h-3 w-3" />
           <span>{validationError}</span>
-        </div>
-      )}
-
-      {/* Loading indicator */}
-      {isValidating && (
-        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#91268F] border-t-transparent"></div>
         </div>
       )}
     </div>

@@ -182,20 +182,37 @@ export const searchMaterialsByRegistration = async (registrationQuery: string): 
     return [];
   }
 
+  console.log('[searchMaterialsByRegistration] Searching for:', registrationQuery);
+
+  // Obtener materiales que sean mayores o iguales al número buscado
+  // Luego filtraremos localmente para obtener solo los que EMPIEZAN con esos dígitos
   const { data: materials, error } = await supabase
     .from('tbl_materiales')
     .select('*')
-    .filter('matricula_89', 'gte', parseInt(registrationQuery))
-    .filter('matricula_89', 'lt', parseInt(registrationQuery) + Math.pow(10, Math.max(0, 8 - registrationQuery.length)))
+    .or(`matricula_89.eq.${registrationQuery},matricula_89.gt.${registrationQuery}`)
     .order('matricula_89', { ascending: true })
-    .limit(10);
+    .limit(50);
 
   if (error) {
-    console.error('Error searching materials:', error);
+    console.error('[searchMaterialsByRegistration] Error:', error);
     return [];
   }
 
-  return materials.map(material => ({
+  if (!materials || materials.length === 0) {
+    console.log('[searchMaterialsByRegistration] No materials found');
+    return [];
+  }
+
+  // Filtrar localmente para asegurar que EMPIECEN con los dígitos
+  const filtered = materials.filter(material => {
+    const matStr = String(material.matricula_89);
+    return matStr.startsWith(registrationQuery);
+  }).slice(0, 10); // Limitar a 10 resultados
+
+  console.log('[searchMaterialsByRegistration] Found materials:', filtered.length);
+  console.log('[searchMaterialsByRegistration] Filtered results:', filtered.map(m => m.matricula_89));
+
+  return filtered.map(material => ({
     id: material.id,
     registration: material.matricula_89,
     description: material.descripcion,
