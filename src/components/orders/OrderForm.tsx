@@ -87,6 +87,9 @@ export default function OrderForm({
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
 
+  // Referencias para los inputs de cantidad
+  const quantityInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
   // Initialize order state with proper defaults
   const [order, setOrder] = useState<Order>(() => {
     return {
@@ -1306,6 +1309,12 @@ export default function OrderForm({
                             handleMaterialRegistrationChange(line.id, registration, description)
                           }
                           onMaterialNotFound={(registration) => handleMaterialNotFound(registration, line.id)}
+                          onSelectionComplete={() => {
+                            const quantityInput = quantityInputRefs.current.get(line.id);
+                            if (quantityInput) {
+                              setTimeout(() => quantityInput.focus(), 0);
+                            }
+                          }}
                           placeholder="89xxxxxx"
                           className={errors.orderLines && !String(line.registration).trim() ? 'border-red-500' : ''}
                           error={errors.orderLines && !String(line.registration).trim()}
@@ -1336,6 +1345,13 @@ export default function OrderForm({
                         </div>
                       ) : (
                         <Input
+                          ref={(el) => {
+                            if (el) {
+                              quantityInputRefs.current.set(line.id, el);
+                            } else {
+                              quantityInputRefs.current.delete(line.id);
+                            }
+                          }}
                           name="quantity"
                           type="number"
                           min="1"

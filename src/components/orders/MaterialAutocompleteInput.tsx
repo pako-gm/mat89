@@ -8,6 +8,7 @@ interface MaterialAutocompleteInputProps {
   value: string;
   onChange: (registration: string, description?: string) => void;
   onMaterialNotFound: (registration: string) => void;
+  onSelectionComplete?: () => void;
   placeholder?: string;
   className?: string;
   error?: boolean;
@@ -22,6 +23,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
   value,
   onChange,
   onMaterialNotFound,
+  onSelectionComplete,
   placeholder = "89xxxxxx",
   className = "",
   error = false
@@ -58,7 +60,7 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
         try {
           const results = await searchMaterialsByRegistration(value);
           console.log('[MaterialAutocompleteInput] Results:', results);
-          setSuggestions(results.slice(0, 5)); // Máximo 5 sugerencias
+          setSuggestions(results.slice(0, 10)); // Máximo 10 sugerencias
           setShowDropdown(results.length > 0);
           setSelectedIndex(-1);
           console.log('[MaterialAutocompleteInput] Dropdown visible:', results.length > 0);
@@ -167,6 +169,14 @@ const MaterialAutocompleteInput = forwardRef<MaterialAutocompleteInputRef, Mater
     setShowDropdown(false);
     setSuggestions([]);
     setSelectedIndex(-1);
+
+    // Llamar al callback para mover el foco al siguiente campo
+    if (onSelectionComplete) {
+      // Usar setTimeout para asegurar que el onChange se complete primero
+      setTimeout(() => {
+        onSelectionComplete();
+      }, 0);
+    }
   };
 
   // Cerrar dropdown al hacer click fuera
