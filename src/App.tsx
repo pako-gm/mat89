@@ -25,11 +25,11 @@ function RoleBasedRedirect() {
         if (sessionData.user) {
           const { data: profileData } = await supabase
             .from('user_profiles')
-            .select('role')
-            .eq('id', sessionData.user.id)
+            .select('user_role')
+            .eq('user_id', sessionData.user.id)
             .maybeSingle();
-          
-          setUserRole(profileData?.role || 'CONSULTAS');
+
+          setUserRole(profileData?.user_role || 'CONSULTAS');
         }
       } catch (error) {
         console.error('Error fetching user role:', error);
@@ -38,7 +38,7 @@ function RoleBasedRedirect() {
         setLoading(false);
       }
     };
-    
+
     fetchUserRole();
   }, []);
 
