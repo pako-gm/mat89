@@ -182,7 +182,7 @@ export default function ConsultaPage() {
           }
           .info-left {
             font-size: 14px;
-            color: #333;
+            color: #334155;
           }
           .info-right {
             font-size: 12px;
@@ -202,7 +202,7 @@ export default function ConsultaPage() {
           th {
             background-color: #f8f9fa;
             font-weight: bold;
-            color: #333;
+            color: #334155;
           }
           tr:nth-child(even) {
             background-color: #f9f9f9;
@@ -324,7 +324,7 @@ export default function ConsultaPage() {
         </table>
         
         <div class="footer">
-          <span style="color: #91268F; font-weight: bold;">{</span>© fgm-dev<span style="color: #91268F; font-weight: bold;">}</span> ${new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
+          <span style="color: #334155; font-weight: bold;">[© fgm-dev]</span> ${new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
         </div>
       </body>
       </html>

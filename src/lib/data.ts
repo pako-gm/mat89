@@ -177,7 +177,7 @@ const getMaterialById = async (id: string): Promise<Material | null> => {
 };
 
 // Nueva función: Buscar materiales por matrícula (para autorrellenado)
-const searchMaterialsByRegistration = async (registrationQuery: string): Promise<Material[]> => {
+export const searchMaterialsByRegistration = async (registrationQuery: string): Promise<Material[]> => {
   if (!registrationQuery || registrationQuery.length < 2) {
     return [];
   }

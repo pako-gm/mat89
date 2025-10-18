@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send } from "lucide-react";
+import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -1268,7 +1268,16 @@ export default function OrderForm({
               <Card className={`border-gray-200 ${errors.orderLines && !isReadOnly ? 'border-red-500' : ''}`}>
                 <CardContent className="p-4">
                   <div className="grid grid-cols-[2fr,3fr,1fr,2fr,auto] gap-4 mb-2">
-                    <Label className="text-sm font-medium"><span className="text-red-500">*</span> Matrícula 89</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-sm font-medium"><span className="text-red-500">*</span> Matrícula 89</Label>
+                      <div className="group relative inline-block">
+                        <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                        <div className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50">
+                          La descripción se completará automáticamente al ingresar los 8 dígitos de la matrícula
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      </div>
+                    </div>
                     <Label className="text-sm font-medium">Descripción Pieza</Label>
                     <Label className="text-sm font-medium"><span className="text-red-500">*</span> Cant.</Label>
                     <Label className="text-sm font-medium">Num. Serie</Label>
