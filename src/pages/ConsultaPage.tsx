@@ -561,36 +561,6 @@ export default function ConsultaPage() {
         )}
       </div>
 
-      {/* Summary Section */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-[#91268F]">
-              {consultationData.length}
-            </div>
-            <div className="text-sm text-gray-600">Total Registros</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-green-600">
-              {consultationData.filter(r => r.estadoRecepc === 'UTIL').length}
-            </div>
-            <div className="text-sm text-gray-600">Útiles</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-red-600">
-              {consultationData.filter(r => r.estadoRecepc === 'IRREPARABLE').length}
-            </div>
-            <div className="text-sm text-gray-600">Irreparables</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-500">
-              {consultationData.filter(r => !r.estadoRecepc).length}
-            </div>
-            <div className="text-sm text-gray-600">Sin Recepción</div>
-          </div>
-        </div>
-      </div>
-
       {/* Print Modal */}
       <PrintModal
         open={showPrintModal}
