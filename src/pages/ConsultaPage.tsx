@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { ConsultaRecord } from "@/types";
 import { getConsultationData } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Search, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
   ChevronsRight,
   RefreshCw,
-  Download
+  Download,
+  X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -88,18 +89,21 @@ export default function ConsultaPage() {
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = consultationData.filter(record =>
-      String(record.numPedido || '').toLowerCase().includes(query) ||
-      String(record.mat89 || '').toLowerCase().includes(query) ||
-      String(record.proveedor || '').toLowerCase().includes(query) ||
-      String(record.descripcion || '').toLowerCase().includes(query) ||
-      String(record.vehiculo || '').toLowerCase().includes(query) ||
-      String(record.fechaEnvio || '').includes(query) ||
-      (record.numSerieEnv && String(record.numSerieEnv).toLowerCase().includes(query)) ||
-      (record.fechaRecepc && String(record.fechaRecepc).includes(query)) ||
-      (record.numSerieRec && String(record.numSerieRec).toLowerCase().includes(query)) ||
-      (record.estadoRecepc && String(record.estadoRecepc).toLowerCase().includes(query))
-    );
+    const filtered = consultationData.filter(record => {
+      // Si no hay estado de recepción, buscar por "sin recepción"
+      const estadoParaBusqueda = record.estadoRecepc || 'sin recepción';
+
+      return String(record.numPedido || '').toLowerCase().includes(query) ||
+        String(record.mat89 || '').toLowerCase().includes(query) ||
+        String(record.proveedor || '').toLowerCase().includes(query) ||
+        String(record.descripcion || '').toLowerCase().includes(query) ||
+        String(record.vehiculo || '').toLowerCase().includes(query) ||
+        String(record.fechaEnvio || '').includes(query) ||
+        (record.numSerieEnv && String(record.numSerieEnv).toLowerCase().includes(query)) ||
+        (record.fechaRecepc && String(record.fechaRecepc).includes(query)) ||
+        (record.numSerieRec && String(record.numSerieRec).toLowerCase().includes(query)) ||
+        String(estadoParaBusqueda).toLowerCase().includes(query);
+    });
 
     setFilteredData(filtered);
     setCurrentPage(1);
@@ -235,6 +239,13 @@ export default function ConsultaPage() {
             border-radius: 3px;
             font-size: 9px;
           }
+          .status-sin-recepcion {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+          }
           .footer {
             margin-top: 30px;
             text-align: center;
@@ -316,7 +327,7 @@ export default function ConsultaPage() {
                 <td>${formatDate(record.fechaRecepc)}</td>
                 <td>${record.cantRec !== null ? record.cantRec : '--'}</td>
                 <td>${record.numSerieRec || '--'}</td>
-                <td>${record.estadoRecepc ? `<span class="status-${record.estadoRecepc.toLowerCase().replace(' ', '-')}">${record.estadoRecepc}</span>` : '<span class="status-sin-recepcionar">SIN RECEPCIONAR</span>'}</td>
+                <td>${record.estadoRecepc ? `<span class="status-${record.estadoRecepc.toLowerCase().replace(' ', '-')}">${record.estadoRecepc}</span>` : '<span class="status-sin-recepcion">SIN RECEPCIÓN</span>'}</td>
                 <td>${record.observaciones || '--'}</td>
               </tr>
             `).join('')}
@@ -342,52 +353,50 @@ export default function ConsultaPage() {
   return (
     <div className="max-w-full mx-auto">
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-medium">Consulta de Envíos y Recepciones</h1>
-        <div className="flex gap-3">
-          <Button 
-            onClick={handleDownloadData}
-            disabled={isLoading}
-            className="flex items-center gap-2 bg-[#2BA6FF] hover:bg-[#2196F3] text-white"
-          >
-            <Download className="h-4 w-4" />
-            Descargar Datos
-          </Button>
-          <Button 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-medium mb-4">Consulta de Envíos y Recepciones</h1>
       </div>
 
       {/* Search Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-3 items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Buscar envíos por... (número pedido, matrícula, proveedor, descripción, vehículo, fecha envío, número serie, fecha recepción, estado recepción)"
+              placeholder="Buscar envíos por... cualquier dato de la tabla"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-9"
             />
           </div>
-          {searchQuery && (
-            <Button 
-              variant="outline" 
-              onClick={() => setSearchQuery('')}
-              className="h-9"
-            >
-              Limpiar
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => setSearchQuery('')}
+            className="h-9 flex items-center gap-2"
+            disabled={!searchQuery}
+          >
+            <X className="h-4 w-4" />
+            Borrar Filtro
+          </Button>
+          <Button
+            onClick={handleDownloadData}
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-[#2BA6FF] hover:bg-[#2196F3] text-white h-9"
+          >
+            <Download className="h-4 w-4" />
+            Descargar Datos
+          </Button>
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            variant="outline"
+            className="flex items-center gap-2 h-9"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
         </div>
-        
+
         {filteredData.length !== consultationData.length && (
           <div className="mt-3 text-sm text-gray-600">
             Mostrando {filteredData.length} de {consultationData.length} registros
@@ -476,13 +485,9 @@ export default function ConsultaPage() {
                       {record.numSerieRec || "--"}
                     </TableCell>
                     <TableCell className="text-center border-r text-sm">
-                      {record.estadoRecepc ? (
-                        <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs font-medium ${getStatusColor(record.estadoRecepc)}`}>
-                          {record.estadoRecepc}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">Sin recepción</span>
-                      )}
+                      <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs font-medium ${getStatusColor(record.estadoRecepc)}`}>
+                        {record.estadoRecepc || 'SIN RECEPCIÓN'}
+                      </span>
                     </TableCell>
                     <TableCell className="text-sm max-w-[200px] truncate" title={record.observaciones || ''}>
                       {record.observaciones || "--"}
