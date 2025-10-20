@@ -34,7 +34,7 @@ export default function ConsultaPage() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [htmlContent, setHtmlContent] = useState("");
   const { toast } = useToast();
-  const recordsPerPage = 50;
+  const recordsPerPage = 10;
 
   useEffect(() => {
     fetchConsultationData();
@@ -353,8 +353,27 @@ export default function ConsultaPage() {
   return (
     <div className="max-w-full mx-auto">
       {/* Header Section */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-medium mb-4">Consulta de Envíos y Recepciones</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-medium">Consulta de Envíos y Recepciones</h1>
+        <div className="flex gap-3">
+          <Button
+            onClick={handleDownloadData}
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-[#2BA6FF] hover:bg-[#2196F3] text-white h-9"
+          >
+            <Download className="h-4 w-4" />
+            Descargar Datos
+          </Button>
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            variant="outline"
+            className="flex items-center gap-2 h-9"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
       </div>
 
       {/* Search Section */}
@@ -377,23 +396,6 @@ export default function ConsultaPage() {
           >
             <X className="h-4 w-4" />
             Borrar Filtro
-          </Button>
-          <Button
-            onClick={handleDownloadData}
-            disabled={isLoading}
-            className="flex items-center gap-2 bg-[#2BA6FF] hover:bg-[#2196F3] text-white h-9"
-          >
-            <Download className="h-4 w-4" />
-            Descargar Datos
-          </Button>
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            variant="outline"
-            className="flex items-center gap-2 h-9"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Actualizar
           </Button>
         </div>
 

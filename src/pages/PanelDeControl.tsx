@@ -17,6 +17,7 @@ interface UserProfile {
   user_role: string;
   status: string;
   created_at: string;
+  last_sign_in_at: string | null;
   ambito_almacenes?: string[];
 }
 
@@ -73,7 +74,7 @@ export default function PanelDeControl() {
       setLoading(true);
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('id, user_id, nombre_usuario, email, user_role, status, created_at, updated_at, ambito_almacenes, is_active')
+        .select('id, user_id, nombre_usuario, email, user_role, status, created_at, last_sign_in_at, updated_at, ambito_almacenes, is_active')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -618,7 +619,7 @@ export default function PanelDeControl() {
                   <th className="py-4 px-6 text-left font-medium">Email</th>
                   <th className="py-4 px-6 text-left font-medium">Estado</th>
                   <th className="py-4 px-6 text-left font-medium">Rol</th>
-                  <th className="py-4 px-6 text-left font-medium">Fecha Alta</th>
+                  <th className="py-4 px-6 text-left font-medium">Último Acceso</th>
                   <th className="py-4 px-6 text-left font-medium">Ámbito</th>
                   <th className="py-4 px-6 text-left font-medium">Acciones</th>
                 </tr>
@@ -684,9 +685,18 @@ export default function PanelDeControl() {
                         </select>
                       </td>
 
-                      {/* Fecha Alta */}
+                      {/* Último Acceso */}
                       <td className="py-4 px-6 text-gray-600">
-                        {formatDate(user.created_at)}
+                        {user.last_sign_in_at
+                          ? new Date(user.last_sign_in_at).toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : 'Nunca'
+                        }
                       </td>
 
                       {/* Ámbito */}

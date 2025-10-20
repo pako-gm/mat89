@@ -186,9 +186,9 @@ export default function MaterialForm({
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
-    
+
     if (!formData.registration || formData.registration <= 0) {
-      errors.registration = "La matrícula es obligatoria y debe ser mayor a 0";
+      errors.registration = "La matrícula es obligatoria y debe comenzar por 89";
     } else {
       const regStr = formData.registration.toString();
       if (regStr.length !== 8) {

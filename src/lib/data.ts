@@ -124,7 +124,7 @@ export const deleteSupplier = async (id: string) => {
   }
 
   if (orders && orders.length > 0) {
-    throw new Error('No se puede eliminar el proveedor porque tiene pedidos asociados');
+    throw new Error(' No se puede eliminar el proveedor porque tiene pedidos asociados');
   }
 
   // If no orders, proceed with deletion
@@ -201,12 +201,24 @@ export const searchMaterialsByRegistration = async (registrationQuery: string): 
 
   console.log('[searchMaterialsByRegistration] Searching for:', registrationQuery);
 
-  // Obtener materiales que sean mayores o iguales al número buscado
-  // Luego filtraremos localmente para obtener solo los que EMPIEZAN con esos dígitos
+  // Convertir el query string a número para el rango
+  const queryNum = parseInt(registrationQuery);
+
+  // Calcular el rango: por ejemplo, si buscan "89765", buscar entre 89765000 y 89765999
+  // Para eso, multiplicamos por 10^(8-length) para el límite inferior
+  // y sumamos 10^(8-length) - 1 para el límite superior
+  const digitsRemaining = 8 - registrationQuery.length;
+  const lowerBound = queryNum * Math.pow(10, digitsRemaining);
+  const upperBound = (queryNum + 1) * Math.pow(10, digitsRemaining) - 1;
+
+  console.log('[searchMaterialsByRegistration] Range:', lowerBound, 'to', upperBound);
+
+  // Buscar materiales en el rango calculado
   const { data: materials, error } = await supabase
     .from('tbl_materiales')
     .select('*')
-    .or(`matricula_89.eq.${registrationQuery},matricula_89.gt.${registrationQuery}`)
+    .gte('matricula_89', lowerBound)
+    .lte('matricula_89', upperBound)
     .order('matricula_89', { ascending: true })
     .limit(50);
 
@@ -305,6 +317,35 @@ export const saveMaterial = async (material: Material): Promise<any> => {
 };
 
 export const deleteMaterial = async (id: string): Promise<boolean> => {
+  // First, get the material's registration number
+  const { data: material, error: materialError } = await supabase
+    .from('tbl_materiales')
+    .select('matricula_89')
+    .eq('id', id)
+    .single();
+
+  if (materialError) {
+    console.error('Error fetching material:', materialError);
+    throw materialError;
+  }
+
+  // Check if material has associated order lines
+  const { data: orderLines, error: checkError } = await supabase
+    .from('tbl_ln_pedidos_rep')
+    .select('id')
+    .eq('matricula_89', material.matricula_89)
+    .limit(1);
+
+  if (checkError) {
+    console.error('Error checking material order lines:', checkError);
+    throw checkError;
+  }
+
+  if (orderLines && orderLines.length > 0) {
+    throw new Error('No se puede eliminar el material, hay pedidos grabados con esa matricula.');
+  }
+
+  // If no order lines, proceed with deletion
   const { error } = await supabase
     .from('tbl_materiales')
     .delete()
