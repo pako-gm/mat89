@@ -26,7 +26,7 @@ export default function SupplierList({ onViewDetails, refreshTrigger }: Supplier
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const suppliersPerPage = 10;
+  const suppliersPerPage = 5;
 
   useEffect(() => {
     const fetchSuppliers = async () => {

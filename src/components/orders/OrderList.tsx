@@ -58,7 +58,7 @@ export default function OrderList() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const ordersPerPage = 10;
+  const ordersPerPage = 5;
   const [searchQuery, setSearchQuery] = useState("");
 
   // PAR generation modal state

@@ -151,6 +151,14 @@ export default function ReceptionManagement() {
     // Validate fecha_recepcion
     if (!newReception.fechaRecepcion) {
       errors.fechaRecepcion = "La fecha de recepción es obligatoria";
+    } else if (selectedOrder) {
+      // Validate that reception date is equal or greater than shipment date
+      const receptionDate = new Date(newReception.fechaRecepcion);
+      const shipmentDate = new Date(selectedOrder.shipmentDate);
+
+      if (receptionDate < shipmentDate) {
+        errors.fechaRecepcion = "La fecha de recepción debe ser igual o posterior a la fecha de envío";
+      }
     }
 
     // Validate nRec first

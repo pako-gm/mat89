@@ -111,6 +111,23 @@ export const saveSupplier = async (supplier: Supplier) => {
 };
 
 export const deleteSupplier = async (id: string) => {
+  // First check if supplier has associated orders
+  const { data: orders, error: checkError } = await supabase
+    .from('tbl_pedidos_rep')
+    .select('id')
+    .eq('proveedor_id', id)
+    .limit(1);
+
+  if (checkError) {
+    console.error('Error checking supplier orders:', checkError);
+    throw checkError;
+  }
+
+  if (orders && orders.length > 0) {
+    throw new Error('No se puede eliminar el proveedor porque tiene pedidos asociados');
+  }
+
+  // If no orders, proceed with deletion
   const { error } = await supabase
     .from('tbl_proveedores')
     .delete()
