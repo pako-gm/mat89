@@ -364,7 +364,7 @@ export default function ReceptionManagement() {
         <div className="relative flex-1 max-w-2xl">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar por num. Pedido, Proveedor, Matrícula..."
+            placeholder="Buscar por num. Pedido, Proveedor, Almacen..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-9"

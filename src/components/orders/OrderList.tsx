@@ -885,12 +885,26 @@ export default function OrderList() {
 
     return (
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-medium mb-4">Gestión de Pedidos</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-medium">Gestión de Pedidos</h1>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleLanzarPAR}
+              className="bg-[#107C41] hover:bg-[#0D5B2F] text-white"
+            >
+              <Star className="mr-2 h-4 w-4" /> Lanzar PAR
+            </Button>
+            <Button
+              onClick={handleNewOrder}
+              className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Nuevo Pedido
+            </Button>
+          </div>
         </div>
 
-        <div className="flex gap-3 mb-6 items-center">
-          <div className="relative" style={{ flex: '2 1 0%' }}>
+        <div className="flex gap-4 mb-6">
+          <div className="relative flex-1 max-w-2xl">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Buscar por núm. pedido, proveedor, vehículo..."
@@ -901,22 +915,10 @@ export default function OrderList() {
           </div>
           <Button
             variant="outline"
-            className="h-9 hover:bg-gray-50 transition-colors duration-200 whitespace-nowrap"
+            className="h-9 hover:bg-gray-50 transition-colors duration-200"
             onClick={clearFilter}
           >
             Borrar Filtro
-          </Button>
-          <Button
-            onClick={handleLanzarPAR}
-            className="bg-[#107C41] hover:bg-[#0D5B2F] text-white h-9 whitespace-nowrap"
-          >
-            <Star className="mr-2 h-4 w-4" /> Lanzar PAR
-          </Button>
-          <Button
-            onClick={handleNewOrder}
-            className="bg-[#91268F] hover:bg-[#7A1F79] text-white h-9 whitespace-nowrap"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Nuevo Pedido
           </Button>
         </div>
 
