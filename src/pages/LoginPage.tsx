@@ -315,7 +315,8 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={toggleResetMode}
-                    className="text-sm text-[#91268F] hover:underline"
+                    className="text-sm text-gray-400 cursor-not-allowed"
+                    disabled
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
