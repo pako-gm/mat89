@@ -13,6 +13,7 @@ import PanelDeControl from "@/pages/PanelDeControl";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import { supabase } from "@/lib/supabase";
+import { Analytics } from "@vercel/analytics/react";
 
 // Component to handle role-based redirection
 function RoleBasedRedirect() {
@@ -130,6 +131,7 @@ function App() {
         )}
       </Routes>
       <Toaster />
+      <Analytics />
     </BrowserRouter>
   );
 }
