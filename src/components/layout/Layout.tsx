@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import { getUserRole, signOut } from "@/lib/auth";
+import { signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut } from "lucide-react";
@@ -10,14 +10,10 @@ import { supabase } from "@/lib/supabase";
 export default function Layout() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const role = await getUserRole();
-      setUserRole(role);
-
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserEmail(user.email ?? "");

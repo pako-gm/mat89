@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import Layout from "@/components/layout/Layout";
 import OrdersPage from "@/pages/OrdersPage";
 import ReceptionsPage from "@/pages/ReceptionsPage";
@@ -59,12 +60,12 @@ function RoleBasedRedirect() {
 }
 
 function App() {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         setLoading(false);
       }

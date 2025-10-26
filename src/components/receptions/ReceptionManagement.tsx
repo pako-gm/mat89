@@ -47,7 +47,6 @@ export default function ReceptionManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
-  const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showReceptionDialog, setShowReceptionDialog] = useState(false);
   const [selectedLine, setSelectedLine] = useState<OrderLine | null>(null);
@@ -121,7 +120,6 @@ export default function ReceptionManagement() {
       setExpandedOrderId(null);
     } else {
       setExpandedOrderId(order.id);
-      setExpandedLineId(null);
     }
   };
 

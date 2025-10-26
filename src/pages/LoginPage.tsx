@@ -21,7 +21,6 @@ export default function LoginPage() {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,15 +98,10 @@ export default function LoginPage() {
       // Verificar si el correo existe en la base de datos (opcional, Supabase lo hace por nosotros)
       // Pero podríamos agregar una verificación adicional aquí si es necesario
 
-      //Enviar correo de recuperación con Supabase
-      //CODIGO ORIGINAL:
-      const { error } = await supabase.auth.api.resetPasswordForEmail(resetEmail, {
-       redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
+      //Enviar correo de recuperación con Supabase (Supabase v2 syntax)
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
       });
-      //CODIGO DE PRUEBA PARA CORRER EN LOCALHOST:
-      // const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      //   redirectTo: `http://localhost:5173/reset-password`, // Ajusta tu puerto
-      // });
 
       if (error) {
         throw error;
@@ -149,14 +143,6 @@ export default function LoginPage() {
     setIsResetMode(!isResetMode);
     setError(null);
     setResetEmailSent(false);
-  };
-
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  const handleImageLoad = () => {
-    setImageError(false);
   };
 
   return (

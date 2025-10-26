@@ -6,7 +6,7 @@ import { supabase } from './supabase';
  * @param role The required role to check
  * @returns Promise<boolean> True if the user has the specified role
  */
-const hasRole = async (role: 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS'): Promise<boolean> => {
+export const _hasRole = async (role: 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS'): Promise<boolean> => {
   try {
     // First check if the user is authenticated
     const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
@@ -121,7 +121,7 @@ export const signOut = async (): Promise<void> => {
  * @param email The email address to send the reset link to
  * @returns Promise with the result of the operation
  */
-const sendPasswordResetEmail = async (email: string): Promise<{ success: boolean; error?: Error }> => {
+export const _sendPasswordResetEmail = async (email: string): Promise<{ success: boolean; error?: Error }> => {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -146,7 +146,7 @@ const sendPasswordResetEmail = async (email: string): Promise<{ success: boolean
  * @param password The new password
  * @returns Promise with the result of the operation
  */
-const updatePassword = async (password: string): Promise<{ success: boolean; error?: Error }> => {
+export const _updatePassword = async (password: string): Promise<{ success: boolean; error?: Error }> => {
   try {
     const { error } = await supabase.auth.updateUser({
       password: password

@@ -102,7 +102,7 @@ function formatUserName(userEmail: string): string {
 }
 
 // Nueva función para formatear una entrada completa del historial
-function formatCompleteHistoryEntry(change: {
+export function _formatCompleteHistoryEntry(change: {
   date: string;
   user: string;
   description: string;
@@ -146,7 +146,7 @@ function formatNewCommentStyle(change: {
 }
 
 // Nueva función para debuggear comentarios
-function debugComments(changeHistory: Array<{
+export function _debugComments(changeHistory: Array<{
   id: string;
   date: string;
   user: string;

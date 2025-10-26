@@ -11,7 +11,6 @@ import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./Mater
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter
@@ -26,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, PlusCircle, Trash2, Check, MessageCircle, Send, Info } from "lucide-react";
+import { PlusCircle, Trash2, Check, MessageCircle, Send, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -65,7 +64,6 @@ export default function OrderForm({
   const [newComment, setNewComment] = useState("");
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const MAX_COMMENT_LENGTH = 1000;
-  const [dragActive, setDragActive] = useState(false);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
@@ -83,6 +81,7 @@ export default function OrderForm({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -164,6 +163,9 @@ export default function OrderForm({
         orderLines: false,
         nonConformityReport: false
       });
+
+      // Clear authentication errors
+      setAuthError(null);
     }
   }, [open, initialOrder, initialIsEditing]);
 
@@ -605,90 +607,6 @@ export default function OrderForm({
     setNewComment("");
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    if (isReadOnly) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const validateFile = (file: File) => {
-    const validTypes = ['.pdf', '.jpeg', '.jpg', '.xlsx', '.zip'];
-    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-    const isValidType = validTypes.includes(extension);
-    const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
-    return isValidType && isValidSize;
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    if (isReadOnly) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files && files.length > 0) {
-      if (order.shipmentDocumentation.length + files.length > 4) {
-        alert('Máximo 4 archivos permitidos');
-        return;
-      }
-
-      const validFiles = files.filter(validateFile);
-      if (validFiles.length !== files.length) {
-        alert('Algunos archivos no cumplen con los requisitos de formato o tamaño');
-      }
-
-      setOrder(prev => ({
-        ...prev,
-        shipmentDocumentation: [
-          ...prev.shipmentDocumentation,
-          ...validFiles.map(file => file.name)
-        ].slice(0, 4)
-      }));
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isReadOnly) return;
-
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
-      if (order.shipmentDocumentation.length + files.length > 4) {
-        alert('Máximo 4 archivos permitidos');
-        return;
-      }
-
-      const validFiles = files.filter(validateFile);
-      if (validFiles.length !== files.length) {
-        alert('Algunos archivos no cumplen con los requisitos de formato o tamaño');
-      }
-
-      setOrder(prev => ({
-        ...prev,
-        shipmentDocumentation: [
-          ...prev.shipmentDocumentation,
-          ...validFiles.map(file => file.name)
-        ].slice(0, 4)
-      }));
-    }
-  };
-
-  const removeFile = (fileName: string) => {
-    if (isReadOnly) return;
-    markAsChanged();
-
-    setOrder(prev => ({
-      ...prev,
-      shipmentDocumentation: prev.shipmentDocumentation.filter(f => f !== fileName)
-    }));
-  };
-
   const validateForm = () => {
     // Check if there's at least one order line with a registration
     const hasValidOrderLine = order.orderLines.some(line => String(line.registration).trim() !== "");
@@ -834,6 +752,17 @@ export default function OrderForm({
             <DialogTitle>{getTitle()}</DialogTitle>
           </DialogHeader>
 
+          {authError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <p>{authError}</p>
+              <p className="text-sm mt-1">Para continuar, por favor intente:</p>
+              <ul className="list-disc text-sm ml-5">
+                <li>Cerrar sesión y volver a iniciar sesión</li>
+                <li>Verificar que su cuenta tenga los permisos necesarios</li>
+                <li>Contactar al administrador del sistema</li>
+              </ul>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-3 gap-4">

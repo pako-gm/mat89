@@ -2,6 +2,30 @@ import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, Con
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
+// Database types for Supabase responses
+interface DbOrderLine {
+  id: string;
+  matricula_89: string;
+  descripcion: string;
+  nenv: number;
+  nsenv: string;
+  estado_completado?: boolean;
+  tbl_recepciones?: DbReception[];
+}
+
+interface DbReception {
+  id: string;
+  fecha_recepcion: string;
+  estado_recepcion: string;
+  n_rec: number;
+  ns_rec: string;
+  observaciones: string;
+}
+
+interface DbSupplier {
+  nombre: string;
+}
+
 export const warehouses: Warehouse[] = [
   { id: "1", code: "ALM141", name: "Almacén 141" },
   { id: "2", code: "ALM140", name: "Almacén 140" },
@@ -53,7 +77,7 @@ export const getAllSuppliers = async () => {
   }));
 };
 
-const getSupplierById = async (id: string) => {
+export const _getSupplierById = async (id: string) => {
   const { data: supplier, error } = await supabase
     .from('tbl_proveedores')
     .select('*')
@@ -167,7 +191,7 @@ export const getAllMaterials = async (): Promise<Material[]> => {
   }));
 };
 
-const getMaterialById = async (id: string): Promise<Material | null> => {
+export const _getMaterialById = async (id: string): Promise<Material | null> => {
   const { data: material, error } = await supabase
     .from('tbl_materiales')
     .select('*')
@@ -380,7 +404,7 @@ export const checkMaterialRegistrationExists = async (registration: number, excl
 };
 
 // Empty the sample orders array
-const sampleOrders: Order[] = [];
+export const _sampleOrders: Order[] = [];
 
 export const saveOrder = async (order: Order) => {
   // Get the current user
@@ -517,7 +541,7 @@ export const getOrders = async () => {
       shipmentDocumentation: order.documentacion || [],
       estadoPedido: order.estado_pedido || 'PENDIENTE',
       cancelado: order.cancelado || false,
-      orderLines: order.tbl_ln_pedidos_rep.map(line => ({
+      orderLines: order.tbl_ln_pedidos_rep.map((line: DbOrderLine) => ({
         id: line.id,
         registration: line.matricula_89 || "",
         partDescription: line.descripcion,
@@ -694,7 +718,7 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
       estadoPedido: order.estado_pedido || 'PENDIENTE',
       cancelado: order.cancelado || false,
       changeHistory: [],
-      orderLines: order.tbl_ln_pedidos_rep.map(line => ({
+      orderLines: order.tbl_ln_pedidos_rep.map((line: DbOrderLine) => ({
         id: line.id,
         registration: line.matricula_89 || "",
         partDescription: line.descripcion,
@@ -702,7 +726,7 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
         serialNumber: line.nsenv,
         estadoCompletado: line.estado_completado || false,
         totalReceived: line.tbl_recepciones
-          ? line.tbl_recepciones.reduce((total: number, reception: any) => {
+          ? line.tbl_recepciones.reduce((total: number, reception: DbReception) => {
               return total + (reception.n_rec || 0);
             }, 0)
           : 0
@@ -780,7 +804,7 @@ export const deleteReception = async (receptionId: string): Promise<boolean> => 
   return true;
 };
 
-const getReceptions = async (): Promise<Reception[]> => {
+export const _getReceptions = async (): Promise<Reception[]> => {
   // Query with join to get supplier name
   const { data: orders, error } = await supabase
     .from('tbl_pedidos_rep')
@@ -802,7 +826,7 @@ const getReceptions = async (): Promise<Reception[]> => {
     warehouse: order.alm_envia,
     shipmentDate: order.fecha_envio,
     status: order.estado_pedido === 'COMPLETADO' ? 'Completado' : 'Pendiente',
-    orderLines: order.tbl_ln_pedidos_rep.map(line => ({
+    orderLines: order.tbl_ln_pedidos_rep.map((line: DbOrderLine) => ({
       id: line.id,
       registration: line.matricula_89 || "",
       partDescription: line.descripcion,
@@ -856,7 +880,7 @@ export const getConsultationData = async (): Promise<ConsultaRecord[]> => {
               linea: lineCounter++,
               almEnvia: order.alm_envia,
               numPedido: order.num_pedido,
-              proveedor: order.tbl_proveedores.nombre,
+              proveedor: (order.tbl_proveedores as unknown as DbSupplier).nombre,
               mat89: line.matricula_89,
               descripcion: line.descripcion || '',
               vehiculo: order.vehiculo,
@@ -879,7 +903,7 @@ export const getConsultationData = async (): Promise<ConsultaRecord[]> => {
             linea: lineCounter++,
             almEnvia: order.alm_envia,
             numPedido: order.num_pedido,
-            proveedor: order.tbl_proveedores.nombre,
+            proveedor: (order.tbl_proveedores as unknown as DbSupplier).nombre,
             mat89: line.matricula_89,
             descripcion: line.descripcion || '',
             vehiculo: order.vehiculo,

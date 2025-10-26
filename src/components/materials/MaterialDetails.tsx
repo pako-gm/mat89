@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Material } from "@/types";
-import { Edit2, X, Package, Factory, Calendar, Hash, Trash2, User, Clock } from "lucide-react";
+import { Edit2, X, Package, Factory, Calendar, Hash, Trash2, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface MaterialDetailsProps {
