@@ -12,8 +12,12 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PanelDeControl from "@/pages/PanelDeControl";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { signOut } from "@/lib/auth";
 import { Analytics } from "@vercel/analytics/react";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { IdleWarningModal } from "@/components/IdleWarningModal";
 
 // Component to handle role-based redirection
 function RoleBasedRedirect() {
@@ -63,6 +67,29 @@ function RoleBasedRedirect() {
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Manejador de logout automático por inactividad
+  const handleIdleTimeout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Sesión cerrada por inactividad",
+        description: "Tu sesión se ha cerrado automáticamente después de 15 minutos de inactividad.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error al cerrar sesión por inactividad:", error);
+    }
+  };
+
+  // Hook de detección de inactividad (solo activo cuando hay sesión)
+  const { showWarning, remainingTime, resetTimer } = useIdleTimeout({
+    timeout: 15 * 60 * 1000, // Cierra sesión tras 15 minutos de inactividad
+    warningTime: 2 * 60 * 1000, // Advertencia 2 minutos antes
+    onTimeout: handleIdleTimeout,
+    enabled: !!session, // Solo activar cuando hay sesión activa
+  });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -71,7 +98,7 @@ function App() {
         setLoading(false);
       }
     );
-    
+
     // Verificar sesión actual al cargar
     checkSession();
 
@@ -130,6 +157,14 @@ function App() {
           </Route>
         )}
       </Routes>
+
+      {/* Modal de advertencia de inactividad */}
+      <IdleWarningModal
+        open={showWarning}
+        remainingTime={remainingTime}
+        onContinue={resetTimer}
+      />
+
       <Toaster />
       <Analytics />
     </BrowserRouter>
