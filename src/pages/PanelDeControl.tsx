@@ -171,10 +171,6 @@ export default function PanelDeControl() {
     return status ? 'bg-green-500' : 'bg-red-500';
   };
 
-  const getStatusLabel = (status: boolean) => {
-    return status ? 'ACTIVO' : 'INACTIVO';
-  };
-
   // ============ FUNCIONES DE SELECCIÓN ============
 
   const toggleUserSelection = (userId: string) => {
