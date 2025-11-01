@@ -15,7 +15,7 @@ interface UserProfile {
   name: string | null;
   email: string;
   user_role: string;
-  status: string;
+  status: boolean; // true = ACTIVO, false = INACTIVO
   created_at: string;
   last_sign_in_at: string | null;
   ambito_almacenes?: string[];
@@ -39,7 +39,7 @@ export default function PanelDeControl() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [filterRole, setFilterRole] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>(''); // '' = todos, 'true' = ACTIVO, 'false' = INACTIVO
 
   // Estados de paginación
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -60,7 +60,7 @@ export default function PanelDeControl() {
     name: '',
     email: '',
     user_role: 'CONSULTAS',
-    status: 'PENDIENTE',
+    status: false, // false = INACTIVO por defecto
     password: ''
   });
 
@@ -167,20 +167,12 @@ export default function PanelDeControl() {
       .substring(0, 2);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case 'ACTIVO':
-      case 'ACTIVE':
-        return 'bg-green-500';
-      case 'INACTIVO':
-      case 'INACTIVE':
-        return 'bg-red-500';
-      case 'PENDIENTE':
-      case 'PENDING':
-        return 'bg-gray-400';
-      default:
-        return 'bg-gray-500';
-    }
+  const getStatusColor = (status: boolean) => {
+    return status ? 'bg-green-500' : 'bg-red-500';
+  };
+
+  const getStatusLabel = (status: boolean) => {
+    return status ? 'ACTIVO' : 'INACTIVO';
   };
 
   // ============ FUNCIONES DE SELECCIÓN ============
@@ -209,7 +201,7 @@ export default function PanelDeControl() {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchRole = filterRole === '' || user.user_role === filterRole;
-    const matchStatus = filterStatus === '' || user.status === filterStatus;
+    const matchStatus = filterStatus === '' || user.status === (filterStatus === 'true');
 
     return matchSearch && matchRole && matchStatus;
   });
@@ -297,7 +289,7 @@ export default function PanelDeControl() {
         name: '',
         email: '',
         user_role: 'CONSULTAS',
-        status: 'PENDIENTE',
+        status: false,
         password: ''
       });
       setShowAddUserModal(false);
@@ -398,7 +390,7 @@ export default function PanelDeControl() {
     }
   };
 
-  const handleChangeStatus = async (userId: string, newStatus: string) => {
+  const handleChangeStatus = async (userId: string, newStatus: boolean) => {
     try {
       const { error } = await supabase
         .from('user_profiles')
@@ -411,7 +403,7 @@ export default function PanelDeControl() {
 
       toast({
         title: "Estado actualizado",
-        description: `El estado se cambió a ${newStatus}`,
+        description: `El estado se cambió a ${newStatus ? 'ACTIVO' : 'INACTIVO'}`,
       });
     } catch (error: any) {
       toast({
@@ -565,9 +557,8 @@ export default function PanelDeControl() {
               style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
             >
               <option value="">Estados</option>
-              <option value="ACTIVO">Activo</option>
-              <option value="INACTIVO">Inactivo</option>
-              <option value="PENDIENTE">Pendiente</option>
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
@@ -652,13 +643,12 @@ export default function PanelDeControl() {
                       {/* Estado */}
                       <td className="py-4 px-6">
                         <select
-                          value={user.status || 'PENDIENTE'}
-                          onChange={(e) => handleChangeStatus(user.user_id, e.target.value)}
+                          value={user.status ? 'true' : 'false'}
+                          onChange={(e) => handleChangeStatus(user.user_id, e.target.value === 'true')}
                           className={`${getStatusColor(user.status)} text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer border-none outline-none`}
                         >
-                          <option value="ACTIVO" className="bg-white text-gray-800">Activo</option>
-                          <option value="INACTIVO" className="bg-white text-gray-800">Inactivo</option>
-                          <option value="PENDIENTE" className="bg-white text-gray-800">Pendiente</option>
+                          <option value="true" className="bg-white text-gray-800">Activo</option>
+                          <option value="false" className="bg-white text-gray-800">Inactivo</option>
                         </select>
                       </td>
 
@@ -904,13 +894,12 @@ export default function PanelDeControl() {
                   Estado inicial
                 </label>
                 <select
-                  value={newUserData.status}
-                  onChange={(e) => setNewUserData({ ...newUserData, status: e.target.value })}
+                  value={newUserData.status ? 'true' : 'false'}
+                  onChange={(e) => setNewUserData({ ...newUserData, status: e.target.value === 'true' })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
-                  <option value="ACTIVO">Activo</option>
-                  <option value="INACTIVO">Inactivo</option>
-                  <option value="PENDIENTE">Pendiente</option>
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
                 </select>
               </div>
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
-import { getUserRole } from "@/lib/auth";
+import { getUserRole, checkUserStatus } from "@/lib/auth";
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -42,7 +42,29 @@ export default function LoginPage() {
         throw new Error("No se pudo iniciar sesión. Por favor, inténtalo de nuevo.");
       }
 
-      // Obtener el rol del usuario
+      // VALIDACIÓN CRÍTICA: Verificar el estado del usuario ANTES de continuar
+      const statusCheck = await checkUserStatus();
+
+      if (!statusCheck.isActive) {
+        // Usuario INACTIVO: Cerrar sesión inmediatamente y mostrar mensaje
+        await supabase.auth.signOut();
+
+        const userEmail = statusCheck.userEmail || email;
+        const errorMessage = `El usuario ${userEmail} no está autorizado para acceder a la aplicación. Póngase en contacto con el Administrador del sitio para más información.`;
+
+        setError(errorMessage);
+
+        toast({
+          variant: "destructive",
+          title: "Acceso denegado",
+          description: errorMessage,
+          duration: 10000, // Mostrar durante 10 segundos
+        });
+
+        return; // Detener el proceso de login
+      }
+
+      // Usuario ACTIVO: Continuar con el proceso de login normal
       const userRole = await getUserRole();
 
       toast({
