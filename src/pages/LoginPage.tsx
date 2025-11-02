@@ -67,6 +67,22 @@ export default function LoginPage() {
       // Usuario ACTIVO: Continuar con el proceso de login normal
       const userRole = await getUserRole();
 
+      // Actualizar la fecha y hora del último acceso
+      try {
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({ last_sign_in_at: new Date().toISOString() })
+          .eq('user_id', data.user.id);
+
+        if (updateError) {
+          console.error('Error al actualizar last_sign_in_at:', updateError);
+          // No lanzamos el error para no interrumpir el login
+        }
+      } catch (updateErr) {
+        console.error('Error al actualizar timestamp de acceso:', updateErr);
+        // No interrumpir el login por este error
+      }
+
       toast({
         title: "Inicio de sesión con éxito",
         description: `Bienvenido${userRole ? ` (${userRole})` : ''}`,
