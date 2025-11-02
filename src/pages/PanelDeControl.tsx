@@ -3,7 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, Settings, X, AlertTriangle, User, AlertCircle, ChevronDown
+  ChevronsLeft, ChevronsRight, Settings, X, AlertTriangle, User, AlertCircle, ChevronDown,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 // Constantes de colores
@@ -40,6 +41,9 @@ export default function PanelDeControl() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [filterRole, setFilterRole] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>(''); // '' = todos, 'true' = ACTIVO, 'false' = INACTIVO
+
+  // Estados de ordenamiento
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
 
   // Estados de paginación
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -202,15 +206,41 @@ export default function PanelDeControl() {
     return matchSearch && matchRole && matchStatus;
   });
 
+  // ============ FUNCIONES DE ORDENAMIENTO ============
+
+  const toggleSortOrder = () => {
+    if (sortOrder === null) {
+      setSortOrder('asc');
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else {
+      setSortOrder(null);
+    }
+  };
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (sortOrder === null) return 0;
+
+    const nameA = (a.name || a.email || '').toLowerCase();
+    const nameB = (b.name || b.email || '').toLowerCase();
+
+    if (sortOrder === 'asc') {
+      return nameA.localeCompare(nameB);
+    } else {
+      return nameB.localeCompare(nameA);
+    }
+  });
+
   const clearFilters = () => {
     setSearchTerm('');
     setFilterRole('');
     setFilterStatus('');
+    setSortOrder(null);
   };
 
   // ============ FUNCIONES DE PAGINACIÓN ============
 
-  const totalUsers = filteredUsers.length;
+  const totalUsers = sortedUsers.length;
   const totalPages = Math.ceil(totalUsers / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = Math.min(startIndex + rowsPerPage, totalUsers);
@@ -587,12 +617,23 @@ export default function PanelDeControl() {
                   <th className="py-4 px-6 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                      checked={selectedUsers.length === sortedUsers.length && sortedUsers.length > 0}
                       onChange={toggleAllUsers}
                       className="w-4 h-4 rounded cursor-pointer"
                     />
                   </th>
-                  <th className="py-4 px-6 text-left font-medium">Nombre Completo</th>
+                  <th className="py-4 px-6 text-left font-medium">
+                    <button
+                      onClick={toggleSortOrder}
+                      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                      title="Ordenar por nombre"
+                    >
+                      <span>Nombre Completo</span>
+                      {sortOrder === null && <ArrowUpDown className="w-4 h-4" />}
+                      {sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                      {sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+                    </button>
+                  </th>
                   <th className="py-4 px-6 text-left font-medium">Email</th>
                   <th className="py-4 px-6 text-left font-medium">Estado</th>
                   <th className="py-4 px-6 text-left font-medium">Rol</th>
@@ -602,7 +643,7 @@ export default function PanelDeControl() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers
+                {sortedUsers
                   .slice(startIndex, endIndex)
                   .map((user) => (
                     <tr
