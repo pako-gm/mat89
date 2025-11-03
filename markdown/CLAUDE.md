@@ -1,5 +1,6 @@
 # CLAUDE.md
 
+*CAMBIO REALIZADO PARA PROBAR FUNCIONALIDAD DE VERCEL/RAMA-DESARROLLOS*
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

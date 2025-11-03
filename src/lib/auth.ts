@@ -77,12 +77,12 @@ export const getUserRole = async (): Promise<string | null> => {
   try {
     // First check if the user is authenticated
     const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
-    
+
     if (sessionError || !sessionData.user) {
       console.error('Error getting auth user:', sessionError);
       return null;
     }
-    
+
     // Then get the user's role from our profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
@@ -99,6 +99,47 @@ export const getUserRole = async (): Promise<string | null> => {
   } catch (error) {
     console.error('Error getting user role:', error);
     return null;
+  }
+};
+
+/**
+ * Verifies if the current user is active (status = true)
+ * @returns Promise<{ isActive: boolean; userEmail?: string; error?: string }>
+ */
+export const checkUserStatus = async (): Promise<{ isActive: boolean; userEmail?: string; error?: string }> => {
+  try {
+    // First check if the user is authenticated
+    const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
+
+    if (sessionError || !sessionData.user) {
+      console.error('Error getting auth user:', sessionError);
+      return { isActive: false, error: 'Usuario no autenticado' };
+    }
+
+    // Then get the user's status from our profiles table
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('status, email')
+      .eq('user_id', sessionData.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error getting user profile:', profileError);
+      return { isActive: false, error: 'Error al obtener el perfil del usuario' };
+    }
+
+    if (!profileData) {
+      return { isActive: false, error: 'Perfil de usuario no encontrado' };
+    }
+
+    // status is boolean: true = ACTIVO, false = INACTIVO
+    return {
+      isActive: profileData.status === true,
+      userEmail: profileData.email
+    };
+  } catch (error) {
+    console.error('Error checking user status:', error);
+    return { isActive: false, error: 'Error al verificar el estado del usuario' };
   }
 };
 
