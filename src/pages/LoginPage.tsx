@@ -50,7 +50,8 @@ export default function LoginPage() {
         await supabase.auth.signOut();
 
         const userEmail = statusCheck.userEmail || email;
-        const errorMessage = `El usuario ${userEmail} no está autorizado para acceder a la aplicación. Póngase en contacto con el Administrador del sitio para más información.`;
+        const errorMessage = `El usuario ${userEmail} no está autorizado para acceder a la aplicación. 
+        Póngase en contacto con el Administrador del sitio para más información.`;
 
         setError(errorMessage);
 
@@ -133,9 +134,6 @@ export default function LoginPage() {
         throw new Error("Por favor, introduce tu dirección de correo electrónico.");
       }
 
-      // Verificar si el correo existe en la base de datos (opcional, Supabase lo hace por nosotros)
-      // Pero podríamos agregar una verificación adicional aquí si es necesario
-
       //Enviar correo de recuperación con Supabase (Supabase v2 syntax)
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: `${window.location.origin}/reset-password`, // Redirige a la página de restablecimiento
@@ -150,13 +148,13 @@ export default function LoginPage() {
 
       toast({
         title: "Correo enviado",
-        description: "Se ha enviado un enlace de recuperación a tu correo electrónico.",
+        description: "Se ha enviado un enlace de recuperación de contraseña a tu correo electrónico.",
       });
 
     } catch (err) {
       console.error("Error al solicitar la recuperación:", err);
 
-      let errorMessage = "No se pudo enviar el correo de recuperación.";
+      let errorMessage = "No se pudo enviar el correo de recuperación de contraseña.";
       if (err instanceof Error) {
         errorMessage = err.message;
       }
@@ -225,7 +223,7 @@ export default function LoginPage() {
                   <h3 className="font-medium">Correo enviado</h3>
                   <p className="text-sm mt-1">
                     Si la direccion de correo-e existe en nuestra base de datos, recibirás un enlace para restablecer tu contraseña.
-                    Por favor, revisa tu bandeja de entrada, incluida la bandeja de spam y sigue las instrucciones.
+                    Por favor, revisa tu bandeja de entrada, incluida la bandeja de correo no deseado y sigue las instrucciones.
                   </p>
                   <p className="text-sm mt-2">
                     El enlace caducará en 24 horas por seguridad.
@@ -339,8 +337,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={toggleResetMode}
-                    className="text-sm text-gray-400 cursor-not-allowed"
-                    disabled
+                    className="text-sm text-[#91268F] hover:underline"
                   >
                     ¿Olvidaste tu contraseña?
                   </button>

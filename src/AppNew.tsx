@@ -1,3 +1,4 @@
+//CODIGO ORIGINAL ASP.TSX 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -67,7 +68,6 @@ function RoleBasedRedirect() {
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const { toast } = useToast();
 
   // Manejador de logout automático por inactividad
@@ -84,24 +84,17 @@ function App() {
     }
   };
 
-  // Hook de detección de inactividad (solo activo cuando hay sesión normal, no en modo recuperación)
+  // Hook de detección de inactividad (solo activo cuando hay sesión)
   const { showWarning, remainingTime, resetTimer } = useIdleTimeout({
     timeout: 15 * 60 * 1000, // Cierra sesión tras 15 minutos de inactividad
     warningTime: 2 * 60 * 1000, // Advertencia 2 minutos antes
     onTimeout: handleIdleTimeout,
-    enabled: !!session && !isRecoveryMode, // Solo activar cuando hay sesión activa y NO está en modo recuperación
+    enabled: !!session, // Solo activar cuando hay sesión activa
   });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // Detectar si es un evento de recuperación de contraseña
-        if (event === 'PASSWORD_RECOVERY') {
-          setIsRecoveryMode(true);
-        } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-          setIsRecoveryMode(false);
-        }
-        
+      (_event, session) => {
         setSession(session);
         setLoading(false);
       }
@@ -137,15 +130,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rutas públicas */}
-        <Route 
-          path="/login" 
-          element={!session || isRecoveryMode ? <LoginPage /> : <Navigate to="/" replace />} 
-        />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        
-        {/* Rutas protegidas - solo cuando hay sesión real (no modo recuperación) */}
-        {session && !isRecoveryMode ? (
+        {!session ? (
+          <>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </>
+        ) : (
           <Route path="/" element={<Layout />}>
             <Route index element={<RoleBasedRedirect />} />
             <Route path="pedidos" element={<OrdersPage />} />
@@ -162,21 +153,18 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Add other routes here as they are developed */}
             <Route path="*" element={<RoleBasedRedirect />} />
           </Route>
-        ) : (
-          <Route path="*" element={<Navigate to="/login" replace />} />
         )}
       </Routes>
 
-      {/* Modal de advertencia de inactividad (solo mostrar si NO está en modo recuperación) */}
-      {!isRecoveryMode && (
-        <IdleWarningModal
-          open={showWarning}
-          remainingTime={remainingTime}
-          onContinue={resetTimer}
-        />
-      )}
+      {/* Modal de advertencia de inactividad */}
+      <IdleWarningModal
+        open={showWarning}
+        remainingTime={remainingTime}
+        onContinue={resetTimer}
+      />
 
       <Toaster />
       <Analytics />
