@@ -111,10 +111,10 @@ export default function ResetPasswordPage() {
         description: "Tu contraseña ha sido actualizada correctamente.",
       });
       
-      // Después de 3 segundos, redirigir al login
+      // Después de 10 segundos, redirigir al login
       setTimeout(() => {
         navigate("/login");
-      }, 3000);
+      }, 10000);
       
     } catch (err) {
       console.error("Error al restablecer la contraseña:", err);
