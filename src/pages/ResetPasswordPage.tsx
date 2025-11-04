@@ -76,6 +76,33 @@ export default function ResetPasswordPage() {
     );
   };
 
+  // Función para traducir mensajes de error de Supabase
+  const translateSupabaseError = (errorMessage: string): string => {
+    const translations: { [key: string]: string } = {
+      'New password should be different from the old password.': 'La nueva contraseña debe ser diferente de la contraseña anterior.',
+      'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
+      'Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789': 'La contraseña debe contener al menos un carácter de cada: minúsculas, MAYÚSCULAS, 0-9.',
+      'Invalid password': 'Contraseña inválida.',
+      'User not found': 'Usuario no encontrado.',
+      'Token has expired or is invalid': 'El enlace ha expirado o no es válido.',
+    };
+
+    // Buscar traducción exacta
+    if (translations[errorMessage]) {
+      return translations[errorMessage];
+    }
+
+    // Buscar traducción parcial
+    for (const [key, value] of Object.entries(translations)) {
+      if (errorMessage.includes(key)) {
+        return value;
+      }
+    }
+
+    // Si no hay traducción, devolver el mensaje original
+    return errorMessage;
+  };
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -118,14 +145,14 @@ export default function ResetPasswordPage() {
       
     } catch (err) {
       console.error("Error al restablecer la contraseña:", err);
-      
+
       let errorMessage = "No se pudo restablecer la contraseña.";
       if (err instanceof Error) {
-        errorMessage = err.message;
+        errorMessage = translateSupabaseError(err.message);
       }
-      
+
       setError(errorMessage);
-      
+
       toast({
         variant: "destructive",
         title: "Error",
