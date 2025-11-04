@@ -80,8 +80,8 @@ export default function ResetPasswordPage() {
   const translateSupabaseError = (errorMessage: string): string => {
     const translations: { [key: string]: string } = {
       'New password should be different from the old password.': 'La nueva contraseña debe ser diferente de la contraseña anterior.',
-      'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
-      'Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789': 'La contraseña debe contener al menos un carácter de cada: minúsculas, MAYÚSCULAS, 0-9.',
+      'Password should be at least 8 characters': 'La contraseña debe tener al menos 8 caracteres.',
+      'Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789': 'La contraseña debe contener al menos un carácter de cada: minúsculas, MAYÚSCULAS, 0-9., caracteres especiales,'
       'Invalid password': 'Contraseña inválida.',
       'User not found': 'Usuario no encontrado.',
       'Token has expired or is invalid': 'El enlace ha expirado o no es válido.',
