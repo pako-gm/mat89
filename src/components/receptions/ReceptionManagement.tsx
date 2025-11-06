@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ChevronDown, ChevronUp, Plus, Trash2, Package } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Plus, Trash2, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -63,6 +63,10 @@ export default function ReceptionManagement() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+
   const receptionStates = [
     { value: 'UTIL', label: 'ÚTIL' },
     { value: 'IRREPARABLE', label: 'IRREPARABLE' },
@@ -95,6 +99,7 @@ export default function ReceptionManagement() {
           order.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredOrders(filtered);
+      setCurrentPage(1); // Reset to first page when filtering
     } else {
       setFilteredOrders(orders);
     }
@@ -360,6 +365,18 @@ export default function ReceptionManagement() {
     setFilteredOrders(orders);
   };
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+
+  const paginate = (pageNumber: number) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -393,10 +410,10 @@ export default function ReceptionManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.map((order) => (
+            {currentOrders.map((order) => (
               <>
-                <TableRow 
-                  key={order.id} 
+                <TableRow
+                  key={order.id}
                   className="hover:bg-gray-50 cursor-pointer"
                   onClick={() => handleOrderClick(order)}
                 >
@@ -480,6 +497,55 @@ export default function ReceptionManagement() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredOrders.length > ordersPerPage && (
+        <div className="flex justify-center items-center py-4 mt-4">
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            <span className="mx-2 flex items-center text-sm text-gray-600">
+              Página {currentPage} de {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => paginate(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Reception Dialog */}
       <Dialog open={showReceptionDialog} onOpenChange={setShowReceptionDialog}>
