@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord } from "@/types";
+import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -927,5 +927,132 @@ export const getConsultationData = async (): Promise<ConsultaRecord[]> => {
   } catch (error) {
     console.error('Error fetching consultation data:', error);
     return [];
+  }
+};
+
+// ============================================================================
+// APP VERSIONS FUNCTIONS
+// ============================================================================
+
+export const getAllVersions = async (): Promise<AppVersion[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('tbl_app_versions')
+      .select('*')
+      .order('release_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching versions:', error);
+      throw error;
+    }
+
+    return data.map((version: any) => ({
+      id: version.id,
+      versionNumber: version.version_number,
+      versionName: version.version_name,
+      releaseDate: version.release_date,
+      changes: version.changes || [],
+      createdBy: version.created_by,
+      createdAt: version.created_at,
+      updatedAt: version.updated_at
+    }));
+  } catch (error) {
+    console.error('Error in getAllVersions:', error);
+    return [];
+  }
+};
+
+export const getVersionById = async (id: string): Promise<AppVersion | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('tbl_app_versions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching version:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      versionNumber: data.version_number,
+      versionName: data.version_name,
+      releaseDate: data.release_date,
+      changes: data.changes || [],
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+  } catch (error) {
+    console.error('Error in getVersionById:', error);
+    return null;
+  }
+};
+
+export const saveVersion = async (version: Partial<AppVersion>): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' };
+    }
+
+    const versionData = {
+      version_number: version.versionNumber,
+      version_name: version.versionName,
+      release_date: version.releaseDate,
+      changes: version.changes,
+      created_by: user.id,
+      updated_at: new Date().toISOString()
+    };
+
+    if (version.id) {
+      // Update existing version
+      const { error } = await supabase
+        .from('tbl_app_versions')
+        .update(versionData)
+        .eq('id', version.id);
+
+      if (error) {
+        console.error('Error updating version:', error);
+        return { success: false, error: error.message };
+      }
+    } else {
+      // Insert new version
+      const { error } = await supabase
+        .from('tbl_app_versions')
+        .insert([versionData]);
+
+      if (error) {
+        console.error('Error inserting version:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error in saveVersion:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteVersion = async (id: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase
+      .from('tbl_app_versions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting version:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error in deleteVersion:', error);
+    return { success: false, error: error.message };
   }
 };

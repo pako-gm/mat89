@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
 
@@ -115,12 +115,20 @@ export default function Sidebar() {
             active={currentPath === "/consultar"}
           />
           {userRole === "ADMINISTRADOR" && (
-            <SidebarItem
-              icon={<Settings className="h-4 w-4" />}
-              label="Panel de Control"
-              path="/panel-control"
-              active={currentPath === "/panel-control"}
-            />
+            <>
+              <SidebarItem
+                icon={<Settings className="h-4 w-4" />}
+                label="Panel de Control"
+                path="/panel-control"
+                active={currentPath === "/panel-control"}
+              />
+              <SidebarItem
+                icon={<GitBranch className="h-4 w-4" />}
+                label="Versiones APP"
+                path="/versiones"
+                active={currentPath === "/versiones"}
+              />
+            </>
           )}
         </div>
       </div>

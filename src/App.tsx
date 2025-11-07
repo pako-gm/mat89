@@ -10,6 +10,7 @@ import ConsultaPage from "@/pages/ConsultaPage";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PanelDeControl from "@/pages/PanelDeControl";
+import VersionesPage from "@/pages/VersionesPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -159,6 +160,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMINISTRADOR">
                   <PanelDeControl />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="versiones"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <VersionesPage />
                 </ProtectedRoute>
               }
             />
