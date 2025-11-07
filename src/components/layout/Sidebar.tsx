@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch, History } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch, History, ChevronDown, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export default function Sidebar() {
   const currentPath = window.location.pathname;
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [panelControlExpanded, setPanelControlExpanded] = useState(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -64,6 +65,13 @@ export default function Sidebar() {
 
     fetchUserRole();
   }, []);
+
+  // Auto-expand Panel de Control if we're on a submenu route
+  useEffect(() => {
+    if (currentPath === "/versiones") {
+      setPanelControlExpanded(true);
+    }
+  }, [currentPath]);
 
   return (
     <div className="flex flex-col h-full border-r bg-white">
@@ -119,18 +127,50 @@ export default function Sidebar() {
           />
           {userRole === "ADMINISTRADOR" && (
             <>
-              <SidebarItem
-                icon={<Settings className="h-4 w-4" />}
-                label="Panel de Control"
-                path="/panel-control"
-                active={currentPath === "/panel-control"}
-              />
-              <SidebarItem
-                icon={<GitBranch className="h-4 w-4" />}
-                label="Versiones APP"
-                path="/versiones"
-                active={currentPath === "/versiones"}
-              />
+              {/* Panel de Control - Expandible */}
+              <div>
+                <div
+                  className={cn(
+                    "w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
+                    (currentPath === "/panel-control" || panelControlExpanded) ? "bg-gray-100" : "text-gray-600"
+                  )}
+                >
+                  <Link
+                    to="/panel-control"
+                    className="flex items-center gap-3 flex-1"
+                  >
+                    <span className="flex h-5 w-5 items-center">
+                      <Settings className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm">Panel de Control</span>
+                  </Link>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPanelControlExpanded(!panelControlExpanded);
+                    }}
+                    className="p-1 hover:bg-gray-200 rounded"
+                  >
+                    {panelControlExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Submenú */}
+                {panelControlExpanded && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    <SidebarItem
+                      icon={<GitBranch className="h-4 w-4" />}
+                      label="Versiones APP"
+                      path="/versiones"
+                      active={currentPath === "/versiones"}
+                    />
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
