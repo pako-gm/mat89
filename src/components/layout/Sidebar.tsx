@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch, History } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { VersionHistoryModal } from "@/components/VersionHistoryModal";
 
 interface SidebarItemProps {
   icon?: React.ReactNode;
@@ -52,6 +54,7 @@ const SidebarItem = ({ icon, label, path, active, disabled }: SidebarItemProps) 
 export default function Sidebar() {
   const currentPath = window.location.pathname;
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -133,12 +136,30 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Version History Button */}
+      <div className="px-3 pb-2">
+        <Button
+          onClick={() => setShowVersionHistory(true)}
+          variant="outline"
+          size="sm"
+          className="w-full border-[#91268F] text-[#91268F] hover:bg-[#91268F] hover:text-white text-xs h-7"
+        >
+          <History className="h-3 w-3 mr-1" />
+          Versión e Historial
+        </Button>
+      </div>
+
       {/* Footer with dynamic copyright */}
       <div className="p-3 border-t border-gray-200 text-center">
         <p className="text-xs text-gray-500">
           <span className="font-bold" style={{ color: '#334155' }}>[© fgm-dev]</span> {new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`}
         </p>
       </div>
+
+      <VersionHistoryModal
+        open={showVersionHistory}
+        onOpenChange={setShowVersionHistory}
+      />
     </div>
   );
 }
