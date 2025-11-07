@@ -117,3 +117,14 @@ export interface ConsultaRecord {
   lineaId: string;
   recepcionId: string | null;
 }
+
+export interface AppVersion {
+  id: string;
+  versionNumber: string;
+  versionName: string;
+  releaseDate: string;
+  changes: string[];
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

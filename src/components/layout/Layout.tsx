@@ -4,13 +4,15 @@ import Sidebar from "./Sidebar";
 import { signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut } from "lucide-react";
+import { LogOut, History } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { VersionHistoryModal } from "@/components/VersionHistoryModal";
 
 export default function Layout() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userEmail, setUserEmail] = useState<string>("");
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -38,7 +40,16 @@ export default function Layout() {
         <Sidebar />
       </div>
       <div className="flex-1 overflow-auto">
-        <div className="flex justify-end items-center px-6 py-3 border-b bg-white">
+        <div className="flex justify-between items-center px-6 py-3 border-b bg-white">
+          <Button
+            onClick={() => setShowVersionHistory(true)}
+            variant="outline"
+            className="h-9 px-4 border-[#91268F] text-[#91268F] hover:bg-[#91268F] hover:text-white"
+          >
+            <History className="h-4 w-4 mr-2" />
+            Versión e Historial
+          </Button>
+
           <div className="flex items-center gap-3 px-4 py-2">
             <div className="flex flex-col items-start">
               <span className="text-xs text-gray-600">Sesión iniciada como:</span>
@@ -57,6 +68,11 @@ export default function Layout() {
           <Outlet />
         </div>
       </div>
+
+      <VersionHistoryModal
+        open={showVersionHistory}
+        onOpenChange={setShowVersionHistory}
+      />
     </div>
   );
 }
