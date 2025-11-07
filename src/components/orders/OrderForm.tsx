@@ -64,7 +64,8 @@ export default function OrderForm({
   const [newComment, setNewComment] = useState("");
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const MAX_COMMENT_LENGTH = 1000;
-  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; isExternal: boolean }[]>([]);
+  const [isExternalSupplier, setIsExternalSupplier] = useState(false);
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
     registration: string;
@@ -76,7 +77,8 @@ export default function OrderForm({
     dismantleDate: false,
     shipmentDate: false,
     orderLines: false,
-    nonConformityReport: false
+    nonConformityReport: false,
+    declaredDamage: false
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -161,7 +163,8 @@ export default function OrderForm({
         dismantleDate: false,
         shipmentDate: false,
         orderLines: false,
-        nonConformityReport: false
+        nonConformityReport: false,
+        declaredDamage: false
       });
 
       // Clear authentication errors
@@ -199,6 +202,16 @@ export default function OrderForm({
       setIsInitialLoad(true);
     }
   }, [open, toast]);
+
+  // Update isExternalSupplier when suppliers are loaded and a supplier is selected
+  useEffect(() => {
+    if (order.supplierId && suppliers.length > 0) {
+      const selectedSupplier = suppliers.find(s => s.id === order.supplierId);
+      if (selectedSupplier) {
+        setIsExternalSupplier(selectedSupplier.isExternal);
+      }
+    }
+  }, [suppliers, order.supplierId]);
 
   // Mark as changed whenever user modifies something
   const markAsChanged = () => {
@@ -334,6 +347,9 @@ export default function OrderForm({
           supplierId: selectedSupplier.id,
           supplierName: selectedSupplier.name
         }));
+
+        // Update external supplier flag
+        setIsExternalSupplier(selectedSupplier.isExternal);
 
         // Clear supplier error
         if (errors.supplier) {
@@ -502,6 +518,16 @@ export default function OrderForm({
   const addOrderLine = () => {
     if (isReadOnly) return;
 
+    // Check if supplier is external and already has 1 line
+    if (isExternalSupplier && order.orderLines.length >= 1) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Los proveedores externos solo pueden tener 1 línea de pedido",
+      });
+      return;
+    }
+
     // Check if there are any existing lines with empty registration
     const hasEmptyRegistration = order.orderLines.some(line => !String(line.registration).trim());
 
@@ -617,7 +643,8 @@ export default function OrderForm({
       dismantleDate: !order.dismantleDate,
       shipmentDate: !order.shipmentDate,
       orderLines: !hasValidOrderLine,
-      nonConformityReport: order.warranty && !order.nonConformityReport.trim()
+      nonConformityReport: order.warranty && !order.nonConformityReport.trim(),
+      declaredDamage: isExternalSupplier && !order.declaredDamage.trim()
     };
 
     setErrors(newErrors);
@@ -986,7 +1013,15 @@ export default function OrderForm({
 
             <div className="grid grid-cols-2 gap-4 items-start">
               <div>
-                <Label htmlFor="declaredDamage" className="text-sm mb-1 block">Avería Declarada</Label>
+                <Label htmlFor="declaredDamage" className={`text-sm mb-1 block ${errors.declaredDamage ? 'text-red-500' : ''}`}>
+                  {isExternalSupplier && <span className="text-red-500">* </span>}
+                  Avería Declarada
+                  {errors.declaredDamage && (
+                    <span className="text-red-500 text-xs ml-2 font-normal">
+                      * Campo obligatorio para proveedores externos
+                    </span>
+                  )}
+                </Label>
                 {isReadOnly ? (
                   renderReadOnlyTextarea(order.declaredDamage, "Apuntado en Tarjeta Identificativa")
                 ) : (
@@ -1001,11 +1036,15 @@ export default function OrderForm({
                         ...prev,
                         declaredDamage: value
                       }));
+                      // Clear error when user starts typing
+                      if (errors.declaredDamage && value.trim()) {
+                        setErrors(prev => ({ ...prev, declaredDamage: false }));
+                      }
                     }}
                     onFocus={(e) => e.target.placeholder = ""}
                     onBlur={(e) => e.target.placeholder = "Apuntado en Tarjeta Identificativa"}
                     placeholder="Apuntado en Tarjeta Identificativa"
-                    className="min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                    className={`min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${errors.declaredDamage ? 'border-red-500' : ''}`}
                   />
                 )}
               </div>
@@ -1190,7 +1229,8 @@ export default function OrderForm({
                     type="button"
                     variant="outline"
                     onClick={addOrderLine}
-                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                    disabled={isExternalSupplier && order.orderLines.length >= 1}
+                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#91268F]"
                   >
                     <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
                   </Button>

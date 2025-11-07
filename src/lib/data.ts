@@ -35,7 +35,7 @@ export const warehouses: Warehouse[] = [
 export const getSuppliers = async () => {
   const { data: suppliers, error } = await supabase
     .from('tbl_proveedores')
-    .select('id, nombre')
+    .select('id, nombre, es_externo')
     .order('nombre');
 
   if (error) {
@@ -45,7 +45,8 @@ export const getSuppliers = async () => {
 
   return suppliers.map(supplier => ({
     id: supplier.id,
-    name: supplier.nombre
+    name: supplier.nombre,
+    isExternal: supplier.es_externo || false
   }));
 };
 
