@@ -137,14 +137,15 @@ export default function Sidebar() {
       </div>
 
       {/* Version History Button */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-2 flex justify-center">
         <Button
           onClick={() => setShowVersionHistory(true)}
           variant="outline"
           size="sm"
-          className="w-full border-[#91268F] text-[#91268F] hover:bg-[#91268F] hover:text-white text-xs h-7"
+          className="border-[#91268F] text-[#91268F] hover:bg-[#91268F] hover:text-white px-2 py-0.5"
+          style={{ fontSize: '9px', height: '20px', lineHeight: '1' }}
         >
-          <History className="h-3 w-3 mr-1" />
+          <History className="h-2 w-2 mr-0.5" />
           Versión e Historial
         </Button>
       </div>
