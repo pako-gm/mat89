@@ -29,7 +29,7 @@ interface MaterialFormProps {
   open: boolean;
   material: Material | null;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (savedMaterial: Material) => void;
   isEditing: boolean;
 }
 
@@ -321,14 +321,15 @@ export default function MaterialForm({
     }
     
     setLoading(true);
-    
+
     try {
       await saveMaterial(formData);
-      onSave();
+      // Pasar el material guardado al callback
+      onSave(formData);
     } catch (error) {
       console.error("Error saving material:", error);
       let errorMessage = "No se pudo guardar el material. Por favor, inténtelo de nuevo.";
-      
+
       if (error instanceof Error) {
         if (error.message.includes("duplicate key")) {
           errorMessage = "Ya existe un material con esta matrícula.";
@@ -336,7 +337,7 @@ export default function MaterialForm({
           errorMessage = error.message;
         }
       }
-      
+
       toast({
         variant: "destructive",
         title: "Error",

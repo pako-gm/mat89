@@ -5,7 +5,15 @@ import { Order, OrderLine } from "@/types";
 import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
-import { filterManualChangeHistory, formatDateToDDMMYYYY, formatCommentTimestamp } from "@/lib/utils";
+import {
+  filterManualChangeHistory,
+  formatDateToDDMMYYYY,
+  formatCommentTimestamp,
+  savePausedOrder,
+  getPausedOrder,
+  clearPausedOrder,
+  hasPausedOrder
+} from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import {
@@ -123,33 +131,52 @@ export default function OrderForm({
   // Reset form when order changes or dialog opens/closes
   useEffect(() => {
     if (open) {
-      const newOrder = {
-        id: initialOrder.id || uuidv4(),
-        orderNumber: initialOrder.orderNumber || "",
-        warehouse: initialOrder.warehouse || "ALM141",
-        supplierId: initialOrder.supplierId || "",
-        supplierName: initialOrder.supplierName || "",
-        vehicle: initialOrder.vehicle || "",
-        warranty: initialOrder.warranty || false,
-        nonConformityReport: initialOrder.nonConformityReport || "",
-        dismantleDate: initialOrder.dismantleDate || "",
-        shipmentDate: initialOrder.shipmentDate || "",
-        declaredDamage: initialOrder.declaredDamage || "",
-        shipmentDocumentation: initialOrder.shipmentDocumentation || [],
-        changeHistory: initialOrder.changeHistory || [],
-        orderLines: initialOrder.orderLines?.length > 0
-          ? initialOrder.orderLines.map(line => ({
-            ...line,
-            quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
-          }))
-          : [{
-            id: uuidv4(),
-            registration: "",
-            partDescription: "",
-            quantity: 1,
-            serialNumber: ""
-          }]
-      };
+      // Verificar si hay un pedido pausado que restaurar
+      const pausedOrder = getPausedOrder();
+
+      let newOrder: Order;
+
+      if (pausedOrder && !initialIsEditing) {
+        // Recuperar el pedido pausado
+        console.log('[OrderForm] Recuperando pedido pausado');
+        newOrder = pausedOrder.orderData;
+
+        // Mostrar notificación al usuario
+        toast({
+          title: "Pedido recuperado",
+          description: "Se ha restaurado el pedido que estaba en proceso.",
+          duration: 3000,
+        });
+      } else {
+        // Crear nuevo pedido o editar existente (flujo normal)
+        newOrder = {
+          id: initialOrder.id || uuidv4(),
+          orderNumber: initialOrder.orderNumber || "",
+          warehouse: initialOrder.warehouse || "ALM141",
+          supplierId: initialOrder.supplierId || "",
+          supplierName: initialOrder.supplierName || "",
+          vehicle: initialOrder.vehicle || "",
+          warranty: initialOrder.warranty || false,
+          nonConformityReport: initialOrder.nonConformityReport || "",
+          dismantleDate: initialOrder.dismantleDate || "",
+          shipmentDate: initialOrder.shipmentDate || "",
+          declaredDamage: initialOrder.declaredDamage || "",
+          shipmentDocumentation: initialOrder.shipmentDocumentation || [],
+          changeHistory: initialOrder.changeHistory || [],
+          orderLines: initialOrder.orderLines?.length > 0
+            ? initialOrder.orderLines.map(line => ({
+              ...line,
+              quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+            }))
+            : [{
+              id: uuidv4(),
+              registration: "",
+              partDescription: "",
+              quantity: 1,
+              serialNumber: ""
+            }]
+        };
+      }
 
       setOrder(newOrder);
       setHasChanges(false);
@@ -167,7 +194,7 @@ export default function OrderForm({
       // Clear authentication errors
       setAuthError(null);
     }
-  }, [open, initialOrder, initialIsEditing]);
+  }, [open, initialOrder, initialIsEditing, toast]);
 
   useEffect(() => {
     const loadSuppliers = async () => {
@@ -222,6 +249,13 @@ export default function OrderForm({
   const handleDiscardChanges = () => {
     setShowConfirmModal(false);
     setHasChanges(false);
+
+    // Si hay un pedido pausado y el usuario descarta los cambios, limpiarlo
+    if (hasPausedOrder()) {
+      console.log('[OrderForm] Usuario descartó cambios, limpiando pedido pausado');
+      clearPausedOrder();
+    }
+
     onClose();
   };
 
@@ -470,13 +504,23 @@ export default function OrderForm({
 
   // Nueva función para redirigir a crear material
   const handleCreateMaterial = () => {
+    const { registration, lineId } = materialNotFoundModal;
+
+    // Guardar el estado completo del pedido antes de navegar
+    savePausedOrder(order, lineId, registration);
+
+    // Cerrar el modal
     setMaterialNotFoundModal({ open: false, registration: "", lineId: "" });
-    // Cerrar el formulario actual y navegar a materiales
+
+    // Cerrar el formulario de pedido
     onClose();
+
+    // Navegar a materiales con la matrícula prellenada
     navigate('/materiales', {
       state: {
         newMaterial: true,
-        registrationPreset: materialNotFoundModal.registration
+        registrationPreset: registration,
+        fromPausedOrder: true
       }
     });
   };
@@ -694,6 +738,12 @@ export default function OrderForm({
       await saveOrder(updatedOrder);
 
       console.log('=== PEDIDO GUARDADO EXITOSAMENTE ===');
+
+      // Limpiar el estado pausado si existe
+      if (hasPausedOrder()) {
+        console.log('[OrderForm] Limpiando pedido pausado tras guardar exitosamente');
+        clearPausedOrder();
+      }
 
       onSave();
 

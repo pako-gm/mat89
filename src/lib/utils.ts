@@ -225,3 +225,82 @@ export function formatCommentTimestamp(dateString: string): string {
     return dateString;
   }
 }
+
+// ==========================================
+// Sistema de Persistencia de Pedido Pausado
+// ==========================================
+
+const PAUSED_ORDER_KEY = 'mat89_paused_order';
+
+export interface PausedOrderState {
+  orderData: any; // El objeto Order completo
+  targetLineId: string; // ID de la línea donde se estaba introduciendo la matrícula
+  attemptedRegistration: string; // La matrícula que se intentó introducir
+  timestamp: number; // Timestamp de cuando se pausó
+}
+
+/**
+ * Guarda el estado del pedido en sessionStorage cuando se detecta una matrícula no encontrada
+ */
+export function savePausedOrder(orderData: any, targetLineId: string, attemptedRegistration: string): void {
+  try {
+    const pausedState: PausedOrderState = {
+      orderData,
+      targetLineId,
+      attemptedRegistration,
+      timestamp: Date.now()
+    };
+
+    sessionStorage.setItem(PAUSED_ORDER_KEY, JSON.stringify(pausedState));
+    console.log('[PausedOrder] Estado del pedido guardado:', {
+      targetLineId,
+      attemptedRegistration,
+      orderLinesCount: orderData.orderLines?.length || 0
+    });
+  } catch (error) {
+    console.error('[PausedOrder] Error guardando estado del pedido:', error);
+  }
+}
+
+/**
+ * Recupera el estado del pedido pausado desde sessionStorage
+ */
+export function getPausedOrder(): PausedOrderState | null {
+  try {
+    const data = sessionStorage.getItem(PAUSED_ORDER_KEY);
+    if (!data) {
+      return null;
+    }
+
+    const pausedState = JSON.parse(data) as PausedOrderState;
+    console.log('[PausedOrder] Estado del pedido recuperado:', {
+      targetLineId: pausedState.targetLineId,
+      attemptedRegistration: pausedState.attemptedRegistration,
+      age: Date.now() - pausedState.timestamp
+    });
+
+    return pausedState;
+  } catch (error) {
+    console.error('[PausedOrder] Error recuperando estado del pedido:', error);
+    return null;
+  }
+}
+
+/**
+ * Limpia el estado del pedido pausado de sessionStorage
+ */
+export function clearPausedOrder(): void {
+  try {
+    sessionStorage.removeItem(PAUSED_ORDER_KEY);
+    console.log('[PausedOrder] Estado del pedido limpiado');
+  } catch (error) {
+    console.error('[PausedOrder] Error limpiando estado del pedido:', error);
+  }
+}
+
+/**
+ * Verifica si existe un pedido pausado
+ */
+export function hasPausedOrder(): boolean {
+  return sessionStorage.getItem(PAUSED_ORDER_KEY) !== null;
+}

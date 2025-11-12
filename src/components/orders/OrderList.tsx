@@ -6,6 +6,7 @@ import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder } from
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { hasPausedOrder } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Search, Star, Trash2, Check } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -94,6 +95,17 @@ export default function OrderList() {
 
     fetchOrders();
   }, [toast]);
+
+  // Detectar si hay un pedido pausado y abrir el formulario automáticamente
+  useEffect(() => {
+    if (hasPausedOrder() && !showForm) {
+      console.log('[OrderList] Pedido pausado detectado, abriendo formulario');
+      const emptyOrder = createEmptyOrder();
+      setSelectedOrder(emptyOrder);
+      setIsEditing(false);
+      setShowForm(true);
+    }
+  }, [showForm]);
 
   const generateNextOrderNumber = () => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
