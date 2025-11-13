@@ -11,6 +11,7 @@ import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PanelDeControl from "@/pages/PanelDeControl";
 import VersionesPage from "@/pages/VersionesPage";
+import SecurityAuditPage from "@/pages/SecurityAuditPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -168,6 +169,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMINISTRADOR">
                   <VersionesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="auditoria-seguridad"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <SecurityAuditPage />
                 </ProtectedRoute>
               }
             />

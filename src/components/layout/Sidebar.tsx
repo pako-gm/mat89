@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch, History, ChevronDown, ChevronRight } from "lucide-react";
+import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch, History, ChevronDown, ChevronRight, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ export default function Sidebar() {
 
   // Auto-expand Panel de Control if we're on a submenu route
   useEffect(() => {
-    if (currentPath === "/versiones") {
+    if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad") {
       setPanelControlExpanded(true);
     }
   }, [currentPath]);
@@ -167,6 +167,12 @@ export default function Sidebar() {
                       label="Versiones APP"
                       path="/versiones"
                       active={currentPath === "/versiones"}
+                    />
+                    <SidebarItem
+                      icon={<Shield className="h-4 w-4" />}
+                      label="Auditoría de Seguridad"
+                      path="/auditoria-seguridad"
+                      active={currentPath === "/auditoria-seguridad"}
                     />
                   </div>
                 )}

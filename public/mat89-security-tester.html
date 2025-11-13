@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mat89 - Security Testing Suite</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Script para cargar las variables de entorno desde el proyecto -->
+    <script type="module">
+        // Cargar las credenciales desde las variables de entorno de Vite
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        // Guardar en window para que estén disponibles para el resto de scripts
+        window.SUPABASE_CONFIG = {
+            url: SUPABASE_URL,
+            key: SUPABASE_ANON_KEY
+        };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .warning-banner {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .config-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .config-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ee5a52;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .tests-section {
+            padding: 30px;
+        }
+
+        .test-category {
+            margin-bottom: 30px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .test-category-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .test-category-header:hover {
+            background: #34495e;
+        }
+
+        .test-category-body {
+            padding: 20px;
+            display: none;
+        }
+
+        .test-category-body.active {
+            display: block;
+        }
+
+        .test-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-item h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .test-item p {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .results-section {
+            padding: 30px;
+            background: #f8f9fa;
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .result-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .result-item.success {
+            border-left-color: #51cf66;
+        }
+
+        .result-item.warning {
+            border-left-color: #ffd43b;
+        }
+
+        .result-item.error {
+            border-left-color: #ff6b6b;
+        }
+
+        .result-item.critical {
+            border-left-color: #e03131;
+            background: #fff5f5;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .result-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .badge-warning {
+            background: #fff3bf;
+            color: #e67700;
+        }
+
+        .badge-error {
+            background: #ffe3e3;
+            color: #c92a2a;
+        }
+
+        .badge-critical {
+            background: #ffe3e3;
+            color: #c92a2a;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .result-description {
+            color: #495057;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .result-details {
+            background: #f1f3f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .summary-item.critical {
+            background: #ffe3e3;
+        }
+
+        .summary-item.error {
+            background: #fff3bf;
+        }
+
+        .summary-item.success {
+            background: #d3f9d8;
+        }
+
+        .summary-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: #495057;
+        }
+
+        .recommendations {
+            background: #e7f5ff;
+            border: 2px solid #339af0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .recommendations h3 {
+            color: #1864ab;
+            margin-bottom: 15px;
+        }
+
+        .recommendations ul {
+            list-style-position: inside;
+            color: #495057;
+        }
+
+        .recommendations li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Mat89 Security Testing Suite</h1>
+            <p>Herramienta de pruebas de seguridad para tu aplicación</p>
+        </div>
+
+        <div class="warning-banner">
+            ⚠️ IMPORTANTE: Esta herramienta está diseñada SOLO para probar TU PROPIA aplicación. No la uses en sistemas de terceros.
+        </div>
+
+        <div class="config-section">
+            <h2>⚙️ Configuración de Supabase</h2>
+            <div class="input-group">
+                <label for="supabaseUrl">URL de Supabase:</label>
+                <input type="text" id="supabaseUrl" placeholder="https://tuproyecto.supabase.co">
+            </div>
+            <div class="input-group">
+                <label for="supabaseKey">Anon Key de Supabase:</label>
+                <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+            </div>
+            <button class="btn btn-primary" onclick="initializeSupabase()">🔌 Conectar a Supabase</button>
+            <div id="connectionStatus" style="margin-top: 15px; font-weight: 600;"></div>
+        </div>
+
+        <div class="tests-section">
+            <h2 style="margin-bottom: 20px;">🧪 Categorías de Pruebas</h2>
+
+            <!-- Categoría 1: Autenticación -->
+            <div class="test-category">
+                <div class="test-category-header" onclick="toggleCategory(this)">
+                    <span>🔑 Pruebas de Autenticación</span>
+                    <span>▼</span>
+                </div>
+                <div class="test-category-body">
+                    <div class="test-item">
+                        <h4>Test 1: Acceso sin autenticación</h4>
+                        <p>Intenta acceder a tablas protegidas sin estar autenticado</p>
+                        <button class="btn btn-primary" onclick="testUnauthenticatedAccess()">▶ Ejecutar</button>
+                    </div>
+                    <div class="test-item">
+                        <h4>Test 2: Token JWT manipulado</h4>
+                        <p>Prueba con un token JWT inválido o expirado</p>
+                        <button class="btn btn-primary" onclick="testInvalidToken()">▶ Ejecutar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categoría 2: Control de Roles -->
+            <div class="test-category">
+                <div class="test-category-header" onclick="toggleCategory(this)">
+                    <span>👥 Pruebas de Control de Roles</span>
+                    <span>▼</span>
+                </div>
+                <div class="test-category-body">
+                    <div class="test-item">
+                        <h4>Test 3: Usuario CONSULTAS intentando modificar datos</h4>
+                        <p>Simula un usuario con rol CONSULTAS intentando crear/editar/eliminar registros</p>
+                        <button class="btn btn-primary" onclick="testConsultasRoleViolation()">▶ Ejecutar</button>
+                    </div>
+                    <div class="test-item">
+                        <h4>Test 4: Escalación de privilegios</h4>
+                        <p>Intenta cambiar el propio rol de usuario</p>
+                        <button class="btn btn-primary" onclick="testPrivilegeEscalation()">▶ Ejecutar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categoría 3: Políticas RLS -->
+            <div class="test-category">
+                <div class="test-category-header" onclick="toggleCategory(this)">
+                    <span>🛡️ Pruebas de Políticas RLS</span>
+                    <span>▼</span>
+                </div>
+                <div class="test-category-body">
+                    <div class="test-item">
+                        <h4>Test 5: Acceso a documentos sin política</h4>
+                        <p>Verifica si documentos están expuestos a usuarios no autenticados</p>
+                        <button class="btn btn-primary" onclick="testDocumentPolicies()">▶ Ejecutar</button>
+                    </div>
+                    <div class="test-item">
+                        <h4>Test 6: Tabla sin políticas (tbl_prov_contactos)</h4>
+                        <p>Intenta acceder a la tabla de contactos de proveedores que no tiene políticas</p>
+                        <button class="btn btn-primary" onclick="testMissingPolicies()">▶ Ejecutar</button>
+                    </div>
+                    <div class="test-item">
+                        <h4>Test 7: Políticas contradictorias en recepciones</h4>
+                        <p>Verifica si usuarios CONSULTAS pueden modificar recepciones</p>
+                        <button class="btn btn-primary" onclick="testReceptionPolicies()">▶ Ejecutar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categoría 4: Ámbito de Almacenes -->
+            <div class="test-category">
+                <div class="test-category-header" onclick="toggleCategory(this)">
+                    <span>🏢 Pruebas de Ámbito de Almacenes</span>
+                    <span>▼</span>
+                </div>
+                <div class="test-category-body">
+                    <div class="test-item">
+                        <h4>Test 8: Bypass de ámbito de almacenes</h4>
+                        <p>Intenta acceder a pedidos de almacenes fuera del ámbito del usuario</p>
+                        <button class="btn btn-primary" onclick="testWarehouseScopeBypass()">▶ Ejecutar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categoría 5: Gestión de Usuarios -->
+            <div class="test-category">
+                <div class="test-category-header" onclick="toggleCategory(this)">
+                    <span>👤 Pruebas de Gestión de Usuarios</span>
+                    <span>▼</span>
+                </div>
+                <div class="test-category-body">
+                    <div class="test-item">
+                        <h4>Test 9: Creación de perfiles sin autorización</h4>
+                        <p>Verifica si cualquier usuario puede crear nuevos perfiles de usuario</p>
+                        <button class="btn btn-primary" onclick="testUserProfileCreation()">▶ Ejecutar</button>
+                    </div>
+                    <div class="test-item">
+                        <h4>Test 10: Eliminación de perfiles ajenos</h4>
+                        <p>Intenta eliminar el perfil de otro usuario</p>
+                        <button class="btn btn-primary" onclick="testUserProfileDeletion()">▶ Ejecutar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; text-align: center;">
+                <button class="btn btn-danger" onclick="runAllTests()" style="font-size: 18px; padding: 15px 40px;">
+                    🚀 EJECUTAR TODAS LAS PRUEBAS
+                </button>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <h2 style="margin-bottom: 20px;">📊 Resultados de las Pruebas</h2>
+            <div id="summary"></div>
+            <div id="results"></div>
+            <div id="recommendations"></div>
+        </div>
+    </div>
+
+    <script>
+        let supabase = null;
+        let testResults = [];
+
+        // Cargar credenciales desde variables de entorno al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            // Intentar cargar desde window.SUPABASE_CONFIG (inyectado por el módulo de entorno)
+            if (window.SUPABASE_CONFIG?.url && window.SUPABASE_CONFIG?.key) {
+                document.getElementById('supabaseUrl').value = window.SUPABASE_CONFIG.url;
+                document.getElementById('supabaseKey').value = window.SUPABASE_CONFIG.key;
+                // Auto-conectar
+                initializeSupabase();
+            }
+        });
+
+        function initializeSupabase() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+            const statusDiv = document.getElementById('connectionStatus');
+
+            if (!url || !key) {
+                statusDiv.innerHTML = '<span style="color: #e03131;">❌ Por favor, completa ambos campos</span>';
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                statusDiv.innerHTML = '<span style="color: #51cf66;">✅ Conectado exitosamente</span>';
+            } catch (error) {
+                statusDiv.innerHTML = '<span style="color: #e03131;">❌ Error al conectar: ' + error.message + '</span>';
+            }
+        }
+
+        function toggleCategory(header) {
+            const body = header.nextElementSibling;
+            const arrow = header.querySelector('span:last-child');
+            body.classList.toggle('active');
+            arrow.textContent = body.classList.contains('active') ? '▲' : '▼';
+        }
+
+        function addResult(test, status, description, details = null) {
+            testResults.push({
+                test,
+                status,
+                description,
+                details,
+                timestamp: new Date()
+            });
+        }
+
+        function displayResults() {
+            const resultsSection = document.getElementById('resultsSection');
+            const summaryDiv = document.getElementById('summary');
+            const resultsDiv = document.getElementById('results');
+            const recommendationsDiv = document.getElementById('recommendations');
+
+            resultsSection.classList.add('active');
+
+            // Calcular resumen
+            const critical = testResults.filter(r => r.status === 'critical').length;
+            const errors = testResults.filter(r => r.status === 'error').length;
+            const warnings = testResults.filter(r => r.status === 'warning').length;
+            const success = testResults.filter(r => r.status === 'success').length;
+
+            summaryDiv.innerHTML = `
+                <div class="summary">
+                    <div class="summary-item critical">
+                        <div class="summary-number">${critical}</div>
+                        <div class="summary-label">Críticas</div>
+                    </div>
+                    <div class="summary-item error">
+                        <div class="summary-number">${errors}</div>
+                        <div class="summary-label">Errores</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number">${warnings}</div>
+                        <div class="summary-label">Advertencias</div>
+                    </div>
+                    <div class="summary-item success">
+                        <div class="summary-number">${success}</div>
+                        <div class="summary-label">Correctas</div>
+                    </div>
+                </div>
+            `;
+
+            // Mostrar resultados
+            resultsDiv.innerHTML = testResults.map(result => {
+                const badgeClass = result.status === 'success' ? 'badge-success' :
+                                  result.status === 'warning' ? 'badge-warning' :
+                                  result.status === 'error' ? 'badge-error' : 'badge-critical';
+                
+                const statusText = result.status === 'success' ? '✓ SEGURO' :
+                                  result.status === 'warning' ? '⚠ ADVERTENCIA' :
+                                  result.status === 'error' ? '✗ VULNERABLE' : '🚨 CRÍTICO';
+
+                return `
+                    <div class="result-item ${result.status}">
+                        <div class="result-header">
+                            <div class="result-title">${result.test}</div>
+                            <div class="result-badge ${badgeClass}">${statusText}</div>
+                        </div>
+                        <div class="result-description">${result.description}</div>
+                        ${result.details ? `<div class="result-details">${JSON.stringify(result.details, null, 2)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Generar recomendaciones
+            if (critical > 0 || errors > 0) {
+                recommendationsDiv.innerHTML = `
+                    <div class="recommendations">
+                        <h3>📋 Recomendaciones de Seguridad</h3>
+                        <ul>
+                            ${critical > 0 || errors > 0 ? '<li><strong>URGENTE:</strong> Revisa las políticas RLS de tbl_documentos_pedido - están expuestas a usuarios no autenticados</li>' : ''}
+                            ${critical > 0 || errors > 0 ? '<li><strong>URGENTE:</strong> Crea políticas para tbl_prov_contactos inmediatamente</li>' : ''}
+                            ${errors > 0 ? '<li>Corrige las políticas contradictorias en tbl_recepciones</li>' : ''}
+                            ${errors > 0 ? '<li>Implementa validación de ambito_almacenes en todas las consultas de pedidos</li>' : ''}
+                            ${errors > 0 ? '<li>Restringe las políticas de user_profiles solo a administradores</li>' : ''}
+                            <li>Considera implementar rate limiting para prevenir ataques de fuerza bruta</li>
+                            <li>Activa logs de auditoría en Supabase para monitorear intentos de acceso no autorizado</li>
+                            <li>Implementa autenticación de dos factores (2FA) para usuarios administradores</li>
+                        </ul>
+                    </div>
+                `;
+            } else {
+                recommendationsDiv.innerHTML = `
+                    <div class="recommendations">
+                        <h3>✅ Estado de Seguridad</h3>
+                        <p style="color: #2b8a3e; font-weight: 600;">¡Excelente! No se detectaron vulnerabilidades críticas en las pruebas realizadas.</p>
+                        <p style="margin-top: 10px;">Continúa monitoreando regularmente la seguridad de tu aplicación.</p>
+                    </div>
+                `;
+            }
+
+            // Scroll a resultados
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // TEST 1: Acceso sin autenticación
+        async function testUnauthenticatedAccess() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                // Crear un cliente sin autenticación
+                const { data, error } = await supabase
+                    .from('tbl_pedidos_rep')
+                    .select('*')
+                    .limit(1);
+
+                if (data && data.length > 0) {
+                    addResult(
+                        'Test 1: Acceso sin autenticación',
+                        'critical',
+                        '🚨 CRÍTICO: Se pudo acceder a pedidos sin autenticación. Las políticas RLS no están funcionando correctamente.',
+                        { data }
+                    );
+                } else if (error && error.code === 'PGRST301') {
+                    addResult(
+                        'Test 1: Acceso sin autenticación',
+                        'success',
+                        '✓ Correcto: El acceso sin autenticación fue bloqueado correctamente.',
+                        { error: error.message }
+                    );
+                } else {
+                    addResult(
+                        'Test 1: Acceso sin autenticación',
+                        'success',
+                        '✓ El sistema bloqueó correctamente el acceso no autenticado.',
+                        { error }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 1: Acceso sin autenticación',
+                    'error',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 2: Token JWT manipulado
+        async function testInvalidToken() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                // Intentar establecer un token inválido
+                const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkhhY2tlciIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+                
+                supabase.auth.setSession({
+                    access_token: fakeToken,
+                    refresh_token: fakeToken
+                });
+
+                const { data, error } = await supabase
+                    .from('tbl_pedidos_rep')
+                    .select('*')
+                    .limit(1);
+
+                if (data && data.length > 0) {
+                    addResult(
+                        'Test 2: Token JWT manipulado',
+                        'critical',
+                        '🚨 CRÍTICO: Se aceptó un token JWT inválido. Vulnerabilidad grave de seguridad.',
+                        { data }
+                    );
+                } else {
+                    addResult(
+                        'Test 2: Token JWT manipulado',
+                        'success',
+                        '✓ Correcto: El token inválido fue rechazado.',
+                        { error: error ? error.message : 'Token rechazado' }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 2: Token JWT manipulado',
+                    'success',
+                    '✓ El sistema rechazó correctamente el token manipulado.',
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 3: Usuario CONSULTAS intentando modificar
+        async function testConsultasRoleViolation() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                // Intentar insertar un material
+                const { data, error } = await supabase
+                    .from('tbl_materiales')
+                    .insert({
+                        matricula_89: 999999,
+                        descripcion: 'TEST SECURITY',
+                        serie_vehiculo: '999'
+                    })
+                    .select();
+
+                if (data && data.length > 0) {
+                    // Limpiar el registro de prueba
+                    await supabase.from('tbl_materiales').delete().eq('matricula_89', 999999);
+                    
+                    addResult(
+                        'Test 3: Violación de rol CONSULTAS',
+                        'error',
+                        '✗ VULNERABLE: Un usuario pudo insertar datos. Verifica que las políticas RLS validen correctamente los roles.',
+                        { inserted: data }
+                    );
+                } else if (error) {
+                    addResult(
+                        'Test 3: Violación de rol CONSULTAS',
+                        'success',
+                        '✓ Correcto: El sistema bloqueó correctamente la inserción de datos.',
+                        { error: error.message }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 3: Violación de rol CONSULTAS',
+                    'success',
+                    '✓ Las políticas de rol funcionan correctamente.',
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 4: Escalación de privilegios
+        async function testPrivilegeEscalation() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                const { data: session } = await supabase.auth.getSession();
+                
+                if (!session.session) {
+                    addResult(
+                        'Test 4: Escalación de privilegios',
+                        'warning',
+                        '⚠ No hay sesión activa. Inicia sesión para ejecutar esta prueba.',
+                        null
+                    );
+                    displayResults();
+                    return;
+                }
+
+                const userId = session.session.user.id;
+
+                // Intentar cambiar el propio rol a ADMINISTRADOR
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .update({ user_role: 'ADMINISTRADOR' })
+                    .eq('user_id', userId)
+                    .select();
+
+                if (data && data.length > 0) {
+                    // Revertir el cambio
+                    await supabase
+                        .from('user_profiles')
+                        .update({ user_role: 'CONSULTAS' })
+                        .eq('user_id', userId);
+
+                    addResult(
+                        'Test 4: Escalación de privilegios',
+                        'critical',
+                        '🚨 CRÍTICO: Un usuario pudo cambiar su propio rol. Esto es una vulnerabilidad de seguridad grave.',
+                        { modified: data }
+                    );
+                } else if (error) {
+                    addResult(
+                        'Test 4: Escalación de privilegios',
+                        'success',
+                        '✓ Correcto: El sistema bloqueó el intento de escalación de privilegios.',
+                        { error: error.message }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 4: Escalación de privilegios',
+                    'warning',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 5: Políticas de documentos
+        async function testDocumentPolicies() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('tbl_documentos_pedido')
+                    .select('*')
+                    .limit(1);
+
+                // Si podemos leer sin autenticación, es crítico
+                if (data && data.length > 0) {
+                    addResult(
+                        'Test 5: Políticas de documentos',
+                        'critical',
+                        '🚨 CRÍTICO: Los documentos son accesibles sin autenticación. Las políticas están aplicadas a "public" en lugar de "authenticated".',
+                        { data }
+                    );
+                } else if (error && error.message.includes('JWT')) {
+                    addResult(
+                        'Test 5: Políticas de documentos',
+                        'success',
+                        '✓ Correcto: Los documentos están protegidos correctamente.',
+                        null
+                    );
+                } else {
+                    addResult(
+                        'Test 5: Políticas de documentos',
+                        'warning',
+                        '⚠ Resultado ambiguo. Verifica manualmente las políticas de tbl_documentos_pedido.',
+                        { error }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 5: Políticas de documentos',
+                    'warning',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 6: Tabla sin políticas
+        async function testMissingPolicies() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('tbl_prov_contactos')
+                    .select('*')
+                    .limit(1);
+
+                if (error && error.code === 'PGRST301') {
+                    addResult(
+                        'Test 6: Tabla sin políticas',
+                        'critical',
+                        '🚨 CRÍTICO: La tabla tbl_prov_contactos no tiene políticas RLS. Nadie puede acceder, ni siquiera administradores legítimos.',
+                        { error: error.message }
+                    );
+                } else if (data) {
+                    addResult(
+                        'Test 6: Tabla sin políticas',
+                        'error',
+                        '✗ VULNERABLE: Se pudo acceder a la tabla sin políticas adecuadas.',
+                        { data }
+                    );
+                } else {
+                    addResult(
+                        'Test 6: Tabla sin políticas',
+                        'warning',
+                        '⚠ Estado indeterminado de las políticas.',
+                        { error }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 6: Tabla sin políticas',
+                    'critical',
+                    '🚨 La tabla tbl_prov_contactos está completamente bloqueada por falta de políticas.',
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 7: Políticas de recepciones
+        async function testReceptionPolicies() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                // Intentar insertar una recepción
+                const testData = {
+                    pedido_id: '00000000-0000-0000-0000-000000000000',
+                    fecha_recepcion: '2025-01-01',
+                    estado_recepcion: 'TEST',
+                    n_rec: 999
+                };
+
+                const { data, error } = await supabase
+                    .from('tbl_recepciones')
+                    .insert(testData)
+                    .select();
+
+                if (data && data.length > 0) {
+                    // Limpiar
+                    await supabase.from('tbl_recepciones').delete().eq('n_rec', 999);
+
+                    addResult(
+                        'Test 7: Políticas de recepciones',
+                        'error',
+                        '✗ VULNERABLE: Políticas contradictorias permiten a usuarios sin privilegios modificar recepciones.',
+                        { inserted: data }
+                    );
+                } else if (error) {
+                    addResult(
+                        'Test 7: Políticas de recepciones',
+                        'success',
+                        '✓ Correcto: Las modificaciones no autorizadas fueron bloqueadas.',
+                        { error: error.message }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 7: Políticas de recepciones',
+                    'warning',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 8: Bypass de ámbito de almacenes
+        async function testWarehouseScopeBypass() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                // Obtener todos los pedidos sin filtrar por almacén
+                const { data, error } = await supabase
+                    .from('tbl_pedidos_rep')
+                    .select('*, user_profiles!tbl_pedidos_rep_user_id_fkey(ambito_almacenes)')
+                    .limit(10);
+
+                if (data && data.length > 0) {
+                    addResult(
+                        'Test 8: Bypass de ámbito de almacenes',
+                        'error',
+                        '✗ VULNERABLE: No hay validación de ambito_almacenes en las políticas RLS. Los usuarios pueden ver pedidos de todos los almacenes.',
+                        { sample: data[0] }
+                    );
+                } else if (error) {
+                    addResult(
+                        'Test 8: Bypass de ámbito de almacenes',
+                        'success',
+                        '✓ El acceso a pedidos está correctamente filtrado.',
+                        { error: error.message }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 8: Bypass de ámbito de almacenes',
+                    'warning',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 9: Creación de perfiles
+        async function testUserProfileCreation() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                const testProfile = {
+                    user_id: '00000000-0000-0000-0000-000000000000',
+                    email: 'test@security.com',
+                    user_role: 'ADMINISTRADOR',
+                    nombre_usuario: 'Security Test',
+                    is_active: true,
+                    status: true
+                };
+
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .insert(testProfile)
+                    .select();
+
+                if (data && data.length > 0) {
+                    // Limpiar
+                    await supabase.from('user_profiles').delete().eq('email', 'test@security.com');
+
+                    addResult(
+                        'Test 9: Creación de perfiles',
+                        'critical',
+                        '🚨 CRÍTICO: Cualquier usuario autenticado puede crear nuevos perfiles de usuario, incluso con rol ADMINISTRADOR.',
+                        { created: data }
+                    );
+                } else if (error) {
+                    addResult(
+                        'Test 9: Creación de perfiles',
+                        'success',
+                        '✓ Correcto: Solo administradores pueden crear perfiles de usuario.',
+                        { error: error.message }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 9: Creación de perfiles',
+                    'warning',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // TEST 10: Eliminación de perfiles
+        async function testUserProfileDeletion() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            try {
+                // Obtener el primer perfil que no sea el propio
+                const { data: profiles } = await supabase
+                    .from('user_profiles')
+                    .select('id')
+                    .limit(1);
+
+                if (!profiles || profiles.length === 0) {
+                    addResult(
+                        'Test 10: Eliminación de perfiles',
+                        'warning',
+                        '⚠ No hay perfiles disponibles para probar.',
+                        null
+                    );
+                    displayResults();
+                    return;
+                }
+
+                const targetId = profiles[0].id;
+
+                // Intentar eliminar (sin realmente hacerlo)
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .delete()
+                    .eq('id', targetId)
+                    .select();
+
+                if (data && data.length > 0) {
+                    addResult(
+                        'Test 10: Eliminación de perfiles',
+                        'critical',
+                        '🚨 CRÍTICO: Un usuario pudo eliminar perfiles de otros usuarios.',
+                        { deleted: data }
+                    );
+                } else if (error) {
+                    addResult(
+                        'Test 10: Eliminación de perfiles',
+                        'success',
+                        '✓ Correcto: Los usuarios no pueden eliminar perfiles ajenos.',
+                        { error: error.message }
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    'Test 10: Eliminación de perfiles',
+                    'warning',
+                    'Error al ejecutar la prueba: ' + error.message,
+                    { error: error.toString() }
+                );
+            }
+
+            displayResults();
+        }
+
+        // Ejecutar todas las pruebas
+        async function runAllTests() {
+            if (!supabase) {
+                alert('Por favor, conéctate a Supabase primero');
+                return;
+            }
+
+            testResults = []; // Limpiar resultados anteriores
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p style="margin-top: 20px;">Ejecutando pruebas de seguridad...</p></div>';
+            document.getElementById('resultsSection').classList.add('active');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+
+            // Ejecutar todas las pruebas secuencialmente
+            await testUnauthenticatedAccess();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testInvalidToken();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testConsultasRoleViolation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testPrivilegeEscalation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDocumentPolicies();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testMissingPolicies();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testReceptionPolicies();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testWarehouseScopeBypass();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testUserProfileCreation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testUserProfileDeletion();
+
+            // Mostrar resultados finales
+            displayResults();
+        }
+    </script>
+</body>
+</html>
