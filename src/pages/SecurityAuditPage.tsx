@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Shield, AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
@@ -14,7 +14,6 @@ export default function SecurityAuditPage() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle');
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     // Verificar conexión a Supabase
@@ -23,7 +22,7 @@ export default function SecurityAuditPage() {
 
   const checkConnection = async () => {
     try {
-      const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
+      const { error } = await supabase.from('user_profiles').select('count').limit(1);
       if (error) throw error;
       setConnectionStatus('connected');
     } catch (error) {
