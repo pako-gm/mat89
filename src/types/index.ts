@@ -93,6 +93,9 @@ export interface Material {
   createdAt?: string;
   updatedAt?: string;
   updatedBy?: string; // Email del usuario que hizo la última actualización
+  // Campos para mostrar último proveedor de envío
+  lastSupplierName?: string;
+  lastSupplierDate?: string;
 }
 
 // New interface for the Consulta page data structure

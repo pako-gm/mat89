@@ -26,6 +26,13 @@ interface DbSupplier {
   nombre: string;
 }
 
+interface DbLastSupplierResponse {
+  fecha_envio: string;
+  tbl_proveedores: {
+    nombre: string;
+  };
+}
+
 export const warehouses: Warehouse[] = [
   { id: "1", code: "ALM141", name: "Almacén 141" },
   { id: "2", code: "ALM140", name: "Almacén 140" },
@@ -401,6 +408,38 @@ export const checkMaterialRegistrationExists = async (registration: number, excl
   }
 
   return data && data.length > 0;
+};
+
+export const getLastSupplierForMaterial = async (matricula: number) => {
+  const { data, error } = await supabase
+    .from('tbl_pedidos_rep')
+    .select(`
+      fecha_envio,
+      tbl_proveedores!inner(nombre),
+      tbl_ln_pedidos_rep!inner(matricula_89)
+    `)
+    .eq('tbl_ln_pedidos_rep.matricula_89', String(matricula))
+    .eq('cancelado', false)
+    .not('fecha_envio', 'is', null)
+    .order('fecha_envio', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching last supplier for material:', error);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const typedData = data as unknown as DbLastSupplierResponse;
+
+  return {
+    supplierName: typedData.tbl_proveedores.nombre,
+    shipmentDate: typedData.fecha_envio
+  };
 };
 
 // Empty the sample orders array

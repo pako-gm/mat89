@@ -1,8 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Material } from "@/types";
-import { Edit2, X, Package, Factory, Calendar, Hash, Trash2, Clock } from "lucide-react";
+import { Edit2, X, Package, Factory, Calendar, Hash, Trash2, Clock, Truck } from "lucide-react";
 import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { getLastSupplierForMaterial } from "@/lib/data";
 
 interface MaterialDetailsProps {
   material: Material;
@@ -12,18 +14,45 @@ interface MaterialDetailsProps {
   onDelete: () => void;
 }
 
-export default function MaterialDetails({ 
-  material, 
-  open, 
-  onClose, 
+export default function MaterialDetails({
+  material,
+  open,
+  onClose,
   onEdit,
   onDelete
 }: MaterialDetailsProps) {
+  const [lastSupplier, setLastSupplier] = useState<{ supplierName: string; shipmentDate: string } | null>(null);
+  const [loadingSupplier, setLoadingSupplier] = useState(false);
+
+  useEffect(() => {
+    const fetchLastSupplier = async () => {
+      if (material.registration) {
+        setLoadingSupplier(true);
+        const data = await getLastSupplierForMaterial(material.registration);
+        setLastSupplier(data);
+        setLoadingSupplier(false);
+      }
+    };
+
+    if (open) {
+      fetchLastSupplier();
+    }
+  }, [material.registration, open]);
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "--";
     try {
       return format(new Date(dateString), "dd/MM/yyyy HH:mm");
-    } catch (error) {
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatDateOnly = (dateString?: string) => {
+    if (!dateString) return "--";
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy");
+    } catch {
       return dateString;
     }
   };
@@ -121,12 +150,31 @@ export default function MaterialDetails({
                       <div>{formatDate(material.createdAt)}</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <Clock className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
                     <div>
                       <div className="font-medium text-sm text-gray-500">Última Actualización</div>
                       <div>{formatUpdatedByAndDate(material.updatedAt, material.updatedBy)}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <Truck className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm text-gray-500">Último Destino de Reparación</div>
+                      {loadingSupplier ? (
+                        <div className="text-sm text-gray-400">Cargando...</div>
+                      ) : lastSupplier ? (
+                        <div>
+                          <div>{formatDateOnly(lastSupplier.shipmentDate)} - {lastSupplier.supplierName}</div>
+                          <div className="text-xs text-gray-500 italic mt-1">
+                            NOTA: El dato mostrado es a título orientativo, comprueba el destino de reparación actualizado en Máximo.
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400">Sin envíos registrados</div>
+                      )}
                     </div>
                   </div>
                 </div>
