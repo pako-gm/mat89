@@ -9,7 +9,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "backup": "node scripts/backup-database.js",
-    "backup:standalone": "node scripts/backup-standalone.js"
+    "backup:standalone": "node scripts/backup-standalone.js",
+    "db:push": "supabase db push",
+    "db:pull": "supabase db pull",
+    "db:reset": "supabase db reset",
+    "supabase:link": "supabase link",
+    "supabase:status": "supabase status"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -58,6 +63,7 @@
     "eslint-plugin-react-refresh": "^0.4.12",
     "globals": "^15.9.0",
     "postcss": "^8.4.47",
+    "supabase": "^2.58.5",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.7.0",
