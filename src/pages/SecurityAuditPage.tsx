@@ -217,6 +217,26 @@ export default function SecurityAuditPage() {
 
       const userId = session.session.user.id;
 
+      // PRIMERO: Obtener el rol actual del usuario para poder restaurarlo
+      const { data: currentProfile } = await supabase
+        .from('user_profiles')
+        .select('user_role')
+        .eq('user_id', userId)
+        .single();
+
+      if (!currentProfile) {
+        addResult(
+          'Test 5: Escalación de privilegios',
+          'warning',
+          '⚠ No se pudo obtener el perfil del usuario actual.',
+          null
+        );
+        return;
+      }
+
+      const originalRole = currentProfile.user_role;
+
+      // Intentar cambiar el rol a ADMINISTRADOR (para probar si RLS lo bloquea)
       const { data, error } = await supabase
         .from('user_profiles')
         .update({ user_role: 'ADMINISTRADOR' })
@@ -224,16 +244,17 @@ export default function SecurityAuditPage() {
         .select();
 
       if (data && data.length > 0) {
+        // Si tuvo éxito, RESTAURAR el rol original (no hardcodear CONSULTAS)
         await supabase
           .from('user_profiles')
-          .update({ user_role: 'CONSULTAS' })
+          .update({ user_role: originalRole })
           .eq('user_id', userId);
 
         addResult(
           'Test 5: Escalación de privilegios',
           'critical',
-          '🚨 CRÍTICO: Un usuario pudo cambiar su propio rol.',
-          { modified: data }
+          `🚨 CRÍTICO: Un usuario pudo cambiar su propio rol de ${originalRole} a ADMINISTRADOR. Rol restaurado a ${originalRole}.`,
+          { modified: data, originalRole, restored: true }
         );
       } else if (error) {
         addResult(
