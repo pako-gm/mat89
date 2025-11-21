@@ -2,6 +2,17 @@ import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, Con
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
+// ============================================================================
+// TEMPORARY FLAG FOR TESTING: Enable real deletion instead of soft delete
+// ============================================================================
+// IMPORTANTE: Este flag está configurado para borrado REAL (físico) de pedidos
+// durante las pruebas del módulo de garantías en localhost.
+//
+// Para VOLVER al comportamiento original (soft delete / cancelar):
+// - Cambiar: export const ENABLE_REAL_ORDER_DELETION = false;
+// ============================================================================
+export const ENABLE_REAL_ORDER_DELETION = true;
+
 // Database types for Supabase responses
 interface DbOrderLine {
   id: string;
@@ -434,7 +445,8 @@ export const saveOrder = async (order: Order) => {
         fecha_envio: order.shipmentDate,
         averia_declarada: order.declaredDamage,
         documentacion: order.shipmentDocumentation,
-        user_id: userId // Use explicit user ID 
+        enviado_sin_garantia: order.enviadoSinGarantia || false,
+        user_id: userId // Use explicit user ID
       })
       .select()
       .single();
@@ -778,7 +790,9 @@ export const saveReception = async (reception: MaterialReception): Promise<any> 
       estado_recepcion: reception.estadoRecepcion,
       n_rec: reception.nRec,
       ns_rec: reception.nsRec,
-      observaciones: reception.observaciones
+      observaciones: reception.observaciones,
+      garantia_aceptada_proveedor: reception.garantiaAceptadaProveedor ?? null,
+      motivo_rechazo_garantia: reception.motivoRechazoGarantia ?? null
     })
     .select()
     .single();
@@ -1055,5 +1069,116 @@ export const deleteVersion = async (id: string): Promise<{ success: boolean; err
   } catch (error: any) {
     console.error('Error in deleteVersion:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// ============================================================================
+// WARRANTY SYSTEM FUNCTIONS
+// ============================================================================
+
+export interface DuplicateMaterialInfo {
+  matricula89: string;
+  descripcion: string;
+  numPedido: string;
+  fechaEnvio: string;
+  fechaRecepcion: string;
+  pedidoId: string;
+}
+
+/**
+ * Check for duplicate materials sent to external providers within warranty period (1 year)
+ * Used in Phase 2 of warranty detection system
+ *
+ * @param materials - Array of material registrations (matricula_89) to check
+ * @param providerId - External provider ID
+ * @param currentOrderId - Current order ID (to exclude from duplicates check)
+ * @returns Array of duplicate materials with their previous shipment details
+ */
+export const checkDuplicateMaterialsForWarranty = async (
+  materials: string[],
+  providerId: string,
+  currentOrderId?: string
+): Promise<DuplicateMaterialInfo[]> => {
+  try {
+    // Calculate 1 year ago from today
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+
+    // Query for duplicate materials
+    // We need to find materials that:
+    // 1. Have the same matricula_89
+    // 2. Were sent to the same provider
+    // 3. Have been received (tbl_recepciones exists)
+    // 4. Reception date is within 1 year from today
+    const { data, error } = await supabase
+      .from('tbl_ln_pedidos_rep')
+      .select(`
+        matricula_89,
+        descripcion,
+        pedido_id,
+        tbl_pedidos_rep!inner (
+          id,
+          num_pedido,
+          fecha_envio,
+          proveedor_id
+        ),
+        tbl_recepciones!inner (
+          fecha_recepcion,
+          id
+        )
+      `)
+      .in('matricula_89', materials)
+      .eq('tbl_pedidos_rep.proveedor_id', providerId)
+      .gte('tbl_recepciones.fecha_recepcion', oneYearAgoStr);
+
+    if (error) {
+      console.error('Error checking duplicate materials:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Filter out current order if provided and transform data
+    const duplicates: DuplicateMaterialInfo[] = [];
+    const seenMaterials = new Set<string>();
+
+    for (const item of data) {
+      const pedido = Array.isArray(item.tbl_pedidos_rep)
+        ? item.tbl_pedidos_rep[0]
+        : item.tbl_pedidos_rep;
+
+      const recepcion = Array.isArray(item.tbl_recepciones)
+        ? item.tbl_recepciones[0]
+        : item.tbl_recepciones;
+
+      // Skip if this is the current order being created/edited
+      if (currentOrderId && pedido.id === currentOrderId) {
+        continue;
+      }
+
+      // Only include each material once (use the most recent reception)
+      const materialKey = `${item.matricula_89}-${pedido.id}`;
+      if (seenMaterials.has(materialKey)) {
+        continue;
+      }
+      seenMaterials.add(materialKey);
+
+      duplicates.push({
+        matricula89: item.matricula_89,
+        descripcion: item.descripcion || '',
+        numPedido: pedido.num_pedido,
+        fechaEnvio: pedido.fecha_envio,
+        fechaRecepcion: recepcion.fecha_recepcion,
+        pedidoId: pedido.id
+      });
+    }
+
+    return duplicates;
+  } catch (error) {
+    console.error('Error in checkDuplicateMaterialsForWarranty:', error);
+    return [];
   }
 };

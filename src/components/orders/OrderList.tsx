@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Order } from "@/types";
 import OrderForm from "./OrderForm";
-import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder } from "@/lib/data";
+import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -217,8 +217,15 @@ export default function OrderList() {
     };
 
     const confirmCancelOrder = (orderId: string) => {
-      setOrderToCancel(orderId);
-      setShowCancelConfirmation(true);
+      if (ENABLE_REAL_ORDER_DELETION) {
+        // Si el flag está activado, usar borrado real
+        setOrderToDelete(orderId);
+        setShowDeleteConfirmation(true);
+      } else {
+        // Comportamiento original: soft delete / cancelar
+        setOrderToCancel(orderId);
+        setShowCancelConfirmation(true);
+      }
     };
 
     const handleCancelOrder = async () => {
@@ -1110,27 +1117,29 @@ export default function OrderList() {
           </AlertDialogContent>
         </AlertDialog>
 
-        <AlertDialog open={showCancelConfirmation} onOpenChange={setShowCancelConfirmation}>
-          <AlertDialogContent className="bg-white">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl">Cancelar pedido</AlertDialogTitle>
-              <AlertDialogDescription className="text-gray-600">
-                Vas a cancelar el pedido. Pulsa 'Cancelar Pedido' para deshabilitarlo o pulsa 'Volver' para cerrar esta pantalla.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
-                Volver
-              </AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-red-600 text-white hover:bg-red-700"
-                onClick={handleCancelOrder}
-              >
-                Cancelar Pedido
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {!ENABLE_REAL_ORDER_DELETION && (
+          <AlertDialog open={showCancelConfirmation} onOpenChange={setShowCancelConfirmation}>
+            <AlertDialogContent className="bg-white">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-xl">Cancelar pedido</AlertDialogTitle>
+                <AlertDialogDescription className="text-gray-600">
+                  Vas a cancelar el pedido. Pulsa 'Cancelar Pedido' para deshabilitarlo o pulsa 'Volver' para cerrar esta pantalla.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
+                  Volver
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 text-white hover:bg-red-700"
+                  onClick={handleCancelOrder}
+                >
+                  Cancelar Pedido
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         {/* Lanzar PAR Modal */}
         <Dialog open={showLanzarParModal} onOpenChange={setShowLanzarParModal}>

@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Order, OrderLine, MaterialReception } from "@/types";
 import { formatDateToDDMMYYYY } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getOrdersForReception, 
-  getReceptionsByLineId, 
-  saveReception, 
-  deleteReception, 
-  updateOrderStatusIfComplete 
+import {
+  getOrdersForReception,
+  getReceptionsByLineId,
+  saveReception,
+  deleteReception,
+  updateOrderStatusIfComplete
 } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ChevronDown, ChevronUp, Plus, Trash2, Package } from "lucide-react";
+import WarrantyReceptionModal from "./WarrantyReceptionModal";
 import {
   Table,
   TableBody,
@@ -62,6 +63,10 @@ export default function ReceptionManagement() {
   const [receptionToDelete, setReceptionToDelete] = useState<MaterialReception | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Warranty reception state
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [pendingReception, setPendingReception] = useState<MaterialReception | null>(null);
 
   const receptionStates = [
     { value: 'UTIL', label: 'ÚTIL' },
@@ -198,7 +203,7 @@ export default function ReceptionManagement() {
     // Validation: Check if total received would exceed total sent
     const currentTotalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
     const newTotalReceived = currentTotalReceived + (newReception.nRec || 0);
-    
+
     if (newTotalReceived > selectedLine.quantity) {
       toast({
         variant: "destructive",
@@ -208,34 +213,80 @@ export default function ReceptionManagement() {
       return;
     }
 
+    // Create the reception object
+    const reception: MaterialReception = {
+      id: uuidv4(),
+      pedidoId: selectedOrder.id,
+      lineaPedidoId: selectedLine.id,
+      fechaRecepcion: newReception.fechaRecepcion || new Date().toISOString().split('T')[0],
+      estadoRecepcion: newReception.estadoRecepcion as any,
+      nRec: newReception.nRec || 1,
+      nsRec: newReception.nsRec || '',
+      observaciones: newReception.observaciones || ''
+    };
+
+    // PHASE 3: Check if this reception completes a warranty order
+    const willComplete = newTotalReceived >= selectedLine.quantity;
+    if (willComplete && selectedOrder.warranty) {
+      // Store pending reception and show warranty modal
+      setPendingReception(reception);
+      setShowWarrantyModal(true);
+      return; // Wait for warranty modal response
+    }
+
+    // No warranty check needed, proceed with save
+    await proceedWithSaveReception(reception);
+  };
+
+  // Handle warranty modal confirmation
+  const handleWarrantyConfirm = async (acceptedByProvider: boolean, rejectionReason?: string) => {
+    setShowWarrantyModal(false);
+
+    if (!pendingReception) return;
+
+    // Add warranty fields to reception
+    const receptionWithWarranty: MaterialReception = {
+      ...pendingReception,
+      garantiaAceptadaProveedor: acceptedByProvider,
+      motivoRechazoGarantia: acceptedByProvider ? null : rejectionReason
+    };
+
+    await proceedWithSaveReception(receptionWithWarranty);
+    setPendingReception(null);
+  };
+
+  // Handle warranty modal cancellation
+  const handleWarrantyCancel = () => {
+    setShowWarrantyModal(false);
+    setPendingReception(null);
+
+    toast({
+      title: "Recepción cancelada",
+      description: "La recepción no se ha guardado. Complete la información de garantía para continuar.",
+    });
+  };
+
+  // Proceed with saving reception
+  const proceedWithSaveReception = async (reception: MaterialReception) => {
+    if (!selectedLine || !selectedOrder) return;
+
     setLoading(true);
     try {
-      const reception: MaterialReception = {
-        id: uuidv4(),
-        pedidoId: selectedOrder.id,
-        lineaPedidoId: selectedLine.id,
-        fechaRecepcion: newReception.fechaRecepcion || new Date().toISOString().split('T')[0],
-        estadoRecepcion: newReception.estadoRecepcion as any,
-        nRec: newReception.nRec || 1,
-        nsRec: newReception.nsRec || '',
-        observaciones: newReception.observaciones || ''
-      };
-
       await saveReception(reception);
 
       // Refresh receptions for the dialog
       const updatedReceptions = await getReceptionsByLineId(selectedLine.id);
       setLineReceptions(updatedReceptions);
-      
+
       // Reset form to initial state
       initializeForm();
 
       // CRITICAL: Update order status after adding reception
       await updateOrderStatusIfComplete(selectedOrder.id);
-      
+
       // CRITICAL: Refresh orders to update totalReceived and status
       await fetchOrders();
-      
+
       // Update the selectedLine totalReceived immediately for dialog display
       const newTotalReceived = updatedReceptions.reduce((sum, r) => sum + r.nRec, 0);
       if (selectedLine) {
@@ -705,7 +756,7 @@ export default function ReceptionManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-red-600 text-white hover:bg-red-700"
               onClick={handleDeleteReception}
             >
@@ -714,6 +765,13 @@ export default function ReceptionManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Warranty Reception Modal */}
+      <WarrantyReceptionModal
+        open={showWarrantyModal}
+        onConfirm={handleWarrantyConfirm}
+        onCancel={handleWarrantyCancel}
+      />
     </div>
   );
 }

@@ -17,6 +17,8 @@ export interface MaterialReception {
   nRec: number;
   nsRec: string;
   observaciones: string;
+  garantiaAceptadaProveedor?: boolean | null;
+  motivoRechazoGarantia?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -39,6 +41,7 @@ export interface Order {
   estadoPedido?: 'PENDIENTE' | 'COMPLETADO';
   deleted?: boolean;
   cancelado?: boolean;
+  enviadoSinGarantia?: boolean;
 }
 
 export interface OrderLine {

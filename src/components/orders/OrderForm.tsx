@@ -2,12 +2,14 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { Order, OrderLine } from "@/types";
-import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
+import { warehouses, getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import { filterManualChangeHistory, formatDateToDDMMYYYY, formatCommentTimestamp } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
+import WarrantyConfirmationModal from "./WarrantyConfirmationModal";
+import NCRequiredModal from "./NCRequiredModal";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +86,12 @@ export default function OrderForm({
   const [hasChanges, setHasChanges] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Warranty detection state
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [showNCModal, setShowNCModal] = useState(false);
+  const [duplicateMaterials, setDuplicateMaterials] = useState<DuplicateMaterialInfo[]>([]);
+  const [pendingSave, setPendingSave] = useState(false);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -702,6 +710,131 @@ export default function OrderForm({
       return;
     }
 
+    // PHASE 2: Warranty detection for external suppliers
+    if (isExternalSupplier && !pendingSave) {
+      const hasDuplicates = await checkForWarrantyDuplicates();
+      if (hasDuplicates) {
+        return; // Wait for user response in warranty modal
+      }
+    }
+
+    // Proceed with save
+    await proceedWithSave();
+  };
+
+  // Check for duplicate materials in warranty period
+  const checkForWarrantyDuplicates = async (): Promise<boolean> => {
+    try {
+      const materials = order.orderLines
+        .map(line => line.registration)
+        .filter(reg => reg && reg.trim() !== "");
+
+      if (materials.length === 0) {
+        return false;
+      }
+
+      const duplicates = await checkDuplicateMaterialsForWarranty(
+        materials,
+        order.supplierId,
+        order.id
+      );
+
+      if (duplicates.length > 0) {
+        setDuplicateMaterials(duplicates);
+        setShowWarrantyModal(true);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking warranty duplicates:", error);
+      return false;
+    }
+  };
+
+  // Handle warranty modal acceptance
+  const handleWarrantyAccepted = () => {
+    setShowWarrantyModal(false);
+
+    // Enable warranty checkbox
+    setOrder(prev => ({ ...prev, warranty: true }));
+
+    // Check if NC field is empty
+    if (!order.nonConformityReport || order.nonConformityReport.trim() === "") {
+      // Show NC required modal
+      setShowNCModal(true);
+    } else {
+      // NC already filled, proceed with save
+      setPendingSave(true);
+    }
+  };
+
+  // Handle warranty modal decline
+  const handleWarrantyDeclined = async () => {
+    setShowWarrantyModal(false);
+
+    // Add automatic comment to change history
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email || 'Sistema';
+
+    const automaticComment = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      user: userEmail,
+      description: `Rechazado por el usuario el envío en garantía de reparación. Ver PAR nº ${duplicateMaterials.map(m => m.numPedido).join(', ')}`
+    };
+
+    setOrder(prev => ({
+      ...prev,
+      enviadoSinGarantia: true,
+      changeHistory: [automaticComment, ...prev.changeHistory]
+    }));
+
+    // Proceed with save
+    setPendingSave(true);
+  };
+
+  // Handle NC modal submission
+  const handleNCSubmitted = (ncNumber: string) => {
+    setShowNCModal(false);
+
+    // Update order with NC number
+    setOrder(prev => ({
+      ...prev,
+      nonConformityReport: ncNumber
+    }));
+
+    // Proceed with save
+    setPendingSave(true);
+  };
+
+  // Handle NC modal cancellation
+  const handleNCCancelled = () => {
+    setShowNCModal(false);
+
+    // Revert warranty checkbox
+    setOrder(prev => ({ ...prev, warranty: false }));
+
+    // Reset duplicate detection
+    setDuplicateMaterials([]);
+    setPendingSave(false);
+
+    toast({
+      title: "Proceso cancelado",
+      description: "El proceso de garantía ha sido cancelado. Por favor, complete el número de NC para continuar.",
+    });
+  };
+
+  // Trigger save when pendingSave changes to true
+  useEffect(() => {
+    if (pendingSave) {
+      proceedWithSave();
+      setPendingSave(false);
+    }
+  }, [pendingSave]);
+
+  // Proceed with saving the order
+  const proceedWithSave = async () => {
     setLoading(true);
 
     try {
@@ -1408,6 +1541,22 @@ export default function OrderForm({
         onClose={() => setMaterialNotFoundModal({ open: false, registration: "", lineId: "" })}
         onCreateMaterial={handleCreateMaterial}
         onCancel={handleMaterialNotFoundCancel}
+      />
+
+      {/* Warranty Confirmation Modal */}
+      <WarrantyConfirmationModal
+        open={showWarrantyModal}
+        duplicateMaterials={duplicateMaterials}
+        onAccept={handleWarrantyAccepted}
+        onDecline={handleWarrantyDeclined}
+      />
+
+      {/* NC Required Modal */}
+      <NCRequiredModal
+        open={showNCModal}
+        currentNCValue={order.nonConformityReport}
+        onSubmit={handleNCSubmitted}
+        onCancel={handleNCCancelled}
       />
 
       {/* Confirmation Modal for unsaved changes */}
