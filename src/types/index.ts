@@ -49,6 +49,7 @@ export interface OrderLine {
   serialNumber: string;
   estadoCompletado?: boolean;
   totalReceived?: number;
+  lastReceptionDate?: string;
   receptions?: MaterialReception[];
 }
 

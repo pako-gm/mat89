@@ -731,7 +731,8 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
         tbl_ln_pedidos_rep (
           *,
           tbl_recepciones (
-            n_rec
+            n_rec,
+            fecha_recepcion
           )
         )
       `)
@@ -757,19 +758,32 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
       estadoPedido: order.estado_pedido || 'PENDIENTE',
       cancelado: order.cancelado || false,
       changeHistory: [],
-      orderLines: order.tbl_ln_pedidos_rep.map((line: DbOrderLine) => ({
-        id: line.id,
-        registration: line.matricula_89 || "",
-        partDescription: line.descripcion,
-        quantity: line.nenv,
-        serialNumber: line.nsenv,
-        estadoCompletado: line.estado_completado || false,
-        totalReceived: line.tbl_recepciones
+      orderLines: order.tbl_ln_pedidos_rep.map((line: DbOrderLine) => {
+        // Calculate total received
+        const totalReceived = line.tbl_recepciones
           ? line.tbl_recepciones.reduce((total: number, reception: DbReception) => {
               return total + (reception.n_rec || 0);
             }, 0)
-          : 0
-      }))
+          : 0;
+
+        // Get the most recent reception date
+        const lastReceptionDate = line.tbl_recepciones && line.tbl_recepciones.length > 0
+          ? line.tbl_recepciones
+              .map((r: DbReception) => r.fecha_recepcion)
+              .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime())[0]
+          : undefined;
+
+        return {
+          id: line.id,
+          registration: line.matricula_89 || "",
+          partDescription: line.descripcion,
+          quantity: line.nenv,
+          serialNumber: line.nsenv,
+          estadoCompletado: line.estado_completado || false,
+          totalReceived,
+          lastReceptionDate
+        };
+      })
     }));
   } catch (error) {
     console.error('Error fetching orders for reception:', error);
