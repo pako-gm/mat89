@@ -9,18 +9,15 @@ interface NCRequiredModalProps {
   open: boolean;
   currentNCValue?: string;
   onSubmit: (ncNumber: string) => void;
-  onCancel: () => void;
 }
 
 export default function NCRequiredModal({
   open,
   currentNCValue = "",
-  onSubmit,
-  onCancel
+  onSubmit
 }: NCRequiredModalProps) {
   const [ncNumber, setNcNumber] = useState(currentNCValue);
   const [error, setError] = useState(false);
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,10 +40,6 @@ export default function NCRequiredModal({
       if (!open) return;
 
       switch (event.key) {
-        case 'Escape':
-          event.preventDefault();
-          handleCancel();
-          break;
         case 'Enter':
           event.preventDefault();
           handleSubmit();
@@ -64,12 +57,6 @@ export default function NCRequiredModal({
       document.body.style.overflow = 'unset';
     };
   }, [open, ncNumber]);
-
-  const handleCancel = () => {
-    setNcNumber("");
-    setError(false);
-    onCancel();
-  };
 
   const handleSubmit = () => {
     const trimmedNC = ncNumber.trim();
@@ -99,11 +86,9 @@ export default function NCRequiredModal({
     }
   };
 
-  // Prevenir cierre del modal al hacer clic fuera
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      handleCancel();
-    }
+  // Prevenir cierre del modal - el usuario debe confirmar
+  const handleOpenChange = () => {
+    // No permitir cerrar el modal - el usuario debe introducir NC
   };
 
   return (
@@ -111,10 +96,7 @@ export default function NCRequiredModal({
       <DialogContent
         className="sm:max-w-md focus:outline-none"
         onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => {
-          e.preventDefault();
-          handleCancel();
-        }}
+        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
@@ -153,19 +135,10 @@ export default function NCRequiredModal({
 
         <DialogFooter className="gap-3 sm:gap-3">
           <Button
-            ref={cancelButtonRef}
-            variant="outline"
-            onClick={handleCancel}
-            className="flex-1 hover:bg-gray-50 focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
-            type="button"
-          >
-            Cancelar
-          </Button>
-          <Button
             ref={submitButtonRef}
             onClick={handleSubmit}
             disabled={!ncNumber.trim()}
-            className="flex-1 bg-[#91268F] hover:bg-[#7A1F79] text-white focus:ring-2 focus:ring-[#91268F] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#91268F] hover:bg-[#7A1F79] text-white focus:ring-2 focus:ring-[#91268F] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             type="button"
           >
             Confirmar
@@ -174,8 +147,7 @@ export default function NCRequiredModal({
 
         {/* Indicador visual de acciones de teclado */}
         <div className="text-xs text-gray-500 text-center pb-2">
-          <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">Esc</kbd> para cancelar •
-          <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs ml-1">Enter</kbd> para confirmar
+          <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> para confirmar
         </div>
       </DialogContent>
     </Dialog>

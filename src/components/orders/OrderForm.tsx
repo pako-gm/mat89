@@ -92,6 +92,11 @@ export default function OrderForm({
   const [showNCModal, setShowNCModal] = useState(false);
   const [duplicateMaterials, setDuplicateMaterials] = useState<DuplicateMaterialInfo[]>([]);
   const [pendingSave, setPendingSave] = useState(false);
+  const [warrantyLocked, setWarrantyLocked] = useState(false);
+  const [showWarrantyInfoModal, setShowWarrantyInfoModal] = useState(false);
+
+  // Ref to prevent multiple executions of warranty decline
+  const isProcessingWarrantyDecline = useRef(false);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -177,6 +182,12 @@ export default function OrderForm({
 
       // Clear authentication errors
       setAuthError(null);
+
+      // Reset warranty lock when opening/closing modal
+      setWarrantyLocked(false);
+
+      // Reset warranty decline processing flag
+      isProcessingWarrantyDecline.current = false;
     }
   }, [open, initialOrder, initialIsEditing]);
 
@@ -771,6 +782,12 @@ export default function OrderForm({
 
   // Handle warranty modal decline
   const handleWarrantyDeclined = async () => {
+    // Prevent multiple executions
+    if (isProcessingWarrantyDecline.current) {
+      return;
+    }
+
+    isProcessingWarrantyDecline.current = true;
     setShowWarrantyModal(false);
 
     // Add automatic comment to change history
@@ -804,25 +821,11 @@ export default function OrderForm({
       nonConformityReport: ncNumber
     }));
 
-    // Proceed with save
-    setPendingSave(true);
-  };
+    // Lock warranty switch to prevent user from unchecking it
+    setWarrantyLocked(true);
 
-  // Handle NC modal cancellation
-  const handleNCCancelled = () => {
-    setShowNCModal(false);
-
-    // Revert warranty checkbox
-    setOrder(prev => ({ ...prev, warranty: false }));
-
-    // Reset duplicate detection
-    setDuplicateMaterials([]);
-    setPendingSave(false);
-
-    toast({
-      title: "Proceso cancelado",
-      description: "El proceso de garantía ha sido cancelado. Por favor, complete el número de NC para continuar.",
-    });
+    // Show informative modal instead of saving immediately
+    setShowWarrantyInfoModal(true);
   };
 
   // Trigger save when pendingSave changes to true
@@ -872,6 +875,8 @@ export default function OrderForm({
       });
     } finally {
       setLoading(false);
+      // Reset warranty decline processing flag after save completes
+      isProcessingWarrantyDecline.current = false;
     }
   };
 
@@ -1050,6 +1055,7 @@ export default function OrderForm({
                     id="warranty"
                     checked={order.warranty}
                     onCheckedChange={handleSwitchChange}
+                    disabled={warrantyLocked}
                   />
                 )}
               </div>
@@ -1556,8 +1562,36 @@ export default function OrderForm({
         open={showNCModal}
         currentNCValue={order.nonConformityReport}
         onSubmit={handleNCSubmitted}
-        onCancel={handleNCCancelled}
       />
+
+      {/* Warranty Info Modal - Reminder about documentation */}
+      <Dialog open={showWarrantyInfoModal} onOpenChange={setShowWarrantyInfoModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-500" />
+              Recordatorio importante
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-base leading-relaxed text-gray-700">
+              El pedido se marcará como enviado en garantía, no te olvides de incluir
+              el número de No Conformidad y de subir el documento de NC en <strong>Documentos Adjuntos</strong>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowWarrantyInfoModal(false);
+                setPendingSave(true);
+              }}
+              className="w-full bg-[#91268F] hover:bg-[#7A1F79] text-white"
+            >
+              Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Modal for unsaved changes */}
       <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>

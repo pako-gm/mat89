@@ -124,7 +124,7 @@ export default function WarrantyConfirmationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Material duplicado detectado
+            Envio de Material duplicado detectado
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
             {duplicateMaterials.length === 1
@@ -156,7 +156,7 @@ export default function WarrantyConfirmationModal({
           </div>
 
           <p className="text-sm text-gray-700 leading-relaxed mb-2">
-            Según los datos registrados, este material fue recibido hace menos de un año.
+            Según los datos registrados, este material ha sido recepcionado hace menos de un año.
           </p>
           <p className="text-sm font-semibold text-gray-900">
             ¿Deseas enviar este material en garantía de reparación?
