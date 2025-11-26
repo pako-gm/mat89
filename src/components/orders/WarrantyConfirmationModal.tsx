@@ -11,6 +11,7 @@ interface DuplicateMaterialInfo {
   numPedido: string;
   fechaEnvio: string;
   fechaRecepcion: string;
+  estadoRecepcion: string;
   pedidoId: string;
 }
 
@@ -124,13 +125,10 @@ export default function WarrantyConfirmationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Envio de Material duplicado detectado
+            Detectado material en Garantia de Reparacion
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            {duplicateMaterials.length === 1
-              ? 'Se ha detectado que este material ya fue enviado anteriormente al mismo proveedor:'
-              : `Se han detectado ${duplicateMaterials.length} materiales que ya fueron enviados anteriormente al mismo proveedor:`
-            }
+            Según los datos registrados, este material fue recepcionado hace menos de un año.
           </DialogDescription>
         </DialogHeader>
 
@@ -139,25 +137,23 @@ export default function WarrantyConfirmationModal({
             <div className="space-y-3">
               {duplicateMaterials.map((material, index) => (
                 <div key={index} className="text-sm">
-                  <div className="font-semibold text-gray-900 mb-1">
-                    Material: {material.matricula89}
-                    {material.descripcion && (
-                      <span className="font-normal text-gray-600"> - {material.descripcion}</span>
-                    )}
+                  <div className="font-semibold text-gray-900 mb-1 text-base">
+                    Pedido Anterior: {material.numPedido}
                   </div>
                   <div className="text-gray-700 pl-4">
-                    <div>Pedido anterior: <strong>{material.numPedido}</strong></div>
+                    <div>Material: <strong>{material.matricula89}</strong></div>
+                    {material.descripcion && (
+                      <div>Descripción: <strong>{material.descripcion}</strong></div>
+                    )}
                     <div>Fecha de envío: <strong>{formatDate(material.fechaEnvio)}</strong></div>
                     <div>Fecha de recepción: <strong>{formatDate(material.fechaRecepcion)}</strong></div>
+                    <div>Estado de recepción: <strong>{material.estadoRecepcion}</strong></div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="text-sm text-gray-700 leading-relaxed mb-2">
-            Según los datos registrados, este material ha sido recepcionado hace menos de un año.
-          </p>
           <p className="text-sm font-semibold text-gray-900">
             ¿Deseas enviar este material en garantía de reparación?
           </p>
@@ -179,7 +175,7 @@ export default function WarrantyConfirmationModal({
             className="flex-1 bg-[#91268F] hover:bg-[#7A1F79] text-white focus:ring-2 focus:ring-[#91268F] focus:ring-offset-2"
             type="button"
           >
-            Sí, es garantía
+            Sí, enviar en garantía
           </Button>
         </DialogFooter>
 

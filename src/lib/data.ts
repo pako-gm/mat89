@@ -26,11 +26,17 @@ interface DbOrderLine {
 
 interface DbReception {
   id: string;
+  pedido_id: string;
+  linea_pedido_id: string;
   fecha_recepcion: string;
   estado_recepcion: string;
   n_rec: number;
   ns_rec: string;
   observaciones: string;
+  garantia_aceptada_proveedor?: boolean | null;
+  motivo_rechazo_garantia?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface DbSupplier {
@@ -704,9 +710,7 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
         tbl_proveedores!inner(nombre),
         tbl_ln_pedidos_rep (
           *,
-          tbl_recepciones (
-            n_rec
-          )
+          tbl_recepciones (*)
         )
       `)
       .order('created_at', { ascending: false });
@@ -742,7 +746,23 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
           ? line.tbl_recepciones.reduce((total: number, reception: DbReception) => {
               return total + (reception.n_rec || 0);
             }, 0)
-          : 0
+          : 0,
+        receptions: line.tbl_recepciones
+          ? line.tbl_recepciones.map((reception: DbReception) => ({
+              id: reception.id,
+              pedidoId: reception.pedido_id,
+              lineaPedidoId: reception.linea_pedido_id,
+              fechaRecepcion: reception.fecha_recepcion,
+              estadoRecepcion: reception.estado_recepcion,
+              nRec: reception.n_rec,
+              nsRec: reception.ns_rec || '',
+              observaciones: reception.observaciones || '',
+              garantiaAceptadaProveedor: reception.garantia_aceptada_proveedor,
+              motivoRechazoGarantia: reception.motivo_rechazo_garantia,
+              createdAt: reception.created_at,
+              updatedAt: reception.updated_at
+            }))
+          : []
       }))
     }));
   } catch (error) {
@@ -770,6 +790,8 @@ export const getReceptionsByLineId = async (lineId: string): Promise<MaterialRec
       nRec: reception.n_rec,
       nsRec: reception.ns_rec || '',
       observaciones: reception.observaciones || '',
+      garantiaAceptadaProveedor: reception.garantia_aceptada_proveedor,
+      motivoRechazoGarantia: reception.motivo_rechazo_garantia,
       createdAt: reception.created_at,
       updatedAt: reception.updated_at
     }));
@@ -1082,6 +1104,7 @@ export interface DuplicateMaterialInfo {
   numPedido: string;
   fechaEnvio: string;
   fechaRecepcion: string;
+  estadoRecepcion: string;
   pedidoId: string;
 }
 
@@ -1125,6 +1148,7 @@ export const checkDuplicateMaterialsForWarranty = async (
         ),
         tbl_recepciones!inner (
           fecha_recepcion,
+          estado_recepcion,
           id
         )
       `)
@@ -1172,6 +1196,7 @@ export const checkDuplicateMaterialsForWarranty = async (
         numPedido: pedido.num_pedido,
         fechaEnvio: pedido.fecha_envio,
         fechaRecepcion: recepcion.fecha_recepcion,
+        estadoRecepcion: recepcion.estado_recepcion,
         pedidoId: pedido.id
       });
     }

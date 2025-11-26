@@ -411,6 +411,26 @@ export default function ReceptionManagement() {
     setFilteredOrders(orders);
   };
 
+  // Get the most recent reception date for an order
+  const getMostRecentReceptionDate = (order: Order): string | null => {
+    let mostRecentDate: Date | null = null;
+
+    // Iterate through all order lines
+    for (const line of order.orderLines) {
+      if (line.receptions && line.receptions.length > 0) {
+        // Find the most recent reception date in this line
+        for (const reception of line.receptions) {
+          const receptionDate = new Date(reception.fechaRecepcion);
+          if (!mostRecentDate || receptionDate > mostRecentDate) {
+            mostRecentDate = receptionDate;
+          }
+        }
+      }
+    }
+
+    return mostRecentDate ? mostRecentDate.toISOString().split('T')[0] : null;
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -440,6 +460,7 @@ export default function ReceptionManagement() {
               <TableHead className="font-medium">Razón Social</TableHead>
               <TableHead className="font-medium">Alm. Envía</TableHead>
               <TableHead className="font-medium">F. Envío</TableHead>
+              <TableHead className="font-medium">F. Recepción</TableHead>
               <TableHead className="font-medium">Estado</TableHead>
             </TableRow>
           </TableHeader>
@@ -457,7 +478,17 @@ export default function ReceptionManagement() {
                     ) : (
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     )}
-                    {order.orderNumber}
+                    <span
+                      className={`font-bold ${
+                        order.warranty &&
+                        !order.enviadoSinGarantia &&
+                        order.estadoPedido === 'COMPLETADO'
+                          ? 'text-[#EF4444]'
+                          : ''
+                      }`}
+                    >
+                      {order.orderNumber}
+                    </span>
                   </TableCell>
                   <TableCell>{order.supplierName}</TableCell>
                   <TableCell>
@@ -467,6 +498,11 @@ export default function ReceptionManagement() {
                   </TableCell>
                   <TableCell>
                     {formatDateToDDMMYYYY(order.shipmentDate)}
+                  </TableCell>
+                  <TableCell>
+                    {getMostRecentReceptionDate(order)
+                      ? formatDateToDDMMYYYY(getMostRecentReceptionDate(order)!)
+                      : '***'}
                   </TableCell>
                   <TableCell>
                     <span
@@ -480,7 +516,7 @@ export default function ReceptionManagement() {
                 </TableRow>
                 {expandedOrderId === order.id && (
                   <TableRow>
-                    <TableCell colSpan={5} className="p-0 border-b">
+                    <TableCell colSpan={6} className="p-0 border-b">
                       <div className="bg-gray-50 p-4">
                         <div className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1fr] gap-4 py-2 text-sm font-medium text-gray-600 items-center border-b border-gray-200">
                           <div>Matrícula 89</div>
@@ -515,9 +551,11 @@ export default function ReceptionManagement() {
                                   e.stopPropagation();
                                   handleReceptionClick(order, line);
                                 }}
-                                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                                className={getTotalReceived(line) >= line.quantity
+                                  ? "text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                                  : "text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"}
                               >
-                                Recepcionar
+                                {getTotalReceived(line) >= line.quantity ? 'Consultar' : 'Recepcionar'}
                               </Button>
                             </div>
                           </div>
@@ -561,6 +599,33 @@ export default function ReceptionManagement() {
                   </div>
                 </div>
               </div>
+
+              {/* Warranty Information - Only show if this is a warranty order and has warranty reception data */}
+              {selectedOrder?.warranty && lineReceptions.some(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined) && (
+                <div className={`p-4 rounded-lg border ${
+                  lineReceptions.find(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined)?.garantiaAceptadaProveedor
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <h3 className={`font-medium mb-2 ${
+                    lineReceptions.find(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined)?.garantiaAceptadaProveedor
+                      ? 'text-[#107C41]'
+                      : 'text-red-600'
+                  }`}>
+                    {lineReceptions.find(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined)?.garantiaAceptadaProveedor
+                      ? 'Aceptada Garantía de Reparación'
+                      : 'Rechazada Garantía de Reparación'}
+                  </h3>
+                  {lineReceptions.find(r => r.motivoRechazoGarantia)?.motivoRechazoGarantia && (
+                    <div className="text-sm mt-2">
+                      <span className="font-medium">Motivo del rechazo:</span>{' '}
+                      <span className="text-gray-700">
+                        {lineReceptions.find(r => r.motivoRechazoGarantia)?.motivoRechazoGarantia}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Add Reception Form */}
               {canAddMoreReceptions() ? (

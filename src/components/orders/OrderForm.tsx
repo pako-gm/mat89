@@ -183,8 +183,13 @@ export default function OrderForm({
       // Clear authentication errors
       setAuthError(null);
 
-      // Reset warranty lock when opening/closing modal
-      setWarrantyLocked(false);
+      // Lock warranty switch if order has warranty and NC already filled
+      // This preserves the lock when re-opening existing orders
+      if (initialOrder.warranty && initialOrder.nonConformityReport && initialOrder.nonConformityReport.trim() !== "") {
+        setWarrantyLocked(true);
+      } else {
+        setWarrantyLocked(false);
+      }
 
       // Reset warranty decline processing flag
       isProcessingWarrantyDecline.current = false;
@@ -261,7 +266,7 @@ export default function OrderForm({
   const handleUpdateOrder = async () => {
     setShowConfirmModal(false);
     // Create a fake event to pass to handleSubmit
-    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
     await handleSubmit(fakeEvent);
   };
 
@@ -301,6 +306,7 @@ export default function OrderForm({
       }
     }
 
+    //AQUI ES DONDE SE FORMATEA EL NÚMERO DE PEDIDO
     if (name === "orderNumber") {
       // Extract warehouse number from selected warehouse
       const warehouseNum = order.warehouse.replace('ALM', '');
@@ -386,6 +392,10 @@ export default function OrderForm({
 
   const handleSwitchChange = (checked: boolean) => {
     if (isReadOnly) return;
+
+    // Prevent changes if warranty is locked
+    if (warrantyLocked) return;
+
     markAsChanged();
 
     setOrder(prev => ({
@@ -722,7 +732,11 @@ export default function OrderForm({
     }
 
     // PHASE 2: Warranty detection for external suppliers
-    if (isExternalSupplier && !pendingSave) {
+    // Only check for duplicates if warranty hasn't been processed yet
+    // (i.e., warranty is false OR warranty is true but NC is empty - meaning user manually enabled it)
+    const warrantyAlreadyProcessed = order.warranty && order.nonConformityReport && order.nonConformityReport.trim() !== "";
+
+    if (isExternalSupplier && !pendingSave && !warrantyAlreadyProcessed) {
       const hasDuplicates = await checkForWarrantyDuplicates();
       if (hasDuplicates) {
         return; // Wait for user response in warranty modal
@@ -767,8 +781,9 @@ export default function OrderForm({
   const handleWarrantyAccepted = () => {
     setShowWarrantyModal(false);
 
-    // Enable warranty checkbox
+    // Enable warranty checkbox AND lock it immediately
     setOrder(prev => ({ ...prev, warranty: true }));
+    setWarrantyLocked(true);
 
     // Check if NC field is empty
     if (!order.nonConformityReport || order.nonConformityReport.trim() === "") {
@@ -798,7 +813,7 @@ export default function OrderForm({
       id: uuidv4(),
       date: new Date().toISOString(),
       user: userEmail,
-      description: `Rechazado por el usuario el envío en garantía de reparación. Ver PAR nº ${duplicateMaterials.map(m => m.numPedido).join(', ')}`
+      description: `Rechazado por el usuario ${userEmail} el envío en garantía de reparación. Envio anterior con PAR nº ${duplicateMaterials.map(m => m.numPedido).join(', ')}`
     };
 
     setOrder(prev => ({
@@ -812,13 +827,26 @@ export default function OrderForm({
   };
 
   // Handle NC modal submission
-  const handleNCSubmitted = (ncNumber: string) => {
+  const handleNCSubmitted = async (ncNumber: string) => {
     setShowNCModal(false);
 
-    // Update order with NC number
+    // Add automatic comment to change history
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email || 'Sistema';
+
+    const automaticComment = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      user: userEmail,
+      description: `El usuario ${userEmail} ha aceptado la garantía de reparación`,
+      isAutomatic: true
+    };
+
+    // Update order with NC number and add automatic comment
     setOrder(prev => ({
       ...prev,
-      nonConformityReport: ncNumber
+      nonConformityReport: ncNumber,
+      changeHistory: [automaticComment, ...prev.changeHistory]
     }));
 
     // Lock warranty switch to prevent user from unchecking it
@@ -826,6 +854,60 @@ export default function OrderForm({
 
     // Show informative modal instead of saving immediately
     setShowWarrantyInfoModal(true);
+  };
+
+  // Handle NC not opened - delete order and close
+  const handleNCNotOpened = async () => {
+    setShowNCModal(false);
+    setShowWarrantyModal(false);
+    setShowWarrantyInfoModal(false);
+
+    // If order exists in database, delete it
+    if (order.id && initialIsEditing) {
+      try {
+        const { error } = await supabase
+          .from('tbl_pedidos_rep')
+          .delete()
+          .eq('id', order.id);
+
+        if (error) {
+          console.error('Error deleting order:', error);
+          toast({
+            variant: "destructive",
+            title: "Error al borrar",
+            description: "No se pudo borrar el pedido. Por favor, inténtelo de nuevo.",
+          });
+          return;
+        }
+
+        toast({
+          title: "Pedido borrado",
+          description: "El pedido ha sido eliminado. Créalo nuevamente cuando dispongas del número de NC.",
+          duration: 5000,
+        });
+
+        // Refresh parent list
+        onSave();
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Ocurrió un error al intentar borrar el pedido.",
+        });
+        return;
+      }
+    } else {
+      // New order - just close modal
+      toast({
+        title: "Proceso cancelado",
+        description: "Crea el pedido nuevamente cuando dispongas del número de NC.",
+        duration: 5000,
+      });
+    }
+
+    // Close order modal
+    onClose();
   };
 
   // Trigger save when pendingSave changes to true
@@ -858,7 +940,10 @@ export default function OrderForm({
 
       console.log('=== PEDIDO GUARDADO EXITOSAMENTE ===');
 
-      onSave();
+      // Wait 5 seconds before closing the modal
+      setTimeout(() => {
+        onSave();
+      }, 5000);
 
     } catch (error) {
       console.error("Error saving order:", error);
@@ -1562,6 +1647,7 @@ export default function OrderForm({
         open={showNCModal}
         currentNCValue={order.nonConformityReport}
         onSubmit={handleNCSubmitted}
+        onNotOpened={handleNCNotOpened}
       />
 
       {/* Warranty Info Modal - Reminder about documentation */}
@@ -1570,13 +1656,13 @@ export default function OrderForm({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Info className="h-5 w-5 text-blue-500" />
-              Recordatorio importante
+              Enviado en Garantia
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-base leading-relaxed text-gray-700">
-              El pedido se marcará como enviado en garantía, no te olvides de incluir
-              el número de No Conformidad y de subir el documento de NC en <strong>Documentos Adjuntos</strong>.
+              El pedido se ha marcado como enviado en garantía, no te olvides
+              de subir el documento de la No Conformidad en <strong>Documentos Adjuntos</strong>.
             </p>
           </div>
           <DialogFooter>

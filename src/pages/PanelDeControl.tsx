@@ -43,7 +43,8 @@ export default function PanelDeControl() {
   const [filterStatus, setFilterStatus] = useState<string>(''); // '' = todos, 'true' = ACTIVO, 'false' = INACTIVO
 
   // Estados de ordenamiento
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc');
+  const [sortColumn, setSortColumn] = useState<'name' | 'email'>('name');
 
   // Estados de paginación
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -208,26 +209,41 @@ export default function PanelDeControl() {
 
   // ============ FUNCIONES DE ORDENAMIENTO ============
 
-  const toggleSortOrder = () => {
-    if (sortOrder === null) {
+  const toggleSortOrder = (column: 'name' | 'email') => {
+    // Si se hace clic en una columna diferente, ordenar ascendente
+    if (sortColumn !== column) {
+      setSortColumn(column);
       setSortOrder('asc');
-    } else if (sortOrder === 'asc') {
-      setSortOrder('desc');
     } else {
-      setSortOrder(null);
+      // Si es la misma columna, alternar el orden
+      if (sortOrder === null) {
+        setSortOrder('asc');
+      } else if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else {
+        setSortOrder(null);
+      }
     }
   };
 
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     if (sortOrder === null) return 0;
 
-    const nameA = (a.name || a.email || '').toLowerCase();
-    const nameB = (b.name || b.email || '').toLowerCase();
+    let valueA = '';
+    let valueB = '';
+
+    if (sortColumn === 'name') {
+      valueA = (a.name || a.email || '').toLowerCase();
+      valueB = (b.name || b.email || '').toLowerCase();
+    } else if (sortColumn === 'email') {
+      valueA = (a.email || '').toLowerCase();
+      valueB = (b.email || '').toLowerCase();
+    }
 
     if (sortOrder === 'asc') {
-      return nameA.localeCompare(nameB);
+      return valueA.localeCompare(valueB);
     } else {
-      return nameB.localeCompare(nameA);
+      return valueB.localeCompare(valueA);
     }
   });
 
@@ -235,7 +251,8 @@ export default function PanelDeControl() {
     setSearchTerm('');
     setFilterRole('');
     setFilterStatus('');
-    setSortOrder(null);
+    setSortOrder('asc');
+    setSortColumn('name');
   };
 
   // ============ FUNCIONES DE PAGINACIÓN ============
@@ -624,17 +641,30 @@ export default function PanelDeControl() {
                   </th>
                   <th className="py-4 px-6 text-left font-medium">
                     <button
-                      onClick={toggleSortOrder}
+                      onClick={() => toggleSortOrder('name')}
                       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                       title="Ordenar por nombre"
                     >
                       <span>Nombre Completo</span>
-                      {sortOrder === null && <ArrowUpDown className="w-4 h-4" />}
-                      {sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
-                      {sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+                      {sortColumn === 'name' && sortOrder === null && <ArrowUpDown className="w-4 h-4" />}
+                      {sortColumn === 'name' && sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                      {sortColumn === 'name' && sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+                      {sortColumn !== 'name' && <ArrowUpDown className="w-4 h-4 opacity-30" />}
                     </button>
                   </th>
-                  <th className="py-4 px-6 text-left font-medium">Email</th>
+                  <th className="py-4 px-6 text-left font-medium">
+                    <button
+                      onClick={() => toggleSortOrder('email')}
+                      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                      title="Ordenar por email"
+                    >
+                      <span>Email</span>
+                      {sortColumn === 'email' && sortOrder === null && <ArrowUpDown className="w-4 h-4" />}
+                      {sortColumn === 'email' && sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                      {sortColumn === 'email' && sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+                      {sortColumn !== 'email' && <ArrowUpDown className="w-4 h-4 opacity-30" />}
+                    </button>
+                  </th>
                   <th className="py-4 px-6 text-left font-medium">Estado</th>
                   <th className="py-4 px-6 text-left font-medium">Rol</th>
                   <th className="py-4 px-6 text-left font-medium">Último Acceso</th>

@@ -68,6 +68,22 @@ export default function LoginPage() {
       // Usuario ACTIVO: Continuar con el proceso de login normal
       const userRole = await getUserRole();
 
+      // Obtener el nombre completo del usuario
+      let userName = '';
+      try {
+        const { data: userProfile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('nombre_usuario')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (!profileError && userProfile) {
+          userName = userProfile.nombre_usuario || '';
+        }
+      } catch (profileErr) {
+        console.error('Error al obtener nombre del usuario:', profileErr);
+      }
+
       // Actualizar la fecha y hora del último acceso
       try {
         const { error: updateError } = await supabase
@@ -86,7 +102,7 @@ export default function LoginPage() {
 
       toast({
         title: "Inicio de sesión con éxito",
-        description: `Bienvenido${userRole ? ` (${userRole})` : ''}`,
+        description: `Bienvenido${userName ? ` ${userName}` : ''}`,
       });
 
       // Redireccionar según el rol del usuario

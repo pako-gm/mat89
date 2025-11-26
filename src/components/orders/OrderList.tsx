@@ -957,7 +957,17 @@ export default function OrderList() {
                       }`}
                       onClick={() => !order.cancelado && handleViewDetails(order)}
                     >
-                      {order.orderNumber}
+                      <span
+                        className={
+                          order.warranty &&
+                          !order.enviadoSinGarantia &&
+                          order.estadoPedido === 'COMPLETADO'
+                            ? 'text-[#EF4444]'
+                            : ''
+                        }
+                      >
+                        {order.orderNumber}
+                      </span>
                     </TableCell>
                     <TableCell
                       className={!order.cancelado ? 'cursor-pointer' : ''}
