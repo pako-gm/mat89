@@ -33,21 +33,6 @@ interface MaterialFormProps {
   isEditing: boolean;
 }
 
-// Vehicle series options in ascending order
-const vehicleSeriesOptions = [
-  { value: "252", label: "252" },
-  { value: "310", label: "310" },
-  { value: "319", label: "319" },
-  { value: "333", label: "333" },
-  { value: "447", label: "447" },
-  { value: "449", label: "449" },
-  { value: "464", label: "464" },
-  { value: "470", label: "470" },
-  { value: "490", label: "490" },
-  { value: "592", label: "592" },
-  { value: "999", label: "999" }
-];
-
 export default function MaterialForm({ 
   open, 
   material, 
@@ -58,6 +43,10 @@ export default function MaterialForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  // Estados para vehículos dinámicos
+  const [vehiculos, setVehiculos] = useState<{ value: string; label: string }[]>([]);
+  const [loadingVehiculos, setLoadingVehiculos] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [registrationStatus, setRegistrationStatus] = useState<{
     isValid: boolean;
@@ -115,6 +104,41 @@ export default function MaterialForm({
     });
     setAuthError(null);
   }, [material, open]);
+
+  // Cargar vehículos desde la base de datos
+  useEffect(() => {
+    const fetchVehiculos = async () => {
+      try {
+        setLoadingVehiculos(true);
+        const { data, error } = await supabase
+          .from('tbl_vehiculos')
+          .select('id, codigo_vehiculo, nombre_vehiculo')
+          .order('codigo_vehiculo', { ascending: true });
+
+        if (error) throw error;
+
+        const mappedVehiculos = (data || []).map(v => ({
+          value: v.codigo_vehiculo,
+          label: v.nombre_vehiculo
+            ? `${v.codigo_vehiculo} - ${v.nombre_vehiculo}`
+            : v.codigo_vehiculo
+        }));
+
+        setVehiculos(mappedVehiculos);
+      } catch (error: any) {
+        console.error('Error cargando vehículos:', error);
+        toast({
+          title: "Error al cargar vehículos",
+          description: error.message || "No se pudieron cargar las series de vehículos",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingVehiculos(false);
+      }
+    };
+
+    fetchVehiculos();
+  }, []);
 
   // Check for duplicate registration numbers
   useEffect(() => {
@@ -434,11 +458,15 @@ export default function MaterialForm({
                 </SelectTrigger>
                 <SelectContent className="max-h-[160px] overflow-y-auto">
                   <SelectItem value="__none__">-- Elige serie vehiculo --</SelectItem>
-                  {vehicleSeriesOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
+                  {loadingVehiculos ? (
+                    <SelectItem value="__loading__" disabled>Cargando...</SelectItem>
+                  ) : (
+                    vehiculos.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

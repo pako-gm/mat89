@@ -69,6 +69,14 @@ export interface Warehouse {
   name: string;
 }
 
+export interface Vehiculo {
+  id: string;
+  codigo_vehiculo: string;
+  nombre_vehiculo: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Supplier {
   id: string;
   name: string;

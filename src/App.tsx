@@ -10,6 +10,8 @@ import ConsultaPage from "@/pages/ConsultaPage";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PanelDeControl from "@/pages/PanelDeControl";
+import MaestroAlmacenes from "@/pages/MaestroAlmacenes";
+import MaestroVehiculos from "@/pages/MaestroVehiculos";
 import VersionesPage from "@/pages/VersionesPage";
 import SecurityAuditPage from "@/pages/SecurityAuditPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -161,6 +163,22 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMINISTRADOR">
                   <PanelDeControl />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="maestro-almacenes"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <MaestroAlmacenes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="maestro-vehiculos"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <MaestroVehiculos />
                 </ProtectedRoute>
               }
             />

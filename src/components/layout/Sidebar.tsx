@@ -13,7 +13,8 @@ import {
   GitBranch,
   Shield,
   Database,
-  History
+  History,
+  Train
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
@@ -141,7 +142,9 @@ export default function Sidebar() {
 
   // Auto-expand Panel de Control if we're on a submenu route
   useEffect(() => {
-    if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad" || currentPath === "/panel-control") {
+    if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad" ||
+        currentPath === "/panel-control" || currentPath === "/maestro-almacenes" ||
+        currentPath === "/maestro-vehiculos") {
       setPanelControlOpen(true);
     }
   }, [currentPath]);
@@ -213,9 +216,15 @@ export default function Sidebar() {
                 },
                 {
                   label: "Maestro de Almacenes",
-                  path: "#",
-                  active: false,
+                  path: "/maestro-almacenes",
+                  active: currentPath === "/maestro-almacenes",
                   icon: <Warehouse className="h-4 w-4" />
+                },
+                {
+                  label: "Maestro de Vehículos",
+                  path: "/maestro-vehiculos",
+                  active: currentPath === "/maestro-vehiculos",
+                  icon: <Train className="h-4 w-4" />
                 },
                 {
                   label: "Versiones APP",
