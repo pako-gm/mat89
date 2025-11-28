@@ -990,10 +990,10 @@ export default function OrderForm({
         clearPausedOrder();
       }
 
-      // Wait 5 seconds before closing the modal
+      // Wait 3 seconds before closing the modal
       setTimeout(() => {
         onSave();
-      }, 5000);
+      }, 3000);
 
     } catch (error) {
       console.error("Error saving order:", error);
