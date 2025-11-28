@@ -126,7 +126,7 @@ export default function WarrantyReceptionModal({
             Material en garantía de reparación
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Este material fue enviado en garantía de reparación. Comprueba aceptación o rechazo con la documentación recibida.
+            Este material fue enviado en garantía de reparación. Comprueba aceptación o rechazo del Proveedor con la documentación recibida.
           </DialogDescription>
         </DialogHeader>
 
@@ -142,7 +142,7 @@ export default function WarrantyReceptionModal({
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-md border border-gray-200">
               <div className="flex-1">
                 <Label htmlFor="warranty-switch" className="text-sm font-semibold cursor-pointer">
-                  ¿Acepta garantía el proveedor?
+                  ¿Acepta la garantía el proveedor?
                 </Label>
                 <p className="text-xs text-gray-600 mt-1">
                   {warrantyAccepted
@@ -162,7 +162,7 @@ export default function WarrantyReceptionModal({
             {!warrantyAccepted && (
               <div className="space-y-2">
                 <Label htmlFor="rejection-reason" className="text-sm font-medium text-red-700">
-                  Motivo del rechazo <span className="text-red-500">*</span>
+                  Motivo del rechazo de la garantia <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
                   ref={textareaRef}

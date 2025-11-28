@@ -150,9 +150,9 @@ export default function NCRequiredModal({
                   Debe introducir un número de NC válido (formato: INCM.20XX.XXX)
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              {/* <p className="text-xs text-gray-500 mt-1">
                 Formato requerido: INCM.YYYY.XXX (ejemplo: INCM.2025.001)
-              </p>
+              </p> */}
             </div>
           </div>
 
@@ -193,11 +193,11 @@ export default function NCRequiredModal({
               <p>
                 Si la No Conformidad aún no ha sido abierta, el pedido actual será eliminado automáticamente.
               </p>
-              <p className="font-semibold text-gray-900">
+              {/* <p className="font-semibold text-gray-900">
                 Deberás crear el pedido nuevamente una vez dispongas del número de NC.
-              </p>
+              </p> */}
               <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded-md border border-amber-200">
-                <strong>Importante:</strong> Esta acción no se puede deshacer. Asegúrate de no tener información importante sin guardar en el pedido.
+                <strong>Deberás crear el pedido nuevamente una vez dispongas del número de NC.</strong>
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

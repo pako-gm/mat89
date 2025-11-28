@@ -901,7 +901,7 @@ export default function OrderForm({
       // New order - just close modal
       toast({
         title: "Proceso cancelado",
-        description: "Crea el pedido nuevamente cuando dispongas del número de NC.",
+        description: "Graba nuevamente el pedido cuando dispongas del número de No Conformidad.",
         duration: 5000,
       });
     }
