@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Order, OrderLine, MaterialReception } from "@/types";
 import { formatDateToDDMMYYYY } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getOrdersForReception, 
-  getReceptionsByLineId, 
-  saveReception, 
-  deleteReception, 
-  updateOrderStatusIfComplete 
+import {
+  getOrdersForReception,
+  getReceptionsByLineId,
+  saveReception,
+  deleteReception,
+  updateOrderStatusIfComplete
 } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ChevronDown, ChevronUp, Plus, Trash2, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import WarrantyReceptionModal from "./WarrantyReceptionModal";
 import {
   Table,
   TableBody,
@@ -66,6 +67,10 @@ export default function ReceptionManagement() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
+
+  // Warranty reception state
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [pendingReception, setPendingReception] = useState<MaterialReception | null>(null);
 
   const receptionStates = [
     { value: 'UTIL', label: 'ÚTIL' },
@@ -203,7 +208,7 @@ export default function ReceptionManagement() {
     // Validation: Check if total received would exceed total sent
     const currentTotalReceived = lineReceptions.reduce((sum, r) => sum + r.nRec, 0);
     const newTotalReceived = currentTotalReceived + (newReception.nRec || 0);
-    
+
     if (newTotalReceived > selectedLine.quantity) {
       toast({
         variant: "destructive",
@@ -213,34 +218,80 @@ export default function ReceptionManagement() {
       return;
     }
 
+    // Create the reception object
+    const reception: MaterialReception = {
+      id: uuidv4(),
+      pedidoId: selectedOrder.id,
+      lineaPedidoId: selectedLine.id,
+      fechaRecepcion: newReception.fechaRecepcion || new Date().toISOString().split('T')[0],
+      estadoRecepcion: newReception.estadoRecepcion as any,
+      nRec: newReception.nRec || 1,
+      nsRec: newReception.nsRec || '',
+      observaciones: newReception.observaciones || ''
+    };
+
+    // PHASE 3: Check if this reception completes a warranty order
+    const willComplete = newTotalReceived >= selectedLine.quantity;
+    if (willComplete && selectedOrder.warranty) {
+      // Store pending reception and show warranty modal
+      setPendingReception(reception);
+      setShowWarrantyModal(true);
+      return; // Wait for warranty modal response
+    }
+
+    // No warranty check needed, proceed with save
+    await proceedWithSaveReception(reception);
+  };
+
+  // Handle warranty modal confirmation
+  const handleWarrantyConfirm = async (acceptedByProvider: boolean, rejectionReason?: string) => {
+    setShowWarrantyModal(false);
+
+    if (!pendingReception) return;
+
+    // Add warranty fields to reception
+    const receptionWithWarranty: MaterialReception = {
+      ...pendingReception,
+      garantiaAceptadaProveedor: acceptedByProvider,
+      motivoRechazoGarantia: acceptedByProvider ? null : rejectionReason
+    };
+
+    await proceedWithSaveReception(receptionWithWarranty);
+    setPendingReception(null);
+  };
+
+  // Handle warranty modal cancellation
+  const handleWarrantyCancel = () => {
+    setShowWarrantyModal(false);
+    setPendingReception(null);
+
+    toast({
+      title: "Recepción cancelada",
+      description: "La recepción no se ha guardado. Complete la información de garantía para continuar.",
+    });
+  };
+
+  // Proceed with saving reception
+  const proceedWithSaveReception = async (reception: MaterialReception) => {
+    if (!selectedLine || !selectedOrder) return;
+
     setLoading(true);
     try {
-      const reception: MaterialReception = {
-        id: uuidv4(),
-        pedidoId: selectedOrder.id,
-        lineaPedidoId: selectedLine.id,
-        fechaRecepcion: newReception.fechaRecepcion || new Date().toISOString().split('T')[0],
-        estadoRecepcion: newReception.estadoRecepcion as any,
-        nRec: newReception.nRec || 1,
-        nsRec: newReception.nsRec || '',
-        observaciones: newReception.observaciones || ''
-      };
-
       await saveReception(reception);
 
       // Refresh receptions for the dialog
       const updatedReceptions = await getReceptionsByLineId(selectedLine.id);
       setLineReceptions(updatedReceptions);
-      
+
       // Reset form to initial state
       initializeForm();
 
       // CRITICAL: Update order status after adding reception
       await updateOrderStatusIfComplete(selectedOrder.id);
-      
+
       // CRITICAL: Refresh orders to update totalReceived and status
       await fetchOrders();
-      
+
       // Update the selectedLine totalReceived immediately for dialog display
       const newTotalReceived = updatedReceptions.reduce((sum, r) => sum + r.nRec, 0);
       if (selectedLine) {
@@ -377,6 +428,26 @@ export default function ReceptionManagement() {
     }
   };
 
+  // Get the most recent reception date for an order
+  const getMostRecentReceptionDate = (order: Order): string | null => {
+    let mostRecentDate: Date | null = null;
+
+    // Iterate through all order lines
+    for (const line of order.orderLines) {
+      if (line.receptions && line.receptions.length > 0) {
+        // Find the most recent reception date in this line
+        for (const reception of line.receptions) {
+          const receptionDate = new Date(reception.fechaRecepcion);
+          if (!mostRecentDate || receptionDate > mostRecentDate) {
+            mostRecentDate = receptionDate;
+          }
+        }
+      }
+    }
+
+    return mostRecentDate ? mostRecentDate.toISOString().split('T')[0] : null;
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -406,6 +477,7 @@ export default function ReceptionManagement() {
               <TableHead className="font-medium">Razón Social</TableHead>
               <TableHead className="font-medium">Alm. Envía</TableHead>
               <TableHead className="font-medium">F. Envío</TableHead>
+              <TableHead className="font-medium">F. Recepción</TableHead>
               <TableHead className="font-medium">Estado</TableHead>
             </TableRow>
           </TableHeader>
@@ -423,7 +495,17 @@ export default function ReceptionManagement() {
                     ) : (
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     )}
-                    {order.orderNumber}
+                    <span
+                      className={`font-bold ${
+                        order.warranty &&
+                        !order.enviadoSinGarantia &&
+                        order.estadoPedido === 'COMPLETADO'
+                          ? 'text-[#EF4444]'
+                          : ''
+                      }`}
+                    >
+                      {order.orderNumber}
+                    </span>
                   </TableCell>
                   <TableCell>{order.supplierName}</TableCell>
                   <TableCell>
@@ -433,6 +515,11 @@ export default function ReceptionManagement() {
                   </TableCell>
                   <TableCell>
                     {formatDateToDDMMYYYY(order.shipmentDate)}
+                  </TableCell>
+                  <TableCell>
+                    {getMostRecentReceptionDate(order)
+                      ? formatDateToDDMMYYYY(getMostRecentReceptionDate(order)!)
+                      : '***'}
                   </TableCell>
                   <TableCell>
                     <span
@@ -446,7 +533,7 @@ export default function ReceptionManagement() {
                 </TableRow>
                 {expandedOrderId === order.id && (
                   <TableRow>
-                    <TableCell colSpan={5} className="p-0 border-b">
+                    <TableCell colSpan={6} className="p-0 border-b">
                       <div className="bg-gray-50 p-4">
                         <div className="grid grid-cols-[2fr,3fr,1fr,1fr,2fr,1.5fr,1fr] gap-4 py-2 text-sm font-medium text-gray-600 items-center border-b border-gray-200">
                           <div>Matrícula 89</div>
@@ -483,9 +570,11 @@ export default function ReceptionManagement() {
                                   e.stopPropagation();
                                   handleReceptionClick(order, line);
                                 }}
-                                className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                                className={getTotalReceived(line) >= line.quantity
+                                  ? "text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                                  : "text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"}
                               >
-                                Recepcionar
+                                {getTotalReceived(line) >= line.quantity ? 'Consultar' : 'Recepcionar'}
                               </Button>
                             </div>
                           </div>
@@ -578,6 +667,33 @@ export default function ReceptionManagement() {
                   </div>
                 </div>
               </div>
+
+              {/* Warranty Information - Only show if this is a warranty order and has warranty reception data */}
+              {selectedOrder?.warranty && lineReceptions.some(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined) && (
+                <div className={`p-4 rounded-lg border ${
+                  lineReceptions.find(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined)?.garantiaAceptadaProveedor
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <h3 className={`font-medium mb-2 ${
+                    lineReceptions.find(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined)?.garantiaAceptadaProveedor
+                      ? 'text-[#107C41]'
+                      : 'text-red-600'
+                  }`}>
+                    {lineReceptions.find(r => r.garantiaAceptadaProveedor !== null && r.garantiaAceptadaProveedor !== undefined)?.garantiaAceptadaProveedor
+                      ? 'Aceptada Garantía de Reparación'
+                      : 'Rechazada Garantía de Reparación'}
+                  </h3>
+                  {lineReceptions.find(r => r.motivoRechazoGarantia)?.motivoRechazoGarantia && (
+                    <div className="text-sm mt-2">
+                      <span className="font-medium">Motivo del rechazo:</span>{' '}
+                      <span className="text-gray-700">
+                        {lineReceptions.find(r => r.motivoRechazoGarantia)?.motivoRechazoGarantia}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Add Reception Form */}
               {canAddMoreReceptions() ? (
@@ -773,7 +889,7 @@ export default function ReceptionManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-red-600 text-white hover:bg-red-700"
               onClick={handleDeleteReception}
             >
@@ -782,6 +898,13 @@ export default function ReceptionManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Warranty Reception Modal */}
+      <WarrantyReceptionModal
+        open={showWarrantyModal}
+        onConfirm={handleWarrantyConfirm}
+        onCancel={handleWarrantyCancel}
+      />
     </div>
   );
 }

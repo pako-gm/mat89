@@ -3,10 +3,7 @@
     "allow": [
       "Bash(git checkout:*)",
       "Bash(npm run build:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: reduce version history button size significantly\n\n- Height reduced to 20px (from 28px)\n- Font size reduced to 9px (custom, smaller than text-xs)\n- Icon reduced to h-2 w-2 (from h-3 w-3)\n- Button width auto-adjusted to text (removed w-full)\n- Centered button in sidebar footer area\n- Padding optimized (px-2 py-0.5)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { Order, OrderLine } from "@/types";
-import { warehouses, getSuppliers, saveOrder } from "@/lib/data";
+import { warehouses, getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import {
@@ -16,6 +16,8 @@ import {
 } from "@/lib/utils";
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
+import WarrantyConfirmationModal from "./WarrantyConfirmationModal";
+import NCRequiredModal from "./NCRequiredModal";
 import {
   Dialog,
   DialogContent,
@@ -72,7 +74,8 @@ export default function OrderForm({
   const [newComment, setNewComment] = useState("");
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const MAX_COMMENT_LENGTH = 1000;
-  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; isExternal: boolean }[]>([]);
+  const [isExternalSupplier, setIsExternalSupplier] = useState(false);
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
     registration: string;
@@ -84,12 +87,24 @@ export default function OrderForm({
     dismantleDate: false,
     shipmentDate: false,
     orderLines: false,
-    nonConformityReport: false
+    nonConformityReport: false,
+    declaredDamage: false
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Warranty detection state
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [showNCModal, setShowNCModal] = useState(false);
+  const [duplicateMaterials, setDuplicateMaterials] = useState<DuplicateMaterialInfo[]>([]);
+  const [pendingSave, setPendingSave] = useState(false);
+  const [warrantyLocked, setWarrantyLocked] = useState(false);
+  const [showWarrantyInfoModal, setShowWarrantyInfoModal] = useState(false);
+
+  // Ref to prevent multiple executions of warranty decline
+  const isProcessingWarrantyDecline = useRef(false);
 
   // Referencias para los inputs de matrícula
   const materialInputRefs = useRef<Map<string, MaterialAutocompleteInputRef>>(new Map());
@@ -188,11 +203,23 @@ export default function OrderForm({
         dismantleDate: false,
         shipmentDate: false,
         orderLines: false,
-        nonConformityReport: false
+        nonConformityReport: false,
+        declaredDamage: false
       });
 
       // Clear authentication errors
       setAuthError(null);
+
+      // Lock warranty switch if order has warranty and NC already filled
+      // This preserves the lock when re-opening existing orders
+      if (initialOrder.warranty && initialOrder.nonConformityReport && initialOrder.nonConformityReport.trim() !== "") {
+        setWarrantyLocked(true);
+      } else {
+        setWarrantyLocked(false);
+      }
+
+      // Reset warranty decline processing flag
+      isProcessingWarrantyDecline.current = false;
     }
   }, [open, initialOrder, initialIsEditing, toast]);
 
@@ -226,6 +253,16 @@ export default function OrderForm({
       setIsInitialLoad(true);
     }
   }, [open, toast]);
+
+  // Update isExternalSupplier when suppliers are loaded and a supplier is selected
+  useEffect(() => {
+    if (order.supplierId && suppliers.length > 0) {
+      const selectedSupplier = suppliers.find(s => s.id === order.supplierId);
+      if (selectedSupplier) {
+        setIsExternalSupplier(selectedSupplier.isExternal);
+      }
+    }
+  }, [suppliers, order.supplierId]);
 
   // Mark as changed whenever user modifies something
   const markAsChanged = () => {
@@ -263,7 +300,7 @@ export default function OrderForm({
   const handleUpdateOrder = async () => {
     setShowConfirmModal(false);
     // Create a fake event to pass to handleSubmit
-    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
     await handleSubmit(fakeEvent);
   };
 
@@ -303,6 +340,7 @@ export default function OrderForm({
       }
     }
 
+    //AQUI ES DONDE SE FORMATEA EL NÚMERO DE PEDIDO
     if (name === "orderNumber") {
       // Extract warehouse number from selected warehouse
       const warehouseNum = order.warehouse.replace('ALM', '');
@@ -369,6 +407,9 @@ export default function OrderForm({
           supplierName: selectedSupplier.name
         }));
 
+        // Update external supplier flag
+        setIsExternalSupplier(selectedSupplier.isExternal);
+
         // Clear supplier error
         if (errors.supplier) {
           setErrors(prev => ({ ...prev, supplier: false }));
@@ -385,6 +426,10 @@ export default function OrderForm({
 
   const handleSwitchChange = (checked: boolean) => {
     if (isReadOnly) return;
+
+    // Prevent changes if warranty is locked
+    if (warrantyLocked) return;
+
     markAsChanged();
 
     setOrder(prev => ({
@@ -546,6 +591,16 @@ export default function OrderForm({
   const addOrderLine = () => {
     if (isReadOnly) return;
 
+    // Check if supplier is external and already has 1 line
+    if (isExternalSupplier && order.orderLines.length >= 1) {
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Los proveedores externos solo pueden tener 1 línea de pedido",
+      });
+      return;
+    }
+
     // Check if there are any existing lines with empty registration
     const hasEmptyRegistration = order.orderLines.some(line => !String(line.registration).trim());
 
@@ -661,7 +716,8 @@ export default function OrderForm({
       dismantleDate: !order.dismantleDate,
       shipmentDate: !order.shipmentDate,
       orderLines: !hasValidOrderLine,
-      nonConformityReport: order.warranty && !order.nonConformityReport.trim()
+      nonConformityReport: order.warranty && !order.nonConformityReport.trim(),
+      declaredDamage: isExternalSupplier && !order.declaredDamage.trim()
     };
 
     setErrors(newErrors);
@@ -719,6 +775,195 @@ export default function OrderForm({
       return;
     }
 
+    // PHASE 2: Warranty detection for external suppliers
+    // Only check for duplicates if warranty hasn't been processed yet
+    // (i.e., warranty is false OR warranty is true but NC is empty - meaning user manually enabled it)
+    const warrantyAlreadyProcessed = order.warranty && order.nonConformityReport && order.nonConformityReport.trim() !== "";
+
+    if (isExternalSupplier && !pendingSave && !warrantyAlreadyProcessed) {
+      const hasDuplicates = await checkForWarrantyDuplicates();
+      if (hasDuplicates) {
+        return; // Wait for user response in warranty modal
+      }
+    }
+
+    // Proceed with save
+    await proceedWithSave();
+  };
+
+  // Check for duplicate materials in warranty period
+  const checkForWarrantyDuplicates = async (): Promise<boolean> => {
+    try {
+      const materials = order.orderLines
+        .map(line => line.registration)
+        .filter(reg => reg && reg.trim() !== "");
+
+      if (materials.length === 0) {
+        return false;
+      }
+
+      const duplicates = await checkDuplicateMaterialsForWarranty(
+        materials,
+        order.supplierId,
+        order.id
+      );
+
+      if (duplicates.length > 0) {
+        setDuplicateMaterials(duplicates);
+        setShowWarrantyModal(true);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking warranty duplicates:", error);
+      return false;
+    }
+  };
+
+  // Handle warranty modal acceptance
+  const handleWarrantyAccepted = () => {
+    setShowWarrantyModal(false);
+
+    // Enable warranty checkbox AND lock it immediately
+    setOrder(prev => ({ ...prev, warranty: true }));
+    setWarrantyLocked(true);
+
+    // Check if NC field is empty
+    if (!order.nonConformityReport || order.nonConformityReport.trim() === "") {
+      // Show NC required modal
+      setShowNCModal(true);
+    } else {
+      // NC already filled, proceed with save
+      setPendingSave(true);
+    }
+  };
+
+  // Handle warranty modal decline
+  const handleWarrantyDeclined = async () => {
+    // Prevent multiple executions
+    if (isProcessingWarrantyDecline.current) {
+      return;
+    }
+
+    isProcessingWarrantyDecline.current = true;
+    setShowWarrantyModal(false);
+
+    // Add automatic comment to change history
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email || 'Sistema';
+
+    const automaticComment = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      user: userEmail,
+      description: `Rechazado por el usuario ${userEmail} el envío en garantía de reparación. Envio anterior con PAR nº ${duplicateMaterials.map(m => m.numPedido).join(', ')}`
+    };
+
+    setOrder(prev => ({
+      ...prev,
+      enviadoSinGarantia: true,
+      changeHistory: [automaticComment, ...prev.changeHistory]
+    }));
+
+    // Proceed with save
+    setPendingSave(true);
+  };
+
+  // Handle NC modal submission
+  const handleNCSubmitted = async (ncNumber: string) => {
+    setShowNCModal(false);
+
+    // Add automatic comment to change history
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email || 'Sistema';
+
+    const automaticComment = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      user: userEmail,
+      description: `El usuario ${userEmail} ha aceptado la garantía de reparación`,
+      isAutomatic: true
+    };
+
+    // Update order with NC number and add automatic comment
+    setOrder(prev => ({
+      ...prev,
+      nonConformityReport: ncNumber,
+      changeHistory: [automaticComment, ...prev.changeHistory]
+    }));
+
+    // Lock warranty switch to prevent user from unchecking it
+    setWarrantyLocked(true);
+
+    // Show informative modal instead of saving immediately
+    setShowWarrantyInfoModal(true);
+  };
+
+  // Handle NC not opened - delete order and close
+  const handleNCNotOpened = async () => {
+    setShowNCModal(false);
+    setShowWarrantyModal(false);
+    setShowWarrantyInfoModal(false);
+
+    // If order exists in database, delete it
+    if (order.id && initialIsEditing) {
+      try {
+        const { error } = await supabase
+          .from('tbl_pedidos_rep')
+          .delete()
+          .eq('id', order.id);
+
+        if (error) {
+          console.error('Error deleting order:', error);
+          toast({
+            variant: "destructive",
+            title: "Error al borrar",
+            description: "No se pudo borrar el pedido. Por favor, inténtelo de nuevo.",
+          });
+          return;
+        }
+
+        toast({
+          title: "Pedido borrado",
+          description: "El pedido ha sido eliminado. Créalo nuevamente cuando dispongas del número de NC.",
+          duration: 5000,
+        });
+
+        // Refresh parent list
+        onSave();
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Ocurrió un error al intentar borrar el pedido.",
+        });
+        return;
+      }
+    } else {
+      // New order - just close modal
+      toast({
+        title: "Proceso cancelado",
+        description: "Graba nuevamente el pedido cuando dispongas del número de No Conformidad.",
+        duration: 5000,
+      });
+    }
+
+    // Close order modal
+    onClose();
+  };
+
+  // Trigger save when pendingSave changes to true
+  useEffect(() => {
+    if (pendingSave) {
+      proceedWithSave();
+      setPendingSave(false);
+    }
+  }, [pendingSave]);
+
+  // Proceed with saving the order
+  const proceedWithSave = async () => {
     setLoading(true);
 
     try {
@@ -745,7 +990,10 @@ export default function OrderForm({
         clearPausedOrder();
       }
 
-      onSave();
+      // Wait 5 seconds before closing the modal
+      setTimeout(() => {
+        onSave();
+      }, 5000);
 
     } catch (error) {
       console.error("Error saving order:", error);
@@ -762,6 +1010,8 @@ export default function OrderForm({
       });
     } finally {
       setLoading(false);
+      // Reset warranty decline processing flag after save completes
+      isProcessingWarrantyDecline.current = false;
     }
   };
 
@@ -940,6 +1190,7 @@ export default function OrderForm({
                     id="warranty"
                     checked={order.warranty}
                     onCheckedChange={handleSwitchChange}
+                    disabled={warrantyLocked}
                   />
                 )}
               </div>
@@ -1036,7 +1287,15 @@ export default function OrderForm({
 
             <div className="grid grid-cols-2 gap-4 items-start">
               <div>
-                <Label htmlFor="declaredDamage" className="text-sm mb-1 block">Avería Declarada</Label>
+                <Label htmlFor="declaredDamage" className={`text-sm mb-1 block ${errors.declaredDamage ? 'text-red-500' : ''}`}>
+                  {isExternalSupplier && <span className="text-red-500">* </span>}
+                  Avería Declarada
+                  {errors.declaredDamage && (
+                    <span className="text-red-500 text-xs ml-2 font-normal">
+                      * Campo obligatorio para proveedores externos
+                    </span>
+                  )}
+                </Label>
                 {isReadOnly ? (
                   renderReadOnlyTextarea(order.declaredDamage, "Apuntado en Tarjeta Identificativa")
                 ) : (
@@ -1051,11 +1310,15 @@ export default function OrderForm({
                         ...prev,
                         declaredDamage: value
                       }));
+                      // Clear error when user starts typing
+                      if (errors.declaredDamage && value.trim()) {
+                        setErrors(prev => ({ ...prev, declaredDamage: false }));
+                      }
                     }}
                     onFocus={(e) => e.target.placeholder = ""}
                     onBlur={(e) => e.target.placeholder = "Apuntado en Tarjeta Identificativa"}
                     placeholder="Apuntado en Tarjeta Identificativa"
-                    className="min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                    className={`min-h-[100px] resize-none placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${errors.declaredDamage ? 'border-red-500' : ''}`}
                   />
                 )}
               </div>
@@ -1240,7 +1503,8 @@ export default function OrderForm({
                     type="button"
                     variant="outline"
                     onClick={addOrderLine}
-                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white"
+                    disabled={isExternalSupplier && order.orderLines.length >= 1}
+                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#91268F]"
                   >
                     <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
                   </Button>
@@ -1419,6 +1683,51 @@ export default function OrderForm({
         onCreateMaterial={handleCreateMaterial}
         onCancel={handleMaterialNotFoundCancel}
       />
+
+      {/* Warranty Confirmation Modal */}
+      <WarrantyConfirmationModal
+        open={showWarrantyModal}
+        duplicateMaterials={duplicateMaterials}
+        onAccept={handleWarrantyAccepted}
+        onDecline={handleWarrantyDeclined}
+      />
+
+      {/* NC Required Modal */}
+      <NCRequiredModal
+        open={showNCModal}
+        currentNCValue={order.nonConformityReport}
+        onSubmit={handleNCSubmitted}
+        onNotOpened={handleNCNotOpened}
+      />
+
+      {/* Warranty Info Modal - Reminder about documentation */}
+      <Dialog open={showWarrantyInfoModal} onOpenChange={setShowWarrantyInfoModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-500" />
+              Enviado en Garantia
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-base leading-relaxed text-gray-700">
+              El pedido se ha marcado como enviado en garantía, no te olvides
+              de subir el documento de la No Conformidad en <strong>Documentos Adjuntos</strong>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowWarrantyInfoModal(false);
+                setPendingSave(true);
+              }}
+              className="w-full bg-[#91268F] hover:bg-[#7A1F79] text-white"
+            >
+              Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Modal for unsaved changes */}
       <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>

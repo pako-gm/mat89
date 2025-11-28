@@ -1,6 +1,20 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ClipboardList, PackageCheck, Factory, Package, FileSearch, Settings, GitBranch, History, ChevronDown, ChevronRight, Shield } from "lucide-react";
+import {
+  ClipboardList,
+  PackageCheck,
+  Factory,
+  Package,
+  FileSearch,
+  Settings,
+  ChevronDown,
+  Users,
+  Warehouse,
+  GitBranch,
+  Shield,
+  Database,
+  History
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -51,11 +65,70 @@ const SidebarItem = ({ icon, label, path, active, disabled }: SidebarItemProps) 
   );
 };
 
+interface SidebarItemWithSubmenuProps {
+  icon?: React.ReactNode;
+  label: string;
+  submenuItems: { label: string; path: string; active?: boolean; icon?: React.ReactNode }[];
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const SidebarItemWithSubmenu = ({ icon, label, submenuItems, isOpen, onToggle }: SidebarItemWithSubmenuProps) => {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className={cn(
+          "flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
+          "text-gray-600"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          {icon && (
+            <span className="flex h-5 w-5 items-center">
+              {icon}
+            </span>
+          )}
+          <span className="text-sm">{label}</span>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 transition-transform",
+            isOpen ? "transform rotate-180" : ""
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="ml-8 mt-1 space-y-1">
+          {submenuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all hover:bg-gray-100",
+                item.active ? "bg-gray-100 text-gray-900" : "text-gray-600"
+              )}
+            >
+              {item.icon && (
+                <span className="flex h-4 w-4 items-center">
+                  {item.icon}
+                </span>
+              )}
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Sidebar() {
   const currentPath = window.location.pathname;
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
-  const [panelControlExpanded, setPanelControlExpanded] = useState(false);
+  const [panelControlOpen, setPanelControlOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -68,8 +141,8 @@ export default function Sidebar() {
 
   // Auto-expand Panel de Control if we're on a submenu route
   useEffect(() => {
-    if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad") {
-      setPanelControlExpanded(true);
+    if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad" || currentPath === "/panel-control") {
+      setPanelControlOpen(true);
     }
   }, [currentPath]);
 
@@ -126,58 +199,44 @@ export default function Sidebar() {
             active={currentPath === "/consultar"}
           />
           {userRole === "ADMINISTRADOR" && (
-            <>
-              {/* Panel de Control - Expandible */}
-              <div>
-                <div
-                  className={cn(
-                    "w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
-                    (currentPath === "/panel-control" || panelControlExpanded) ? "bg-gray-100" : "text-gray-600"
-                  )}
-                >
-                  <Link
-                    to="/panel-control"
-                    className="flex items-center gap-3 flex-1"
-                  >
-                    <span className="flex h-5 w-5 items-center">
-                      <Settings className="h-4 w-4" />
-                    </span>
-                    <span className="text-sm">Panel de Control</span>
-                  </Link>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPanelControlExpanded(!panelControlExpanded);
-                    }}
-                    className="p-1 hover:bg-gray-200 rounded"
-                  >
-                    {panelControlExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Submenú */}
-                {panelControlExpanded && (
-                  <div className="ml-6 mt-1 space-y-1">
-                    <SidebarItem
-                      icon={<GitBranch className="h-4 w-4" />}
-                      label="Versiones APP"
-                      path="/versiones"
-                      active={currentPath === "/versiones"}
-                    />
-                    <SidebarItem
-                      icon={<Shield className="h-4 w-4" />}
-                      label="Auditoría de Seguridad"
-                      path="/auditoria-seguridad"
-                      active={currentPath === "/auditoria-seguridad"}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
+            <SidebarItemWithSubmenu
+              icon={<Settings className="h-4 w-4" />}
+              label="Panel de Control"
+              isOpen={panelControlOpen}
+              onToggle={() => setPanelControlOpen(!panelControlOpen)}
+              submenuItems={[
+                {
+                  label: "Gestión de Usuarios",
+                  path: "/panel-control",
+                  active: currentPath === "/panel-control",
+                  icon: <Users className="h-4 w-4" />
+                },
+                {
+                  label: "Maestro de Almacenes",
+                  path: "#",
+                  active: false,
+                  icon: <Warehouse className="h-4 w-4" />
+                },
+                {
+                  label: "Versiones APP",
+                  path: "/versiones",
+                  active: currentPath === "/versiones",
+                  icon: <GitBranch className="h-4 w-4" />
+                },
+                {
+                  label: "Auditoría de Seguridad",
+                  path: "/auditoria-seguridad",
+                  active: currentPath === "/auditoria-seguridad",
+                  icon: <Shield className="h-4 w-4" />
+                },
+                {
+                  label: "Backup Datos Sistema",
+                  path: "#",
+                  active: false,
+                  icon: <Database className="h-4 w-4" />
+                }
+              ]}
+            />
           )}
         </div>
       </div>
