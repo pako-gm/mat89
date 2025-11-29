@@ -644,13 +644,16 @@ export default function OrderForm({
     try {
       // Obtener el email del usuario actual autenticado
       const { data: { user } } = await supabase.auth.getUser();
-      const userEmail = user?.email || 'admin@renfe.es';
+
+      if (!user?.email) {
+        throw new Error('Usuario no autenticado');
+      }
 
       // Crear comentario con timestamp del servidor (formato ISO)
       const newChange = {
         id: uuidv4(),
         date: new Date().toISOString(),
-        user: userEmail,
+        user: user.email,
         description: sanitizeComment(trimmedComment)
       };
 

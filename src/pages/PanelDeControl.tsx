@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, Settings, X, AlertTriangle, User, AlertCircle, ChevronDown,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, Lock
 } from 'lucide-react';
 
 // Constantes de colores
@@ -67,6 +67,15 @@ export default function PanelDeControl() {
     user_role: 'CONSULTAS',
     status: false, // false = INACTIVO por defecto
     password: ''
+  });
+
+  // Estados de validación de contraseña
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecial: false
   });
 
   const [almacenesDisponibles, setAlmacenesDisponibles] = useState<Almacen[]>([]);
@@ -159,6 +168,17 @@ export default function PanelDeControl() {
       setAlmacenesSeleccionados(selectedUserAmbito.ambito_almacenes || []);
     }
   }, [selectedUserAmbito]);
+
+  // Evaluar la fortaleza de la contraseña
+  useEffect(() => {
+    setPasswordStrength({
+      length: newUserData.password.length >= 8,
+      hasUppercase: /[A-Z]/.test(newUserData.password),
+      hasLowercase: /[a-z]/.test(newUserData.password),
+      hasNumber: /[0-9]/.test(newUserData.password),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(newUserData.password)
+    });
+  }, [newUserData.password]);
 
   // ============ FUNCIONES AUXILIARES ============
 
@@ -276,20 +296,33 @@ export default function PanelDeControl() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newUserData.email || !newUserData.password) {
+    if (!newUserData.name || !newUserData.email || !newUserData.password) {
       toast({
         title: "Error",
-        description: "Email y contraseña son obligatorios",
+        description: "Nombre completo, email y contraseña son obligatorios",
         variant: "destructive",
       });
       return;
     }
 
-    // Validar que el email sea del dominio @renfe.es
-    if (!newUserData.email.toLowerCase().endsWith('')) { //ESTABA @renfe.es
+    // Validar requisitos de contraseña
+    if (!passwordStrength.length || !passwordStrength.hasUppercase ||
+        !passwordStrength.hasLowercase || !passwordStrength.hasNumber ||
+        !passwordStrength.hasSpecial) {
       toast({
-        title: "Dominio no permitido",
-        description: "Solo se permiten altas de usuarios con el dominio empresarial",
+        title: "Contraseña no válida",
+        description: "La contraseña no cumple con los requisitos mínimos de seguridad.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar que el email sea del dominio permitido
+    const allowedDomain = import.meta.env.VITE_ALLOWED_EMAIL_DOMAIN;
+    if (!allowedDomain || !newUserData.email.toLowerCase().endsWith(allowedDomain)) {
+      toast({
+        title: "Direccion de correo-e no permitida",
+        description: "Solo se permiten altas de nuevos usuarios con el correo-e empresarial",
         variant: "destructive",
       });
       return;
@@ -901,14 +934,15 @@ export default function PanelDeControl() {
             <form onSubmit={handleAddUser} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre completo
+                  Nombre completo <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
+                  required
                   value={newUserData.name}
                   onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="Juan Pérez"
+                  placeholder="Manolito"
                 />
               </div>
 
@@ -922,7 +956,7 @@ export default function PanelDeControl() {
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="usuario@renfe.es"
+                  placeholder="manolito@gmail.es"
                 />
               </div>
 
@@ -936,37 +970,64 @@ export default function PanelDeControl() {
                   value={newUserData.password}
                   onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="Mínimo 6 caracteres"
-                  minLength={6}
+                  placeholder="Mínimo 8 caracteres"
+                  minLength={8}
                 />
+
+                {/* Requisitos de contraseña */}
+                <div className="mt-3 space-y-2 text-sm">
+                  <p className="text-gray-700 font-medium flex items-center">
+                    <Lock className="h-4 w-4 mr-1" />
+                    Requisitos de la contraseña:
+                  </p>
+                  <ul className="pl-5 space-y-1 text-xs">
+                    <li className={passwordStrength.length ? "text-green-600" : "text-gray-600"}>
+                      ✓ Debe tener al menos 8 caracteres
+                    </li>
+                    <li className={passwordStrength.hasUppercase ? "text-green-600" : "text-gray-600"}>
+                      ✓ Al menos una letra mayúscula (A-Z)
+                    </li>
+                    <li className={passwordStrength.hasLowercase ? "text-green-600" : "text-gray-600"}>
+                      ✓ Al menos una letra minúscula (a-z)
+                    </li>
+                    <li className={passwordStrength.hasNumber ? "text-green-600" : "text-gray-600"}>
+                      ✓ Al menos un número (0-9)
+                    </li>
+                    <li className={passwordStrength.hasSpecial ? "text-green-600" : "text-gray-600"}>
+                      ✓ Al menos un carácter especial (!@#$%^&*)
+                    </li>
+                  </ul>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rol
+                  Rol Asignado <span className="text-red-500">*</span>
                 </label>
                 <select
+                  required
                   value={newUserData.user_role}
                   onChange={(e) => setNewUserData({ ...newUserData, user_role: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
-                  <option value="ADMINISTRADOR">Administrador</option>
-                  <option value="EDICION">Edición</option>
                   <option value="CONSULTAS">Consultas</option>
+                  <option value="EDICION">Edición</option>
+                  <option value="ADMINISTRADOR">Administrador</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Estado inicial
+                  Estado Inicial <span className="text-red-500">*</span>
                 </label>
                 <select
+                  required
                   value={newUserData.status ? 'true' : 'false'}
                   onChange={(e) => setNewUserData({ ...newUserData, status: e.target.value === 'true' })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
-                  <option value="true">Activo</option>
                   <option value="false">Inactivo</option>
+                  <option value="true">Activo</option>
                 </select>
               </div>
 
