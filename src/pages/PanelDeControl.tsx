@@ -286,7 +286,7 @@ export default function PanelDeControl() {
     }
 
     // Validar que el email sea del dominio @renfe.es
-    if (!newUserData.email.toLowerCase().endsWith('@renfe.es')) {
+    if (!newUserData.email.toLowerCase().endsWith('')) { //ESTABA @renfe.es
       toast({
         title: "Dominio no permitido",
         description: "Solo se permiten altas de usuarios con el dominio empresarial",
