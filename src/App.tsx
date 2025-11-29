@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import Layout from "@/components/layout/Layout";
@@ -68,6 +68,31 @@ function RoleBasedRedirect() {
   }
 }
 
+// Componente para manejar la redirección de recuperación de contraseña
+function PasswordRecoveryHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Verificar si hay un hash de recuperación en la URL
+    const hash = window.location.hash;
+
+    if (hash) {
+      // Parsear el hash para buscar parámetros de recuperación
+      const params = new URLSearchParams(hash.substring(1));
+      const type = params.get('type');
+      const accessToken = params.get('access_token');
+
+      // Si detectamos un token de acceso y type=recovery, redirigir a reset-password
+      if (accessToken && type === 'recovery' && location.pathname !== '/reset-password') {
+        navigate('/reset-password', { replace: true });
+      }
+    }
+  }, [navigate, location]);
+
+  return null;
+}
+
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +130,7 @@ function App() {
         } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
           setIsRecoveryMode(false);
         }
-        
+
         setSession(session);
         setLoading(false);
       }
@@ -117,6 +142,24 @@ function App() {
     return () => {
       subscription.unsubscribe();
     };
+  }, []);
+
+  // Detectar si estamos en modo de recuperación de contraseña al cargar
+  useEffect(() => {
+    // Verificar si hay un hash de recuperación en la URL
+    const hash = window.location.hash;
+
+    if (hash) {
+      // Parsear el hash para buscar parámetros de recuperación
+      const params = new URLSearchParams(hash.substring(1));
+      const type = params.get('type');
+      const accessToken = params.get('access_token');
+
+      // Si detectamos un token de acceso y type=recovery, estamos en modo recuperación
+      if (accessToken && type === 'recovery') {
+        setIsRecoveryMode(true);
+      }
+    }
   }, []);
 
   const checkSession = async () => {
@@ -140,11 +183,12 @@ function App() {
 
   return (
     <BrowserRouter>
+      <PasswordRecoveryHandler />
       <Routes>
         {/* Rutas públicas */}
-        <Route 
-          path="/login" 
-          element={!session || isRecoveryMode ? <LoginPage /> : <Navigate to="/" replace />} 
+        <Route
+          path="/login"
+          element={!session || isRecoveryMode ? <LoginPage /> : <Navigate to="/" replace />}
         />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         

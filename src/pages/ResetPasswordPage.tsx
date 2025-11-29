@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { signOut } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -72,7 +73,8 @@ export default function ResetPasswordPage() {
       passwordStrength.length &&
       passwordStrength.hasUppercase &&
       passwordStrength.hasLowercase &&
-      passwordStrength.hasNumber
+      passwordStrength.hasNumber &&
+      passwordStrength.hasSpecial //obligatorio para mayor complejidad de la contraseña
     );
   };
 
@@ -125,24 +127,34 @@ export default function ResetPasswordPage() {
       const { error } = await supabase.auth.updateUser({
         password: password
       });
-      
+
       if (error) {
         throw error;
       }
-      
-      // Éxito
+
+      // Éxito - Mostrar estado de éxito
       setSuccess(true);
-      
+
       toast({
         title: "Contraseña actualizada",
-        description: "Tu contraseña ha sido actualizada correctamente.",
+        description: "Tu contraseña ha sido actualizada correctamente. Cerrando sesión...",
       });
-      
-      // Después de 10 segundos, redirigir al login
-      setTimeout(() => {
-        navigate("/login");
-      }, 10000);
-      
+
+      // Cerrar sesión después de 2 segundos para que el usuario vea el mensaje de éxito
+      setTimeout(async () => {
+        try {
+          // Cerrar sesión para forzar login con nueva contraseña
+          await signOut();
+
+          // Redirigir al login
+          navigate("/login", { replace: true });
+        } catch (signOutError) {
+          console.error("Error al cerrar sesión:", signOutError);
+          // Incluso si hay error, redirigir al login
+          navigate("/login", { replace: true });
+        }
+      }, 2000);
+
     } catch (err) {
       console.error("Error al restablecer la contraseña:", err);
 
@@ -222,14 +234,11 @@ export default function ResetPasswordPage() {
                 Tu contraseña ha sido actualizada correctamente.
               </p>
               <p className="text-gray-600 mt-1">
-                Serás redirigido a la página de inicio de sesión en unos segundos...
+                Cerrando sesión... Por favor, inicia sesión con tu nueva contraseña.
               </p>
-              <Button
-                className="mt-6 w-full bg-[#91268F] hover:bg-[#7A1F79]"
-                onClick={() => navigate("/login")}
-              >
-                Ir al inicio de sesión
-              </Button>
+              <div className="mt-6 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#91268F]"></div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -297,7 +306,7 @@ export default function ResetPasswordPage() {
                     ✓ Al menos un número (0-9)
                   </li>
                   <li className={passwordStrength.hasSpecial ? "text-green-600" : "text-gray-600"}>
-                    ✓ Recomendado: Al menos un carácter especial (!@#$%^&*)
+                    ✓ Al menos un carácter especial (!@#$%^&*)
                   </li>
                 </ul>
               </div>
