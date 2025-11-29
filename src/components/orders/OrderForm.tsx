@@ -88,7 +88,8 @@ export default function OrderForm({
     shipmentDate: false,
     orderLines: false,
     nonConformityReport: false,
-    declaredDamage: false
+    declaredDamage: false,
+    serialNumber: false
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -204,7 +205,8 @@ export default function OrderForm({
         shipmentDate: false,
         orderLines: false,
         nonConformityReport: false,
-        declaredDamage: false
+        declaredDamage: false,
+        serialNumber: false
       });
 
       // Clear authentication errors
@@ -713,6 +715,11 @@ export default function OrderForm({
     // Check if there's at least one order line with a registration
     const hasValidOrderLine = order.orderLines.some(line => String(line.registration).trim() !== "");
 
+    // Check if there's at least one order line with a serial number when external supplier
+    const hasValidSerialNumber = isExternalSupplier
+      ? order.orderLines.some(line => String(line.serialNumber).trim() !== "")
+      : true;
+
     const newErrors = {
       supplier: !order.supplierId,
       vehicle: !order.vehicle.trim(),
@@ -720,7 +727,8 @@ export default function OrderForm({
       shipmentDate: !order.shipmentDate,
       orderLines: !hasValidOrderLine,
       nonConformityReport: order.warranty && !order.nonConformityReport.trim(),
-      declaredDamage: isExternalSupplier && !order.declaredDamage.trim()
+      declaredDamage: isExternalSupplier && !order.declaredDamage.trim(),
+      serialNumber: !hasValidSerialNumber
     };
 
     setErrors(newErrors);
@@ -1529,7 +1537,15 @@ export default function OrderForm({
                     </div>
                     <Label className="text-sm font-medium">Descripción Pieza</Label>
                     <Label className="text-sm font-medium"><span className="text-red-500">*</span> Cant.</Label>
-                    <Label className="text-sm font-medium">Num. Serie</Label>
+                    <Label className={`text-sm font-medium ${errors.serialNumber && !isReadOnly ? 'text-red-500' : ''}`}>
+                      {isExternalSupplier && <span className="text-red-500">* </span>}
+                      Num. Serie
+                      {errors.serialNumber && !isReadOnly && (
+                        <span className="text-red-500 text-xs ml-2 font-normal block">
+                          * Campo obligatorio para proveedores externos
+                        </span>
+                      )}
+                    </Label>
                     <div className="w-[72px]">
                       <span></span>
                     </div>
@@ -1622,9 +1638,13 @@ export default function OrderForm({
                           onChange={(e) => {
                             const value = e.target.value.toUpperCase();
                             handleOrderLineUpdate(line.id, { serialNumber: value });
+                            // Clear error when user starts typing
+                            if (errors.serialNumber && value.trim()) {
+                              setErrors(prev => ({ ...prev, serialNumber: false }));
+                            }
                           }}
                           placeholder="ST/3145874"
-                          className="h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F]"
+                          className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${errors.serialNumber && isExternalSupplier && !String(line.serialNumber).trim() ? 'border-red-500' : ''}`}
                         />
                       )}
 
