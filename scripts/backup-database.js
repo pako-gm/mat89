@@ -19,15 +19,15 @@ const __dirname = dirname(__filename);
 
 // Configuración de Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Error: Variables de entorno no configuradas');
-  console.error('Asegúrate de tener VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tu archivo .env');
+  console.error('Asegúrate de tener VITE_SUPABASE_URL y VITE_SUPABASE_SERVICE_KEY en tu archivo .env');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Lista de tablas a respaldar
 const TABLES = [

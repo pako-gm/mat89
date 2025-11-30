@@ -958,7 +958,7 @@ export default function PanelDeControl() {
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="manolito@gmail.es"
+                  placeholder="usuario@renfe.es"
                 />
               </div>
 
@@ -1179,8 +1179,10 @@ export default function PanelDeControl() {
                     className="w-4 h-4 rounded"
                   />
                   <div>
-                    <p className="font-medium text-gray-800">{almacen.nombre}</p>
-                    <p className="text-sm text-gray-500">Código: {almacen.codigo}</p>
+                    <p className="text-gray-800">
+                      <span className="font-medium">{almacen.nombre}</span>
+                      <span className="font-normal"> - Alm. {almacen.codigo}</span>
+                    </p>
                   </div>
                 </label>
               ))}
