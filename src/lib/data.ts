@@ -50,11 +50,88 @@ interface DbLastSupplierResponse {
   };
 }
 
-export const warehouses: Warehouse[] = [
-  { id: "1", code: "ALM141", name: "Almacén 141" },
-  { id: "2", code: "ALM140", name: "Almacén 140" },
-  { id: "3", code: "ALM148", name: "Almacén 148" },
-];
+/**
+ * Obtiene todos los almacenes desde la base de datos
+ * @returns Promise<Warehouse[]> Array de todos los almacenes activos
+ */
+export const getAllWarehouses = async (): Promise<Warehouse[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('tbl_almacenes')
+      .select('id, codigo_alm, nombre_alm')
+      .eq('activo', true)
+      .order('codigo_alm', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching warehouses:', error);
+      return [];
+    }
+
+    return (data || []).map(alm => ({
+      id: alm.id,
+      code: alm.codigo_alm,
+      name: alm.nombre_alm
+    }));
+  } catch (err) {
+    console.error('Error in getAllWarehouses:', err);
+    return [];
+  }
+};
+
+/**
+ * Obtiene los almacenes permitidos para el usuario actual según su ambito_almacenes
+ * @returns Promise<Warehouse[]> Array de almacenes del usuario o vacío si no hay usuario
+ */
+export const getUserWarehouses = async (): Promise<Warehouse[]> => {
+  try {
+    // 1. Obtener el usuario actual
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData.user) {
+      console.error('Error getting current user:', userError);
+      return [];
+    }
+
+    // 2. Obtener el perfil del usuario con su ambito_almacenes
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('ambito_almacenes')
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error getting user profile:', profileError);
+      return [];
+    }
+
+    if (!profileData || !profileData.ambito_almacenes || profileData.ambito_almacenes.length === 0) {
+      console.warn('User has no warehouses assigned');
+      return [];
+    }
+
+    // 3. Obtener los almacenes del usuario usando los IDs del ambito_almacenes
+    const { data: warehousesData, error: warehousesError } = await supabase
+      .from('tbl_almacenes')
+      .select('id, codigo_alm, nombre_alm')
+      .in('id', profileData.ambito_almacenes)
+      .eq('activo', true)
+      .order('codigo_alm', { ascending: true });
+
+    if (warehousesError) {
+      console.error('Error fetching user warehouses:', warehousesError);
+      return [];
+    }
+
+    return (warehousesData || []).map(alm => ({
+      id: alm.id,
+      code: alm.codigo_alm,
+      name: alm.nombre_alm
+    }));
+  } catch (err) {
+    console.error('Error in getUserWarehouses:', err);
+    return [];
+  }
+};
 
 export const getSuppliers = async () => {
   const { data: suppliers, error } = await supabase
@@ -474,8 +551,43 @@ export const saveOrder = async (order: Order) => {
   }
   
   const userId = userData.user.id;
-  
+
+  // FASE 2: Validar que el usuario tenga permisos para el almacén seleccionado
   try {
+    // 1. Obtener el perfil del usuario con su ambito_almacenes
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('ambito_almacenes')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      throw new Error('No se pudo verificar los permisos del usuario.');
+    }
+
+    if (!profileData || !profileData.ambito_almacenes || profileData.ambito_almacenes.length === 0) {
+      throw new Error('No tienes almacenes asignados. Contacta con el administrador.');
+    }
+
+    // 2. Obtener el ID del almacén seleccionado
+    const { data: warehouseData, error: warehouseError } = await supabase
+      .from('tbl_almacenes')
+      .select('id')
+      .eq('codigo_alm', order.warehouse)
+      .single();
+
+    if (warehouseError || !warehouseData) {
+      console.error('Error fetching warehouse:', warehouseError);
+      throw new Error(`El almacén ${order.warehouse} no existe.`);
+    }
+
+    // 3. Verificar que el almacén esté en el ambito del usuario
+    if (!profileData.ambito_almacenes.includes(warehouseData.id)) {
+      throw new Error(`No tienes permisos para crear/editar pedidos en el almacén ${order.warehouse}.`);
+    }
+
+    // Continuar con el guardado si la validación pasó
     const { data: savedOrder, error: orderError } = await supabase
       .from('tbl_pedidos_rep')
       .upsert({

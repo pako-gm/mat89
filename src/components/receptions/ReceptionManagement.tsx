@@ -7,7 +7,8 @@ import {
   getReceptionsByLineId,
   saveReception,
   deleteReception,
-  updateOrderStatusIfComplete
+  updateOrderStatusIfComplete,
+  getUserWarehouses
 } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,9 +113,26 @@ export default function ReceptionManagement() {
 
   const fetchOrders = async () => {
     try {
+      // FASE 4: Obtener almacenes del usuario para filtrar recepciones
+      const userWarehouses = await getUserWarehouses();
+      const warehouseCodes = userWarehouses.map(w => w.code);
+
+      if (warehouseCodes.length === 0) {
+        console.warn('User has no warehouses assigned, showing no orders for reception');
+        setOrders([]);
+        setFilteredOrders([]);
+        return;
+      }
+
       const data = await getOrdersForReception();
-      setOrders(data);
-      setFilteredOrders(data);
+
+      // Filtrar pedidos por almacenes del usuario
+      const filteredByWarehouse = data.filter(order =>
+        warehouseCodes.includes(order.warehouse)
+      );
+
+      setOrders(filteredByWarehouse);
+      setFilteredOrders(filteredByWarehouse);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast({

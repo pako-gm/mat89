@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
-import { Order, OrderLine } from "@/types";
-import { warehouses, getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo } from "@/lib/data";
+import { Order, OrderLine, Warehouse } from "@/types";
+import { getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo, getUserWarehouses } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import {
@@ -76,6 +76,9 @@ export default function OrderForm({
   const MAX_COMMENT_LENGTH = 1000;
   const [suppliers, setSuppliers] = useState<{ id: string; name: string; isExternal: boolean }[]>([]);
   const [isExternalSupplier, setIsExternalSupplier] = useState(false);
+  const [availableWarehouses, setAvailableWarehouses] = useState<Warehouse[]>([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(true);
+  const [canChangeWarehouse, setCanChangeWarehouse] = useState(true);
   const [materialNotFoundModal, setMaterialNotFoundModal] = useState<{
     open: boolean;
     registration: string;
@@ -118,7 +121,7 @@ export default function OrderForm({
     return {
       id: initialOrder.id || uuidv4(),
       orderNumber: initialOrder.orderNumber || "",
-      warehouse: initialOrder.warehouse || "ALM141",
+      warehouse: initialOrder.warehouse || "",
       supplierId: initialOrder.supplierId || "",
       supplierName: initialOrder.supplierName || "",
       vehicle: initialOrder.vehicle || "",
@@ -168,7 +171,7 @@ export default function OrderForm({
         newOrder = {
           id: initialOrder.id || uuidv4(),
           orderNumber: initialOrder.orderNumber || "",
-          warehouse: initialOrder.warehouse || "ALM141",
+          warehouse: initialOrder.warehouse || "",
           supplierId: initialOrder.supplierId || "",
           supplierName: initialOrder.supplierName || "",
           vehicle: initialOrder.vehicle || "",
@@ -255,6 +258,52 @@ export default function OrderForm({
       setIsInitialLoad(true);
     }
   }, [open, toast]);
+
+  // Load user warehouses
+  useEffect(() => {
+    const loadWarehouses = async () => {
+      try {
+        setWarehousesLoading(true);
+        const userWarehouses = await getUserWarehouses();
+        setAvailableWarehouses(userWarehouses);
+
+        // Si es un nuevo pedido y hay almacenes disponibles, establecer el primero como predeterminado
+        if (!initialIsEditing && userWarehouses.length > 0 && !order.warehouse) {
+          setOrder(prev => ({
+            ...prev,
+            warehouse: userWarehouses[0].code
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading warehouses:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los almacenes asignados.",
+        });
+      } finally {
+        setWarehousesLoading(false);
+      }
+    };
+
+    if (open) {
+      loadWarehouses();
+    }
+  }, [open, initialIsEditing, toast]);
+
+  // FASE 5: Check if user can change warehouse (for editing existing orders)
+  useEffect(() => {
+    const checkWarehouseAccess = () => {
+      if (initialIsEditing && order.warehouse && !warehousesLoading) {
+        const hasAccess = availableWarehouses.some(w => w.code === order.warehouse);
+        setCanChangeWarehouse(hasAccess);
+      } else {
+        setCanChangeWarehouse(true);
+      }
+    };
+
+    checkWarehouseAccess();
+  }, [initialIsEditing, order.warehouse, availableWarehouses, warehousesLoading]);
 
   // Update isExternalSupplier when suppliers are loaded and a supplier is selected
   useEffect(() => {
@@ -345,7 +394,7 @@ export default function OrderForm({
     //AQUI ES DONDE SE FORMATEA EL NÚMERO DE PEDIDO
     if (name === "orderNumber") {
       // Extract warehouse number from selected warehouse
-      const warehouseNum = order.warehouse.replace('ALM', '');
+      const warehouseNum = order.warehouse;
       // Format: warehouseNum/YY/sequential
       let formattedValue = value.replace(/\D/g, ''); // Remove non-digits
       if (formattedValue.length > 4) {
@@ -381,21 +430,63 @@ export default function OrderForm({
     }
   };
 
+  /**
+   * Genera el número de pedido para un almacén con numeración GLOBAL
+   * El correlativo es compartido entre TODOS los almacenes (no por almacén individual)
+   */
+  const generateOrderNumberForWarehouse = async (warehouseCode: string): Promise<string> => {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    const warehouseNum = warehouseCode;
+
+    try {
+      // Buscar TODOS los pedidos del año para encontrar el máximo correlativo
+      // (compatible con formatos "141/25/1030" y "ALM141/25/1030")
+      const { data: yearOrders } = await supabase
+        .from('tbl_pedidos_rep')
+        .select('num_pedido')
+        .like('num_pedido', `%/${currentYear}/%`);
+
+      let maxSequential = 999;
+
+      if (yearOrders && yearOrders.length > 0) {
+        // Extraer todos los correlativos y encontrar el máximo
+        const sequentials = yearOrders.map(order => {
+          const parts = order.num_pedido.split('/');
+          return parseInt(parts[2] || '0');
+        }).filter(num => !isNaN(num));
+
+        if (sequentials.length > 0) {
+          maxSequential = Math.max(...sequentials);
+        }
+      }
+
+      const nextSequential = (maxSequential + 1).toString().padStart(4, '0');
+      return `${warehouseNum}/${currentYear}/${nextSequential}`;
+    } catch (error) {
+      console.error('Error generating order number:', error);
+      // Fallback: usar 1000 como secuencial predeterminado
+      return `${warehouseNum}/${currentYear}/1000`;
+    }
+  };
+
   const handleSelectChange = (name: string, value: string) => {
     if (isReadOnly) return;
     markAsChanged();
 
     if (name === "warehouse") {
-      // Update order number when warehouse changes
-      const warehouseNum = value.replace('ALM', '');
-      const sequential = order.orderNumber.split('/')[2] || '1000';
-      const currentYear = new Date().getFullYear().toString().slice(-2);
-      const newOrderNumber = `${warehouseNum}/${currentYear}/${sequential}`;
+      // Update order number when warehouse changes (async to get GLOBAL sequential)
       setOrder(prev => ({
         ...prev,
-        warehouse: value,
-        orderNumber: newOrderNumber
+        warehouse: value
       }));
+
+      // Generar número de pedido GLOBAL de forma asíncrona
+      generateOrderNumberForWarehouse(value).then(newOrderNumber => {
+        setOrder(prev => ({
+          ...prev,
+          orderNumber: newOrderNumber
+        }));
+      });
       return;
     }
 
@@ -1080,14 +1171,14 @@ export default function OrderForm({
               <div>
                 <Label htmlFor="orderNumber" className="text-sm mb-1">Num. Pedido</Label>
                 {isReadOnly ? (
-                  renderReadOnlyInput(order.orderNumber, `${order.warehouse.replace('ALM', '')}/25/1001`)
+                  renderReadOnlyInput(order.orderNumber, `${order.warehouse}/25/1001`)
                 ) : (
                   <Input
                     id="orderNumber"
                     name="orderNumber"
                     value={order.orderNumber}
                     readOnly
-                    placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
+                    placeholder={`${order.warehouse}/25/1001`}
                     className="h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed text-[#4C4C4C]"
                   />
                 )}
@@ -1128,24 +1219,35 @@ export default function OrderForm({
               </div>
 
               <div>
-                <Label htmlFor="warehouse" className="text-sm mb-1">Almacén</Label>
+                <Label htmlFor="warehouse" className="text-sm mb-1">
+                  Almacén
+                  {!canChangeWarehouse && initialIsEditing && (
+                    <span className="text-xs text-gray-500 ml-2">(Solo lectura)</span>
+                  )}
+                </Label>
                 {isReadOnly ? (
-                  renderReadOnlySelect(order.warehouse, warehouses, (w) => w.code)
+                  renderReadOnlySelect(order.warehouse, availableWarehouses, (w) => w.code)
                 ) : (
                   <Select
                     value={order.warehouse}
                     onValueChange={(value) => handleSelectChange("warehouse", value)}
-                    defaultValue="ALM141"
+                    disabled={warehousesLoading || availableWarehouses.length === 0 || !canChangeWarehouse}
                   >
                     <SelectTrigger className="h-9 border-[#4C4C4C]">
-                      <SelectValue />
+                      <SelectValue placeholder={warehousesLoading ? "Cargando..." : "Selecciona almacén"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {warehouses.map(warehouse => (
-                        <SelectItem key={warehouse.id} value={warehouse.code}>
-                          {warehouse.code}
+                      {canChangeWarehouse ? (
+                        availableWarehouses.map(warehouse => (
+                          <SelectItem key={warehouse.id} value={warehouse.code}>
+                            {warehouse.code} - {warehouse.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value={order.warehouse} disabled>
+                          {order.warehouse} (Sin permisos)
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 )}
