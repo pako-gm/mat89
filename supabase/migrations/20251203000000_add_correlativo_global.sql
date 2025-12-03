@@ -84,6 +84,54 @@ END;
 $$;
 
 -- ============================================================================
+-- FUNCIÓN: Preview del Próximo Número (SIN incrementar)
+-- ============================================================================
+-- Retorna una vista previa del próximo número de pedido SIN consumir el contador
+-- Útil para mostrar al usuario qué número aproximado tendrá su pedido
+-- NOTA: El número real puede ser diferente si otros usuarios guardan antes
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.preview_next_correlativo(p_almacen_code TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_year_suffix TEXT;
+  v_almacen_num TEXT;
+  v_current_sequential INTEGER;
+  v_preview_number TEXT;
+BEGIN
+  -- Obtener año actual en formato YY (ej: '25' para 2025)
+  v_year_suffix := TO_CHAR(CURRENT_DATE, 'YY');
+
+  -- Extraer solo los números del código de almacén
+  v_almacen_num := REGEXP_REPLACE(p_almacen_code, '[^0-9]', '', 'g');
+
+  -- Si no hay números en el código, usar el código completo
+  IF v_almacen_num = '' OR v_almacen_num IS NULL THEN
+    v_almacen_num := p_almacen_code;
+  END IF;
+
+  -- Leer el contador actual SIN incrementarlo
+  SELECT last_sequential INTO v_current_sequential
+  FROM public.tbl_correlativo_global
+  WHERE id = 1;
+
+  -- Si no existe el contador, retornar preview con 1000
+  IF v_current_sequential IS NULL THEN
+    v_current_sequential := 999;
+  END IF;
+
+  -- Formatear el número preview (siguiente número esperado)
+  v_preview_number := 'PREV-' || v_almacen_num || '/' || v_year_suffix || '/' || (v_current_sequential + 1);
+
+  RETURN v_preview_number;
+END;
+$$;
+
+-- ============================================================================
 -- FUNCIÓN: Inicializar Contador desde Pedidos Existentes
 -- ============================================================================
 -- Esta función lee el MAX correlativo de TODOS los pedidos existentes
@@ -180,6 +228,12 @@ $$;
 
 ALTER TABLE public.tbl_correlativo_global ENABLE ROW LEVEL SECURITY;
 
+-- Eliminar políticas existentes si existen (hace la migración idempotente)
+DROP POLICY IF EXISTS "Authenticated users can view counter" ON public.tbl_correlativo_global;
+DROP POLICY IF EXISTS "Only functions can modify counter" ON public.tbl_correlativo_global;
+DROP POLICY IF EXISTS "No manual inserts" ON public.tbl_correlativo_global;
+DROP POLICY IF EXISTS "No manual deletes" ON public.tbl_correlativo_global;
+
 -- Usuarios autenticados pueden VER el contador (solo lectura)
 CREATE POLICY "Authenticated users can view counter"
 ON public.tbl_correlativo_global
@@ -215,6 +269,7 @@ USING (false);
 
 -- Dar permisos de ejecución a usuarios autenticados
 GRANT EXECUTE ON FUNCTION public.generate_next_correlativo(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.preview_next_correlativo(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.initialize_correlativo_global() TO authenticated;
 
 -- Dar permisos de lectura en la tabla
@@ -238,6 +293,9 @@ COMMENT ON COLUMN public.tbl_correlativo_global.last_updated IS
 
 COMMENT ON FUNCTION public.generate_next_correlativo(TEXT) IS
 'Genera el siguiente número de pedido de forma atómica y thread-safe. Formato: ALMACEN/YY/CORRELATIVO. El correlativo es único globalmente.';
+
+COMMENT ON FUNCTION public.preview_next_correlativo(TEXT) IS
+'Retorna preview del próximo número de pedido SIN incrementar el contador. Formato: PREV-ALMACEN/YY/CORRELATIVO. Útil para mostrar al usuario antes de guardar.';
 
 COMMENT ON FUNCTION public.initialize_correlativo_global() IS
 'Inicializa el contador global desde el MAX de pedidos existentes en tbl_pedidos_rep. Ejecutada automáticamente en la migración.';

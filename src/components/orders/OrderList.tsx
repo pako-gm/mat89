@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Order } from "@/types";
 import OrderForm from "./OrderForm";
-import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, generateNextOrderNumber } from "@/lib/data";
+import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, previewNextOrderNumber } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -121,9 +121,9 @@ export default function OrderList() {
   }, [showForm]);
 
   const createEmptyOrder = async (): Promise<Order> => {
-    // Generar número de pedido usando la función de base de datos
-    // Esto garantiza que el correlativo sea único globalmente
-    const nextOrderNumber = await generateNextOrderNumber(warehouses[0].code);
+    // Obtener PREVIEW del número de pedido (no consume el correlativo)
+    // El número real se generará al guardar el pedido
+    const nextOrderNumber = await previewNextOrderNumber(warehouses[0].code);
 
     return {
       id: uuidv4(),

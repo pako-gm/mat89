@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Trash2, Check, MessageCircle, Send, Info } from "lucide-react";
+import { PlusCircle, Trash2, Check, MessageCircle, Send, Info, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -1078,18 +1078,32 @@ export default function OrderForm({
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="orderNumber" className="text-sm mb-1">Num. Pedido</Label>
+                <Label htmlFor="orderNumber" className="text-sm mb-1">
+                  Num. Pedido
+                </Label>
                 {isReadOnly ? (
                   renderReadOnlyInput(order.orderNumber, `${order.warehouse.replace('ALM', '')}/25/1001`)
                 ) : (
-                  <Input
-                    id="orderNumber"
-                    name="orderNumber"
-                    value={order.orderNumber}
-                    readOnly
-                    placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
-                    className="h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed text-[#4C4C4C]"
-                  />
+                  <>
+                    <Input
+                      id="orderNumber"
+                      name="orderNumber"
+                      value={order.orderNumber.replace('PREV-', '')}
+                      readOnly
+                      placeholder={`${order.warehouse.replace('ALM', '')}/25/1001`}
+                      className={`h-9 border-[#4C4C4C] bg-gray-100 cursor-not-allowed ${
+                        order.orderNumber.startsWith('PREV-')
+                          ? 'text-red-600 font-semibold'
+                          : 'text-[#4C4C4C]'
+                      }`}
+                    />
+                    {order.orderNumber.startsWith('PREV-') && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        El número de orden se asignará al grabar el pedido
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 

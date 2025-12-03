@@ -464,6 +464,46 @@ export const getLastSupplierForMaterial = async (matricula: number) => {
 export const _sampleOrders: Order[] = [];
 
 /**
+ * Obtiene un preview del próximo número de pedido SIN consumir el contador
+ * Útil para mostrar al usuario antes de guardar
+ *
+ * IMPORTANTE: Este número es PROVISIONAL y puede cambiar si otros usuarios
+ * guardan pedidos antes. El número definitivo se asigna al guardar.
+ *
+ * @param warehouseCode - Código del almacén (ej: 'ALM141', '140', 'ALM-142')
+ * @returns Número preview en formato: PREV-141/25/1001
+ * @throws Error si no se puede obtener el preview
+ *
+ * @example
+ * const preview = await previewNextOrderNumber('ALM141');
+ * console.log(preview); // "PREV-141/25/1036"
+ */
+export const previewNextOrderNumber = async (warehouseCode: string): Promise<string> => {
+  try {
+    const { data, error } = await supabase.rpc('preview_next_correlativo', {
+      p_almacen_code: warehouseCode
+    });
+
+    if (error) {
+      console.error('[previewNextOrderNumber] Error de Supabase:', error);
+      throw new Error(`No se pudo obtener preview del número: ${error.message}`);
+    }
+
+    if (!data) {
+      console.error('[previewNextOrderNumber] No se recibió preview de la base de datos');
+      throw new Error('No se recibió preview de la base de datos');
+    }
+
+    console.log(`[previewNextOrderNumber] Preview obtenido: ${data}`);
+    return data;
+
+  } catch (error) {
+    console.error('[previewNextOrderNumber] Error inesperado:', error);
+    throw error;
+  }
+};
+
+/**
  * Genera el siguiente número de pedido de forma atómica
  * usando la función de base de datos
  *
@@ -520,7 +560,15 @@ export const saveOrder = async (order: Order) => {
   }
   
   const userId = userData.user.id;
-  
+
+  // Si el número es un preview (empieza con PREV-), generar el número real
+  if (order.orderNumber.startsWith('PREV-')) {
+    console.log(`[saveOrder] Número preview detectado: ${order.orderNumber}`);
+    const realNumber = await generateNextOrderNumber(order.warehouse);
+    console.log(`[saveOrder] Número real generado: ${realNumber}`);
+    order.orderNumber = realNumber;
+  }
+
   try {
     const { data: savedOrder, error: orderError } = await supabase
       .from('tbl_pedidos_rep')
