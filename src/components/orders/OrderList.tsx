@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Order } from "@/types";
 import OrderForm from "./OrderForm";
-import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION } from "@/lib/data";
+import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, generateNextOrderNumber } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -98,37 +98,33 @@ export default function OrderList() {
 
   // Detectar si hay un pedido pausado y abrir el formulario automáticamente
   useEffect(() => {
-    if (hasPausedOrder() && !showForm) {
-      console.log('[OrderList] Pedido pausado detectado, abriendo formulario');
-      const emptyOrder = createEmptyOrder();
-      setSelectedOrder(emptyOrder);
-      setIsEditing(false);
-      setShowForm(true);
-    }
+    const loadPausedOrder = async () => {
+      if (hasPausedOrder() && !showForm) {
+        console.log('[OrderList] Pedido pausado detectado, abriendo formulario');
+        try {
+          const emptyOrder = await createEmptyOrder();
+          setSelectedOrder(emptyOrder);
+          setIsEditing(false);
+          setShowForm(true);
+        } catch (error) {
+          console.error('[OrderList] Error loading paused order:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo cargar el pedido pausado. Inténtelo nuevamente.",
+          });
+        }
+      }
+    };
+
+    loadPausedOrder();
   }, [showForm]);
 
-  const generateNextOrderNumber = () => {
-    const currentYear = new Date().getFullYear().toString().slice(-2);
-    const defaultWarehouseCode = warehouses[0].code;
-    const warehouseNumber = defaultWarehouseCode.replace('ALM', '');
+  const createEmptyOrder = async (): Promise<Order> => {
+    // Generar número de pedido usando la función de base de datos
+    // Esto garantiza que el correlativo sea único globalmente
+    const nextOrderNumber = await generateNextOrderNumber(warehouses[0].code);
 
-    const currentYearOrders = orders.filter(order => order.orderNumber.includes(`/${currentYear}/`));
-
-    let maxSequential = 999; // Comenzar en 999 para que el siguiente sea 1000
-
-    if (currentYearOrders.length > 0) {
-      const sequentials = currentYearOrders.map(order => {
-        const parts = order.orderNumber.split('/');
-        return parseInt(parts[2] || '0');
-      });
-      maxSequential = Math.max(...sequentials);
-    }
-
-    return `${warehouseNumber}/${currentYear}/${(maxSequential + 1).toString().padStart(4, '0')}`;
-  };
-
-  const createEmptyOrder = (): Order => {
-    const nextOrderNumber = generateNextOrderNumber();
     return {
       id: uuidv4(),
       orderNumber: nextOrderNumber,
@@ -153,11 +149,22 @@ export default function OrderList() {
     };
   };
 
-  const handleNewOrder = () => {
-    const emptyOrder = createEmptyOrder();
-    setSelectedOrder(emptyOrder);
-    setIsEditing(false);
-    setShowForm(true);
+  const handleNewOrder = async () => {
+    try {
+      const emptyOrder = await createEmptyOrder();
+      setSelectedOrder(emptyOrder);
+      setIsEditing(false);
+      setShowForm(true);
+    } catch (error) {
+      console.error('Error creating new order:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al crear pedido",
+        description: error instanceof Error
+          ? error.message
+          : "No se pudo generar el número de pedido. Por favor, inténtelo de nuevo.",
+      });
+    }
   };
 
   useEffect(() => {

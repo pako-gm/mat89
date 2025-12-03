@@ -463,6 +463,52 @@ export const getLastSupplierForMaterial = async (matricula: number) => {
 // Empty the sample orders array
 export const _sampleOrders: Order[] = [];
 
+/**
+ * Genera el siguiente número de pedido de forma atómica
+ * usando la función de base de datos
+ *
+ * IMPORTANTE: Esta función garantiza que NO habrá números duplicados
+ * incluso cuando múltiples usuarios crean pedidos simultáneamente.
+ *
+ * El correlativo es ÚNICO GLOBALMENTE sin importar el almacén o año.
+ *
+ * @param warehouseCode - Código del almacén (ej: 'ALM141', '140', 'ALM-142')
+ * @returns Número de pedido en formato: 141/25/1001
+ * @throws Error si no se puede generar el número
+ *
+ * @example
+ * const numero = await generateNextOrderNumber('ALM141');
+ * console.log(numero); // "141/25/1035"
+ */
+export const generateNextOrderNumber = async (warehouseCode: string): Promise<string> => {
+  const startTime = Date.now();
+  console.log(`[generateNextOrderNumber] Generando número para almacén: ${warehouseCode}`);
+
+  try {
+    const { data, error } = await supabase.rpc('generate_next_correlativo', {
+      p_almacen_code: warehouseCode
+    });
+
+    if (error) {
+      console.error('[generateNextOrderNumber] Error de Supabase:', error);
+      throw new Error(`No se pudo generar el número de pedido: ${error.message}`);
+    }
+
+    if (!data) {
+      console.error('[generateNextOrderNumber] No se recibió número de la base de datos');
+      throw new Error('No se recibió número de pedido de la base de datos');
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[generateNextOrderNumber] Número generado exitosamente: ${data} (${duration}ms)`);
+    return data;
+
+  } catch (error) {
+    console.error('[generateNextOrderNumber] Error inesperado:', error);
+    throw error;
+  }
+};
+
 export const saveOrder = async (order: Order) => {
   // Get the current user
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -498,6 +544,17 @@ export const saveOrder = async (order: Order) => {
 
     if (orderError) {
       console.error("Error saving order:", orderError);
+
+      // Manejo específico para violación de constraint único (código 23505)
+      // Esto NO debería ocurrir con el nuevo sistema, pero lo manejamos por seguridad
+      if (orderError.code === '23505') {
+        throw new Error(
+          'El número de pedido ya existe en la base de datos. ' +
+          'Este error no debería ocurrir con el nuevo sistema. ' +
+          'Por favor, intente crear el pedido nuevamente o contacte a soporte técnico.'
+        );
+      }
+
       throw new Error(orderError.message);
     }
 
