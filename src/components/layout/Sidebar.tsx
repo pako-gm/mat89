@@ -240,8 +240,8 @@ export default function Sidebar() {
                 },
                 {
                   label: "Backup Datos Sistema",
-                  path: "#",
-                  active: false,
+                  path: "/backup-sistema",
+                  active: currentPath === "/backup-sistema",
                   icon: <Database className="h-4 w-4" />
                 }
               ]}

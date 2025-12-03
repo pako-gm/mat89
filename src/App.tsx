@@ -14,6 +14,7 @@ import MaestroAlmacenes from "@/pages/MaestroAlmacenes";
 import MaestroVehiculos from "@/pages/MaestroVehiculos";
 import VersionesPage from "@/pages/VersionesPage";
 import SecurityAuditPage from "@/pages/SecurityAuditPage";
+import BackupSistema from "@/pages/BackupSistema";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -239,6 +240,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMINISTRADOR">
                   <SecurityAuditPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="backup-sistema"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <BackupSistema />
                 </ProtectedRoute>
               }
             />

@@ -1,0 +1,81 @@
+name: Backup Semanal Automático
+
+on:
+  schedule:
+    # Cada domingo a las 3:00 AM UTC (4:00 AM España/5:00 AM verano)
+    # Formato: minuto hora día-mes mes día-semana (0=domingo)
+    - cron: '0 3 * * 0'
+
+  # Permite ejecutar manualmente desde GitHub Actions
+  workflow_dispatch:
+
+jobs:
+  backup-database:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Crear directorio de backups
+        run: mkdir -p backups
+
+      - name: Ejecutar script de backup
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: node scripts/backup-standalone.js
+
+      - name: Obtener fecha para el tag
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d_%H-%M')" >> $GITHUB_OUTPUT
+
+      - name: Crear Release con el backup
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: backup-${{ steps.date.outputs.date }}
+          name: Backup Automático ${{ steps.date.outputs.date }}
+          body: |
+            Backup automático generado el ${{ steps.date.outputs.date }}
+
+            **Contenido:**
+            - Base de datos completa (8 tablas)
+            - Formato: SQL
+
+            **Para restaurar:**
+            1. Descarga el archivo .sql
+            2. Ve a Supabase SQL Editor
+            3. Ejecuta el contenido del archivo
+          files: backups/*.sql
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir a OneDrive (opcional)
+        if: ${{ secrets.ONEDRIVE_RCLONE_CONFIG != '' }}
+        run: |
+          # Instalar rclone
+          curl https://rclone.org/install.sh | sudo bash
+
+          # Configurar rclone con el token de OneDrive
+          echo "${{ secrets.ONEDRIVE_RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+
+          # Subir backups a OneDrive
+          rclone copy backups/ onedrive:Backups/MAT89/ --progress
+        shell: bash
+
+      - name: Limpiar backups antiguos (mantener últimos 10)
+        run: |
+          cd backups
+          ls -t backup_*.sql | tail -n +11 | xargs -r rm
+          echo "Backups antiguos eliminados, manteniendo los últimos 10"
