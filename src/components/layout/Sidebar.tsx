@@ -14,7 +14,8 @@ import {
   Shield,
   Database,
   History,
-  Train
+  Train,
+  Wrench
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
@@ -144,7 +145,8 @@ export default function Sidebar() {
   useEffect(() => {
     if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad" ||
         currentPath === "/panel-control" || currentPath === "/maestro-almacenes" ||
-        currentPath === "/maestro-vehiculos") {
+        currentPath === "/maestro-vehiculos" || currentPath === "/backup-sistema" ||
+        currentPath === "/pruebas") {
       setPanelControlOpen(true);
     }
   }, [currentPath]);
@@ -209,6 +211,18 @@ export default function Sidebar() {
               onToggle={() => setPanelControlOpen(!panelControlOpen)}
               submenuItems={[
                 {
+                  label: "Auditoría de Seguridad",
+                  path: "/auditoria-seguridad",
+                  active: currentPath === "/auditoria-seguridad",
+                  icon: <Shield className="h-4 w-4" />
+                },
+                {
+                  label: "Backup Datos Sistema",
+                  path: "/backup-sistema",
+                  active: currentPath === "/backup-sistema",
+                  icon: <Database className="h-4 w-4" />
+                },
+                {
                   label: "Gestión de Usuarios",
                   path: "/panel-control",
                   active: currentPath === "/panel-control",
@@ -227,22 +241,16 @@ export default function Sidebar() {
                   icon: <Train className="h-4 w-4" />
                 },
                 {
+                  label: "Mantenimiento Sistema",
+                  path: "/pruebas",
+                  active: currentPath === "/pruebas",
+                  icon: <Wrench className="h-4 w-4" />
+                },
+                {
                   label: "Versiones APP",
                   path: "/versiones",
                   active: currentPath === "/versiones",
                   icon: <GitBranch className="h-4 w-4" />
-                },
-                {
-                  label: "Auditoría de Seguridad",
-                  path: "/auditoria-seguridad",
-                  active: currentPath === "/auditoria-seguridad",
-                  icon: <Shield className="h-4 w-4" />
-                },
-                {
-                  label: "Backup Datos Sistema",
-                  path: "/backup-sistema",
-                  active: currentPath === "/backup-sistema",
-                  icon: <Database className="h-4 w-4" />
                 }
               ]}
             />

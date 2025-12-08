@@ -15,6 +15,8 @@ import MaestroVehiculos from "@/pages/MaestroVehiculos";
 import VersionesPage from "@/pages/VersionesPage";
 import SecurityAuditPage from "@/pages/SecurityAuditPage";
 import BackupSistema from "@/pages/BackupSistema";
+import PaginaPruebas from "@/pages/PaginaPruebas";
+import MaintenancePage from "@/pages/MaintenancePage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +25,7 @@ import { signOut } from "@/lib/auth";
 import { Analytics } from "@vercel/analytics/react";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import { IdleWarningModal } from "@/components/IdleWarningModal";
+import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
 
 // Component to handle role-based redirection
 function RoleBasedRedirect() {
@@ -98,7 +101,9 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isActive: maintenanceActive, loading: maintenanceLoading } = useMaintenanceMode();
 
   // Manejador de logout automático por inactividad
   const handleIdleTimeout = async () => {
@@ -133,6 +138,14 @@ function App() {
         }
 
         setSession(session);
+
+        // Si hay sesión, obtener el rol del usuario
+        if (session?.user) {
+          fetchUserRole(session.user.id);
+        } else {
+          setUserRole(null);
+        }
+
         setLoading(false);
       }
     );
@@ -167,6 +180,12 @@ function App() {
     try {
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
+
+      // Si hay sesión, obtener el rol del usuario
+      if (data.session?.user) {
+        fetchUserRole(data.session.user.id);
+      }
+
       setLoading(false);
     } catch (error) {
       console.error("Error al verificar sesión:", error);
@@ -174,12 +193,33 @@ function App() {
     }
   };
 
-  if (loading) {
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('user_role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      setUserRole(data?.user_role || null);
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      setUserRole(null);
+    }
+  };
+
+  if (loading || maintenanceLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#91268F]"></div>
       </div>
     );
+  }
+
+  // Si el modo mantenimiento está activo, el usuario tiene sesión, NO es administrador y NO está en modo recuperación
+  // mostrar la página de mantenimiento
+  if (maintenanceActive && session && !isRecoveryMode && userRole !== 'ADMINISTRADOR') {
+    return <MaintenancePage />;
   }
 
   return (
@@ -248,6 +288,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMINISTRADOR">
                   <BackupSistema />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="pruebas"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <PaginaPruebas />
                 </ProtectedRoute>
               }
             />
