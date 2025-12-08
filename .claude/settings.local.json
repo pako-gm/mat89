@@ -3,7 +3,20 @@
     "allow": [
       "Bash(git checkout:*)",
       "Bash(npm run build:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git for-each-ref:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge-base:*)",
+      "Bash(xargs git log --oneline -1)",
+      "Bash(ls:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git merge:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh api:*)",
+      "Bash(gh workflow list:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

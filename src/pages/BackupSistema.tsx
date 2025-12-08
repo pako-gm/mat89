@@ -375,7 +375,7 @@ export default function BackupSistema() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-600">
-                          {backup.registros_totales.toLocaleString()}
+                          {backup.registros_totales ? backup.registros_totales.toLocaleString() : '-'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
