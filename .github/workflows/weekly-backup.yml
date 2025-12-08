@@ -62,7 +62,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Subir a OneDrive (opcional)
-        if: ${{ secrets.ONEDRIVE_RCLONE_CONFIG != '' }}
+        if: false  # Deshabilitado por ahora - configurar ONEDRIVE_RCLONE_CONFIG secret para habilitar
         run: |
           # Instalar rclone
           curl https://rclone.org/install.sh | sudo bash
