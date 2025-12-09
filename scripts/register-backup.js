@@ -15,12 +15,14 @@ const __dirname = path.dirname(__filename);
 
 // Configuración de Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.VITE_SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Error: Faltan variables de entorno VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY');
+  console.error('❌ Error: Faltan variables de entorno VITE_SUPABASE_URL o VITE_SUPABASE_SERVICE_KEY/VITE_SUPABASE_ANON_KEY');
   process.exit(1);
 }
+
+console.log('🔑 Usando key:', supabaseKey.substring(0, 20) + '...');
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
