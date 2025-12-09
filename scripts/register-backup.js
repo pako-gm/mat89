@@ -62,7 +62,7 @@ async function registerBackup() {
       fecha_creacion: new Date(backupDate).toISOString(),
       tamano_kb: sizeKB,
       tablas_incluidas: 8, // Número de tablas en el backup
-      registros_totales: null, // No calculamos esto en backups automáticos
+      registros_totales: 0, // No calculamos esto en backups automáticos (valor por defecto)
       usuario_creador: 'GitHub Actions',
       tipo: 'automatico',
       descripcion: `Backup automático semanal generado por GitHub Actions el ${new Date().toLocaleString('es-ES')}`
