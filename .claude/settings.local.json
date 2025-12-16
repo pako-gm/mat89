@@ -4,7 +4,9 @@
       "Bash(git checkout:*)",
       "Bash(npm run build:*)",
       "Bash(dir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude mcp get:*)"
     ],
     "deny": [],
     "ask": []

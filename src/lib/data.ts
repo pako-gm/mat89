@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion } from "@/types";
+import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion, WarrantyHistoryInfo, WarrantyPreviousOrder } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -585,6 +585,33 @@ export const saveOrder = async (order: Order) => {
     // 3. Verificar que el almacén esté en el ambito del usuario
     if (!profileData.ambito_almacenes.includes(warehouseData.id)) {
       throw new Error(`No tienes permisos para crear/editar pedidos en el almacén ${order.warehouse}.`);
+    }
+
+    // FASE GARANTÍA: Validar que no haya envío pendiente de recepción
+    if (order.warranty && order.supplierId) {
+      console.log('[saveOrder] Validating warranty status for order with warranty=true');
+
+      // Obtener materiales del pedido
+      const materials = order.orderLines
+        .map(l => parseInt(l.registration))
+        .filter(reg => !isNaN(reg));
+
+      if (materials.length > 0) {
+        // Verificar estado de garantía
+        const warrantyStatus = await checkWarrantyStatus(materials, order.supplierId, order.id);
+
+        // Bloquear si algún material no puede enviarse con garantía
+        for (const materialStatus of warrantyStatus) {
+          if (!materialStatus.canSendWithWarranty) {
+            console.error(`[saveOrder] Warranty validation FAILED for material ${materialStatus.materialRegistration}`);
+            throw new Error(
+              `Material ${materialStatus.materialRegistration}: ${materialStatus.blockingReason}`
+            );
+          }
+        }
+
+        console.log('[saveOrder] Warranty validation PASSED - all materials OK');
+      }
     }
 
     // Continuar con el guardado si la validación pasó
@@ -1281,6 +1308,9 @@ export interface DuplicateMaterialInfo {
  * @param currentOrderId - Current order ID (to exclude from duplicates check)
  * @returns Array of duplicate materials with their previous shipment details
  */
+/**
+ * @deprecated Use checkWarrantyStatus instead
+ */
 export const checkDuplicateMaterialsForWarranty = async (
   materials: string[],
   providerId: string,
@@ -1368,6 +1398,148 @@ export const checkDuplicateMaterialsForWarranty = async (
     return duplicates;
   } catch (error) {
     console.error('Error in checkDuplicateMaterialsForWarranty:', error);
+    return [];
+  }
+};
+
+/**
+ * Check warranty status for materials - NEW IMPLEMENTATION
+ *
+ * This function checks ALL previous warranty shipments for materials to:
+ * 1. Block sending if there's a pending reception (GLOBAL blocking across all warehouses)
+ * 2. Block sending if last reception was marked IRREPARABLE
+ * 3. Show complete history of previous warranty shipments
+ *
+ * @param materials - Array of material registrations (matricula_89) to check
+ * @param providerId - External provider ID
+ * @param currentOrderId - Current order ID (to exclude from check)
+ * @returns Array of warranty history info per material
+ */
+export const checkWarrantyStatus = async (
+  materials: number[],
+  providerId: string,
+  currentOrderId?: string
+): Promise<WarrantyHistoryInfo[]> => {
+  try {
+    // Query ALL previous warranty shipments (not just within 1 year)
+    const { data, error } = await supabase
+      .from('tbl_ln_pedidos_rep')
+      .select(`
+        matricula_89,
+        pedido_id,
+        tbl_pedidos_rep!inner (
+          id_pedido,
+          num_pedido,
+          alm_envia,
+          created_at,
+          proveedor_id,
+          garantia
+        )
+      `)
+      .in('matricula_89', materials)
+      .eq('tbl_pedidos_rep.proveedor_id', providerId)
+      .eq('tbl_pedidos_rep.garantia', true) // Only warranty orders
+      .order('created_at', { foreignTable: 'tbl_pedidos_rep', ascending: false });
+
+    if (error) {
+      console.error('Error checking warranty status:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get reception data for all orders found
+    const orderIds = [...new Set(data.map(item => {
+      const pedido = Array.isArray(item.tbl_pedidos_rep) ? item.tbl_pedidos_rep[0] : item.tbl_pedidos_rep;
+      return pedido.id_pedido;
+    }))].filter(id => id !== currentOrderId);
+
+    const { data: receptionsData, error: receptionsError } = await supabase
+      .from('tbl_recepciones')
+      .select('pedido_id, fecha_recepcion, garantia_aceptada_proveedor, motivo_rechazo_garantia, estado_recepcion')
+      .in('pedido_id', orderIds);
+
+    if (receptionsError) {
+      console.error('Error fetching receptions:', receptionsError);
+    }
+
+    // Build reception map
+    const receptionsMap = new Map<string, any>();
+    if (receptionsData) {
+      for (const rec of receptionsData) {
+        if (!receptionsMap.has(rec.pedido_id)) {
+          receptionsMap.set(rec.pedido_id, rec);
+        }
+      }
+    }
+
+    // Group by material
+    const materialGroups = new Map<number, any[]>();
+    for (const item of data) {
+      const pedido = Array.isArray(item.tbl_pedidos_rep) ? item.tbl_pedidos_rep[0] : item.tbl_pedidos_rep;
+
+      // Skip current order
+      if (currentOrderId && pedido.id_pedido === currentOrderId) {
+        continue;
+      }
+
+      if (!materialGroups.has(item.matricula_89)) {
+        materialGroups.set(item.matricula_89, []);
+      }
+      materialGroups.get(item.matricula_89)!.push({ ...item, pedido });
+    }
+
+    // Build warranty history info for each material
+    const result: WarrantyHistoryInfo[] = [];
+
+    for (const [materialReg, items] of materialGroups) {
+      const previousOrders: WarrantyPreviousOrder[] = [];
+      let canSend = true;
+      let blockingReason: string | null = null;
+
+      for (const item of items) {
+        const reception = receptionsMap.get(item.pedido.id_pedido);
+        const isPending = !reception;
+        const isIrreparable = reception?.estado_recepcion === 'IRREPARABLE';
+
+        previousOrders.push({
+          orderNumber: item.pedido.num_pedido,
+          warehouse: item.pedido.alm_envia,
+          sendDate: item.pedido.created_at,
+          receptionDate: reception?.fecha_recepcion || null,
+          warrantyAccepted: reception?.garantia_aceptada_proveedor ?? null,
+          rejectionReason: reception?.motivo_rechazo_garantia || null,
+          isIrreparable,
+          isPendingReception: isPending
+        });
+
+        // BLOCKING LOGIC
+        // 1. If ANY order is pending reception -> BLOCK
+        if (isPending) {
+          canSend = false;
+          blockingReason = `Material pendiente de recepción del pedido ${item.pedido.num_pedido}`;
+        }
+
+        // 2. If ANY reception is IRREPARABLE -> BLOCK
+        if (isIrreparable && canSend) {
+          canSend = false;
+          blockingReason = `Material marcado como IRREPARABLE en pedido ${item.pedido.num_pedido}`;
+        }
+      }
+
+      result.push({
+        materialRegistration: materialReg,
+        previousOrders,
+        canSendWithWarranty: canSend,
+        blockingReason
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error in checkWarrantyStatus:', error);
     return [];
   }
 };

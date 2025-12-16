@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
-import { Order, OrderLine, Warehouse } from "@/types";
-import { getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo, getUserWarehouses } from "@/lib/data";
+import { Order, OrderLine, Warehouse, WarrantyHistoryInfo } from "@/types";
+import { getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo, getUserWarehouses, checkWarrantyStatus } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import {
@@ -17,6 +17,7 @@ import {
 import MaterialNotFoundModal from "./MaterialNotFoundModal";
 import MaterialAutocompleteInput, { MaterialAutocompleteInputRef } from "./MaterialAutocompleteInput";
 import WarrantyConfirmationModal from "./WarrantyConfirmationModal";
+import WarrantyHistoryModal from "./WarrantyHistoryModal";
 import NCRequiredModal from "./NCRequiredModal";
 import {
   Dialog,
@@ -106,6 +107,11 @@ export default function OrderForm({
   const [pendingSave, setPendingSave] = useState(false);
   const [warrantyLocked, setWarrantyLocked] = useState(false);
   const [showWarrantyInfoModal, setShowWarrantyInfoModal] = useState(false);
+
+  // NEW: Warranty history modal states
+  const [showWarrantyHistoryModal, setShowWarrantyHistoryModal] = useState(false);
+  const [warrantyHistory, setWarrantyHistory] = useState<WarrantyHistoryInfo[]>([]);
+  const [canProceedWithWarranty, setCanProceedWithWarranty] = useState(true);
 
   // Ref to prevent multiple executions of warranty decline
   const isProcessingWarrantyDecline = useRef(false);
@@ -893,34 +899,61 @@ export default function OrderForm({
     await proceedWithSave();
   };
 
-  // Check for duplicate materials in warranty period
+  // Check for duplicate materials in warranty period - NEW IMPLEMENTATION
   const checkForWarrantyDuplicates = async (): Promise<boolean> => {
     try {
       const materials = order.orderLines
-        .map(line => line.registration)
-        .filter(reg => reg && reg.trim() !== "");
+        .map(line => parseInt(line.registration))
+        .filter(reg => !isNaN(reg));
 
       if (materials.length === 0) {
         return false;
       }
 
-      const duplicates = await checkDuplicateMaterialsForWarranty(
+      console.log('[OrderForm] Checking warranty status for materials:', materials);
+
+      // Use NEW warranty status function
+      const warrantyStatusResults = await checkWarrantyStatus(
         materials,
         order.supplierId,
         order.id
       );
 
-      if (duplicates.length > 0) {
-        setDuplicateMaterials(duplicates);
-        setShowWarrantyModal(true);
-        return true;
+      if (warrantyStatusResults.length > 0) {
+        console.log('[OrderForm] Warranty history found:', warrantyStatusResults);
+
+        // Check if ALL materials can proceed
+        const allCanProceed = warrantyStatusResults.every(ws => ws.canSendWithWarranty);
+        const blockingReason = warrantyStatusResults.find(ws => !ws.canSendWithWarranty)?.blockingReason || null;
+
+        setWarrantyHistory(warrantyStatusResults);
+        setCanProceedWithWarranty(allCanProceed);
+        setShowWarrantyHistoryModal(true);
+
+        return true; // Has history, modal shown
       }
 
-      return false;
+      return false; // No history
     } catch (error) {
-      console.error("Error checking warranty duplicates:", error);
+      console.error("Error checking warranty status:", error);
       return false;
     }
+  };
+
+  // Handle warranty history modal - Continue button
+  const handleWarrantyHistoryContinue = () => {
+    setShowWarrantyHistoryModal(false);
+    // User has reviewed the history and wants to proceed
+    // Now show the WarrantyConfirmationModal
+    setShowWarrantyModal(true);
+  };
+
+  // Handle warranty history modal - Close button
+  const handleWarrantyHistoryClose = () => {
+    setShowWarrantyHistoryModal(false);
+    // User cancelled, reset warranty state
+    setWarrantyHistory([]);
+    setCanProceedWithWarranty(true);
   };
 
   // Handle warranty modal acceptance
@@ -1807,6 +1840,18 @@ export default function OrderForm({
         onClose={() => setMaterialNotFoundModal({ open: false, registration: "", lineId: "" })}
         onCreateMaterial={handleCreateMaterial}
         onCancel={handleMaterialNotFoundCancel}
+      />
+
+      {/* Warranty History Modal - Shows BEFORE confirmation */}
+      <WarrantyHistoryModal
+        open={showWarrantyHistoryModal}
+        onClose={handleWarrantyHistoryClose}
+        onContinue={canProceedWithWarranty ? handleWarrantyHistoryContinue : undefined}
+        historyData={warrantyHistory}
+        canProceed={canProceedWithWarranty}
+        blockingReason={
+          warrantyHistory.find(wh => !wh.canSendWithWarranty)?.blockingReason || null
+        }
       />
 
       {/* Warranty Confirmation Modal */}

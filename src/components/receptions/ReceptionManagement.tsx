@@ -8,8 +8,10 @@ import {
   saveReception,
   deleteReception,
   updateOrderStatusIfComplete,
-  getUserWarehouses
+  getUserWarehouses,
+  getAllWarehouses
 } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +60,8 @@ export default function ReceptionManagement() {
     estadoRecepcion: undefined,
     nRec: 1,
     nsRec: '',
-    observaciones: ''
+    observaciones: '',
+    almRecepciona: undefined
   });
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   const [receptionToDelete, setReceptionToDelete] = useState<MaterialReception | null>(null);
@@ -72,6 +75,10 @@ export default function ReceptionManagement() {
   // Warranty reception state
   const [showWarrantyModal, setShowWarrantyModal] = useState(false);
   const [pendingReception, setPendingReception] = useState<MaterialReception | null>(null);
+
+  // FASE 5: Warehouse reception state
+  const [allWarehouses, setAllWarehouses] = useState<Array<{id: string; code: string; name: string}>>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const receptionStates = [
     { value: 'UTIL', label: 'ÚTIL' },
@@ -88,14 +95,39 @@ export default function ReceptionManagement() {
       estadoRecepcion: undefined,
       nRec: 1,
       nsRec: currentLine?.serialNumber || '',
-      observaciones: ''
+      observaciones: '',
+      // FASE 5: Default almRecepciona to the warehouse that sent the order
+      almRecepciona: selectedOrder?.warehouse || undefined
     });
     setFormErrors({});
   };
 
   useEffect(() => {
     fetchOrders();
+    fetchUserRoleAndWarehouses();
   }, []);
+
+  const fetchUserRoleAndWarehouses = async () => {
+    try {
+      // Fetch user role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        setUserRole(profile?.role || null);
+      }
+
+      // Fetch all warehouses for dropdown
+      const warehouses = await getAllWarehouses();
+      setAllWarehouses(warehouses);
+    } catch (error) {
+      console.error('Error fetching user role and warehouses:', error);
+    }
+  };
 
   useEffect(() => {
     if (searchQuery) {
@@ -187,6 +219,11 @@ export default function ReceptionManagement() {
       }
     }
 
+    // FASE 5: Validate almRecepciona
+    if (!newReception.almRecepciona) {
+      errors.almRecepciona = "El almacén de recepción es obligatorio";
+    }
+
     // Validate nRec first
     if (!newReception.nRec || newReception.nRec <= 0) {
       errors.nRec = "La cantidad recibida es obligatoria y debe ser mayor a 0";
@@ -245,7 +282,8 @@ export default function ReceptionManagement() {
       estadoRecepcion: newReception.estadoRecepcion as any,
       nRec: newReception.nRec || 1,
       nsRec: newReception.nsRec || '',
-      observaciones: newReception.observaciones || ''
+      observaciones: newReception.observaciones || '',
+      almRecepciona: newReception.almRecepciona || selectedOrder.warehouse
     };
 
     // PHASE 3: Check if this reception completes a warranty order
@@ -733,7 +771,39 @@ export default function ReceptionManagement() {
                         <p className="text-xs text-red-500 mt-1">{formErrors.fechaRecepcion}</p>
                       )}
                     </div>
-                    
+
+                    <div>
+                      <Label htmlFor="almRecepciona">
+                        Almacén Recepciona <span className="text-red-500">*</span>
+                        {userRole !== 'admin' && ' (Solo lectura)'}
+                      </Label>
+                      <Select
+                        value={newReception.almRecepciona || '__NONE__'}
+                        onValueChange={(value) => handleInputChange('almRecepciona', value)}
+                        disabled={userRole !== 'admin'}
+                      >
+                        <SelectTrigger className={`h-9 ${formErrors.almRecepciona ? 'border-red-500' : ''}`}>
+                          <SelectValue placeholder="Selecciona almacén" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__NONE__">Selecciona almacén</SelectItem>
+                          {allWarehouses.map(warehouse => (
+                            <SelectItem key={warehouse.id} value={warehouse.code}>
+                              ALM{warehouse.code} - {warehouse.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {formErrors.almRecepciona && (
+                        <p className="text-xs text-red-500 mt-1">{formErrors.almRecepciona}</p>
+                      )}
+                      {userRole !== 'admin' && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Solo administradores pueden cambiar el almacén de recepción
+                        </p>
+                      )}
+                    </div>
+
                     <div>
                       <Label htmlFor="estadoRecepcion">
                         Estado Recepción <span className="text-red-500">*</span>
@@ -842,6 +912,7 @@ export default function ReceptionManagement() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Fecha</TableHead>
+                          <TableHead>Almacén</TableHead>
                           <TableHead>Estado</TableHead>
                           <TableHead>Cantidad</TableHead>
                           <TableHead>Nº Serie</TableHead>
@@ -854,6 +925,15 @@ export default function ReceptionManagement() {
                           <TableRow key={reception.id}>
                             <TableCell>
                               {formatDateToDDMMYYYY(reception.fechaRecepcion)}
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-mono text-sm">
+                                {reception.almRecepciona
+                                  ? `ALM${reception.almRecepciona}`
+                                  : selectedOrder?.warehouse
+                                    ? `ALM${selectedOrder.warehouse}`
+                                    : '-'}
+                              </span>
                             </TableCell>
                             <TableCell>
                               <span className={`px-2 py-1 rounded text-xs ${

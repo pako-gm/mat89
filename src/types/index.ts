@@ -19,6 +19,7 @@ export interface MaterialReception {
   observaciones: string;
   garantiaAceptadaProveedor?: boolean | null;
   motivoRechazoGarantia?: string | null;
+  almRecepciona?: string; // NUEVO: Almacén que recepciona el material
   createdAt?: string;
   updatedAt?: string;
 }
@@ -142,4 +143,26 @@ export interface AppVersion {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ============================================================
+// WARRANTY HISTORY INTERFACES
+// ============================================================
+
+export interface WarrantyPreviousOrder {
+  orderNumber: string;
+  warehouse: string;
+  sendDate: string;
+  receptionDate: string | null;
+  warrantyAccepted: boolean | null;
+  rejectionReason: string | null;
+  isIrreparable: boolean;
+  isPendingReception: boolean;
+}
+
+export interface WarrantyHistoryInfo {
+  materialRegistration: number;
+  previousOrders: WarrantyPreviousOrder[];
+  canSendWithWarranty: boolean;
+  blockingReason: string | null;
 }
