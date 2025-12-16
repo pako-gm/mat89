@@ -6,7 +6,10 @@
       "Bash(dir:*)",
       "Bash(git add:*)",
       "Bash(claude mcp list:*)",
-      "Bash(claude mcp get:*)"
+      "Bash(claude mcp get:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(npm run test:*)",
+      "Bash(npx playwright:*)"
     ],
     "deny": [],
     "ask": []

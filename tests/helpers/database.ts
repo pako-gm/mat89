@@ -13,13 +13,14 @@ export const supabaseTest = createClient(supabaseUrl, supabaseKey);
 /**
  * Crear un material de prueba
  */
-export async function createTestMaterial(registration: number, name: string = 'Material Test') {
+export async function createTestMaterial(registration: number = 89876543, name: string = 'Material Test') {
   const { data, error } = await supabaseTest
     .from('tbl_materiales')
     .insert({
       num_registro: registration,
       nombre: name,
-      descripcion: `Material de prueba ${registration}`,
+      descripcion: 'MODULO DE FRENADO DE PRUEBA',
+      serie_vehiculo: '999',
     })
     .select()
     .single();
@@ -32,7 +33,7 @@ export async function createTestMaterial(registration: number, name: string = 'M
  * Crear un proveedor de prueba
  */
 export async function createTestSupplier(
-  name: string,
+  name: string = 'ACME INC',
   isExternal: boolean = true
 ) {
   const { data, error } = await supabaseTest
