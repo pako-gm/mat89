@@ -4,22 +4,26 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+// Usar SERVICE_KEY en tests para bypassear RLS
+const supabaseKey = process.env.VITE_SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabaseTest = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Crear un material de prueba
  */
-export async function createTestMaterial(registration: number = 89876543, name: string = 'Material Test') {
+export async function createTestMaterial(registration: number = 89876543, description: string = 'MATERIAL DE PRUEBA TEST') {
   const { data, error } = await supabaseTest
     .from('tbl_materiales')
     .insert({
-      num_registro: registration,
-      nombre: name,
-      descripcion: 'MODULO DE FRENADO DE PRUEBA',
+      matricula_89: registration,
+      descripcion: description,
       serie_vehiculo: '999',
     })
     .select()
@@ -80,13 +84,17 @@ export async function createTestOrderWithWarranty(params: {
 
   // Crear líneas de pedido
   for (const material of params.materials) {
+    if (!material.registration) {
+      throw new Error('Material registration is required');
+    }
     await supabaseTest
-      .from('tbl_lineas_pedidos_rep')
+      .from('tbl_ln_pedidos_rep')
       .insert({
         pedido_id: order.id,
-        num_registro: material.registration,
-        cantidad: material.quantity,
-        n_serie: `TEST-SN-${material.registration}`,
+        matricula_89: material.registration.toString(),
+        descripcion: 'MATERIAL TEST',
+        nenv: material.quantity,
+        nsenv: `TEST-SN-${material.registration}`,
       });
   }
 
@@ -128,17 +136,18 @@ export async function createTestReception(params: {
  * Limpiar datos de prueba
  */
 export async function cleanupTestData() {
-  // Eliminar pedidos de prueba
+  // Eliminar pedidos de prueba (y sus líneas relacionadas se eliminan por CASCADE)
   await supabaseTest
     .from('tbl_pedidos_rep')
     .delete()
     .like('num_pedido', 'TEST/%');
 
-  // Eliminar materiales de prueba
+  // Eliminar materiales de prueba (rango 90000-90999)
   await supabaseTest
     .from('tbl_materiales')
     .delete()
-    .like('nombre', '%Material Test%');
+    .gte('matricula_89', 90000)
+    .lt('matricula_89', 91000);
 
   // Eliminar proveedores de prueba
   await supabaseTest

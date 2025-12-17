@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+// Cargar variables de entorno desde .env
+dotenv.config();
 
 /**
  * Configuración de Playwright para tests de garantías

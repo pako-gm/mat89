@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, TEST_USERS, navigateToOrders, openNewOrderForm } from './helpers/auth';
+import { login, TEST_USERS, navigateToOrders, openNewOrderForm, selectSupplier, selectWarehouse, toggleWarranty } from './helpers/auth';
 import {
   createTestMaterial,
   createTestSupplier,
@@ -28,6 +28,9 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
   let internalSupplierId: string;
 
   test.beforeAll(async () => {
+    // Limpiar datos de prueba previos
+    await cleanupTestData();
+
     // Obtener ID de usuario de prueba
     userId = await getUserIdByEmail(TEST_USERS.normal.email);
 
@@ -53,14 +56,14 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await navigateToOrders(page);
     await openNewOrderForm(page);
 
-    // Llenar formulario de pedido
-    await page.selectOption('select[name="supplier"]', externalSupplierId);
-    await page.selectOption('select[name="warehouse"]', '141'); // ALM141
-    await page.check('input[type="checkbox"][name="warranty"]');
+    // Llenar formulario de pedido usando helpers para Radix UI
+    await selectSupplier(page, externalSupplierId);
+    await selectWarehouse(page, '141'); // ALM141
+    await toggleWarranty(page, true);
 
-    // Agregar material
-    await page.fill('input[name="registration"]', material.num_registro.toString());
-    await page.fill('input[name="quantity"]', '1');
+    // Agregar material - el campo de matrícula es un componente personalizado
+    await page.locator('input[placeholder="89xxxxxx"]').first().fill(material.matricula_89.toString());
+    await page.locator('input[name="quantity"]').first().fill('1');
     await page.click('button:has-text("Agregar Material")');
 
     // Click en Guardar
@@ -85,7 +88,7 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     const previousOrder = await createTestOrderWithWarranty({
       supplierId: externalSupplierId,
       warehouse: '141',
-      materials: [{ registration: material.num_registro, quantity: 1 }],
+      materials: [{ registration: material.matricula_89, quantity: 1 }],
       warranty: true,
       userId,
     });
@@ -98,11 +101,11 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await openNewOrderForm(page);
 
     // Intentar crear nuevo pedido con el mismo material
-    await page.selectOption('select[name="supplier"]', externalSupplierId);
-    await page.selectOption('select[name="warehouse"]', '141'); // Mismo almacén
-    await page.check('input[type="checkbox"][name="warranty"]');
-    await page.fill('input[name="registration"]', material.num_registro.toString());
-    await page.fill('input[name="quantity"]', '1');
+    await selectSupplier(page, externalSupplierId);
+    await selectWarehouse(page, '141'); // Mismo almacén
+    await toggleWarranty(page, true);
+    await page.locator('input[placeholder="89xxxxxx"]').first().fill(material.matricula_89.toString());
+    await page.locator('input[name="quantity"]').first().fill('1');
     await page.click('button:has-text("Agregar Material")');
     await page.click('button:has-text("Guardar Pedido")');
 
@@ -125,7 +128,7 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await createTestOrderWithWarranty({
       supplierId: externalSupplierId,
       warehouse: '140', // ALM140
-      materials: [{ registration: material.num_registro, quantity: 1 }],
+      materials: [{ registration: material.matricula_89, quantity: 1 }],
       warranty: true,
       userId,
     });
@@ -139,7 +142,7 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await page.selectOption('select[name="supplier"]', externalSupplierId);
     await page.selectOption('select[name="warehouse"]', '141'); // Almacén DIFERENTE
     await page.check('input[type="checkbox"][name="warranty"]');
-    await page.fill('input[name="registration"]', material.num_registro.toString());
+    await page.fill('input[name="registration"]', material.matricula_89.toString());
     await page.fill('input[name="quantity"]', '1');
     await page.click('button:has-text("Agregar Material")');
     await page.click('button:has-text("Guardar Pedido")');
@@ -159,7 +162,7 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     const order = await createTestOrderWithWarranty({
       supplierId: externalSupplierId,
       warehouse: '141',
-      materials: [{ registration: material.num_registro, quantity: 1 }],
+      materials: [{ registration: material.matricula_89, quantity: 1 }],
       warranty: true,
       userId,
     });
@@ -190,11 +193,11 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await openNewOrderForm(page);
 
     // Intentar crear nuevo pedido con material IRREPARABLE
-    await page.selectOption('select[name="supplier"]', externalSupplierId);
-    await page.selectOption('select[name="warehouse"]', '141');
-    await page.check('input[type="checkbox"][name="warranty"]');
-    await page.fill('input[name="registration"]', material.num_registro.toString());
-    await page.fill('input[name="quantity"]', '1');
+    await selectSupplier(page, externalSupplierId);
+    await selectWarehouse(page, '141');
+    await toggleWarranty(page, true);
+    await page.locator('input[placeholder="89xxxxxx"]').first().fill(material.matricula_89.toString());
+    await page.locator('input[name="quantity"]').first().fill('1');
     await page.click('button:has-text("Agregar Material")');
     await page.click('button:has-text("Guardar Pedido")');
 
@@ -213,7 +216,7 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     const order = await createTestOrderWithWarranty({
       supplierId: externalSupplierId,
       warehouse: '141',
-      materials: [{ registration: material.num_registro, quantity: 1 }],
+      materials: [{ registration: material.matricula_89, quantity: 1 }],
       warranty: true,
       userId,
     });
@@ -244,11 +247,11 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await openNewOrderForm(page);
 
     // Crear nuevo pedido con el mismo material
-    await page.selectOption('select[name="supplier"]', externalSupplierId);
-    await page.selectOption('select[name="warehouse"]', '141');
-    await page.check('input[type="checkbox"][name="warranty"]');
-    await page.fill('input[name="registration"]', material.num_registro.toString());
-    await page.fill('input[name="quantity"]', '1');
+    await selectSupplier(page, externalSupplierId);
+    await selectWarehouse(page, '141');
+    await toggleWarranty(page, true);
+    await page.locator('input[placeholder="89xxxxxx"]').first().fill(material.matricula_89.toString());
+    await page.locator('input[name="quantity"]').first().fill('1');
     await page.click('button:has-text("Agregar Material")');
     await page.click('button:has-text("Guardar Pedido")');
 
@@ -274,7 +277,7 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await createTestOrderWithWarranty({
       supplierId: externalSupplierId,
       warehouse: '141',
-      materials: [{ registration: material.num_registro, quantity: 1 }],
+      materials: [{ registration: material.matricula_89, quantity: 1 }],
       warranty: true,
       userId,
     });
@@ -285,11 +288,11 @@ test.describe('Sistema de Garantías - Integración con Ámbito de Almacenes', (
     await openNewOrderForm(page);
 
     // Crear pedido con PROVEEDOR INTERNO
-    await page.selectOption('select[name="supplier"]', internalSupplierId);
-    await page.selectOption('select[name="warehouse"]', '141');
-    await page.check('input[type="checkbox"][name="warranty"]');
-    await page.fill('input[name="registration"]', material.num_registro.toString());
-    await page.fill('input[name="quantity"]', '1');
+    await selectSupplier(page, internalSupplierId);
+    await selectWarehouse(page, '141');
+    await toggleWarranty(page, true);
+    await page.locator('input[placeholder="89xxxxxx"]').first().fill(material.matricula_89.toString());
+    await page.locator('input[name="quantity"]').first().fill('1');
     await page.click('button:has-text("Agregar Material")');
     await page.click('button:has-text("Guardar Pedido")');
 
