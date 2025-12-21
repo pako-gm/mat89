@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { Order, OrderLine, Warehouse, WarrantyHistoryInfo } from "@/types";
-import { getSuppliers, saveOrder, checkDuplicateMaterialsForWarranty, DuplicateMaterialInfo, getUserWarehouses, checkWarrantyStatus } from "@/lib/data";
+import { getSuppliers, saveOrder, DuplicateMaterialInfo, getUserWarehouses, checkWarrantyStatus } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import {
@@ -103,7 +103,7 @@ export default function OrderForm({
   // Warranty detection state
   const [showWarrantyModal, setShowWarrantyModal] = useState(false);
   const [showNCModal, setShowNCModal] = useState(false);
-  const [duplicateMaterials, setDuplicateMaterials] = useState<DuplicateMaterialInfo[]>([]);
+  const [duplicateMaterials] = useState<DuplicateMaterialInfo[]>([]);
   const [pendingSave, setPendingSave] = useState(false);
   const [warrantyLocked, setWarrantyLocked] = useState(false);
   const [showWarrantyInfoModal, setShowWarrantyInfoModal] = useState(false);
@@ -924,7 +924,6 @@ export default function OrderForm({
 
         // Check if ALL materials can proceed
         const allCanProceed = warrantyStatusResults.every(ws => ws.canSendWithWarranty);
-        const blockingReason = warrantyStatusResults.find(ws => !ws.canSendWithWarranty)?.blockingReason || null;
 
         setWarrantyHistory(warrantyStatusResults);
         setCanProceedWithWarranty(allCanProceed);
