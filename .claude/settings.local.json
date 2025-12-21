@@ -9,7 +9,10 @@
       "Bash(claude mcp get:*)",
       "Bash(claude mcp add:*)",
       "Bash(npm run test:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(node -e:*)",
+      "Bash(node cleanup-test-data.js:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
