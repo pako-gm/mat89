@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Order } from "@/types";
+import { Order, Warehouse } from "@/types";
 import OrderForm from "./OrderForm";
-import { warehouses, getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, previewNextOrderNumber } from "@/lib/data";
+import { getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, getUserWarehouses } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +52,7 @@ export default function OrderList() {
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
+  const [availableWarehouses, setAvailableWarehouses] = useState<Warehouse[]>([]);
 
   // Lanzar PAR modal state
   const [showLanzarParModal, setShowLanzarParModal] = useState(false);
@@ -70,9 +71,27 @@ export default function OrderList() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        // FASE 4: Obtener almacenes del usuario para filtrar pedidos
+        const userWarehouses = await getUserWarehouses();
+        const warehouseCodes = userWarehouses.map(w => w.code);
+
+        if (warehouseCodes.length === 0) {
+          console.warn('User has no warehouses assigned, showing no orders');
+          setOrders([]);
+          setFilteredOrders([]);
+          return;
+        }
+
         const loadedOrders = await getOrders();
         if (Array.isArray(loadedOrders) && loadedOrders.length > 0) {
-          const sortedOrders = [...loadedOrders].sort((a, b) => {
+          // Filtrar pedidos por almacenes del usuario (compatible con "140" y "ALM140")
+          const filteredByWarehouse = loadedOrders.filter(order => {
+            // Normalizar: quitar prefijo "ALM" si existe
+            const normalizedWarehouse = order.warehouse.replace('ALM', '');
+            return warehouseCodes.includes(normalizedWarehouse) || warehouseCodes.includes(order.warehouse);
+          });
+
+          const sortedOrders = [...filteredByWarehouse].sort((a, b) => {
             const seqA = parseInt(a.orderNumber.split('/')[2] || '0');
             const seqB = parseInt(b.orderNumber.split('/')[2] || '0');
             return seqB - seqA;
@@ -96,39 +115,109 @@ export default function OrderList() {
     fetchOrders();
   }, [toast]);
 
-  // Detectar si hay un pedido pausado y abrir el formulario automáticamente
+  // Load user warehouses
   useEffect(() => {
-    const loadPausedOrder = async () => {
-      if (hasPausedOrder() && !showForm) {
-        console.log('[OrderList] Pedido pausado detectado, abriendo formulario');
-        try {
-          const emptyOrder = await createEmptyOrder();
-          setSelectedOrder(emptyOrder);
-          setIsEditing(false);
-          setShowForm(true);
-        } catch (error) {
-          console.error('[OrderList] Error loading paused order:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo cargar el pedido pausado. Inténtelo nuevamente.",
-          });
-        }
+    const loadWarehouses = async () => {
+      try {
+        const userWarehouses = await getUserWarehouses();
+        setAvailableWarehouses(userWarehouses);
+      } catch (error) {
+        console.error('Error loading warehouses:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los almacenes asignados.",
+        });
       }
     };
 
-    loadPausedOrder();
+    loadWarehouses();
+  }, [toast]);
+
+  // Detectar si hay un pedido pausado y abrir el formulario automáticamente
+  useEffect(() => {
+    const handlePausedOrder = async () => {
+      if (hasPausedOrder() && !showForm) {
+        console.log('[OrderList] Pedido pausado detectado, abriendo formulario');
+        const emptyOrder = await createEmptyOrder();
+        setSelectedOrder(emptyOrder);
+        setIsEditing(false);
+        setShowForm(true);
+      }
+    };
+
+    handlePausedOrder();
   }, [showForm]);
 
-  const createEmptyOrder = async (): Promise<Order> => {
-    // Obtener PREVIEW del número de pedido (no consume el correlativo)
-    // El número real se generará al guardar el pedido
-    const nextOrderNumber = await previewNextOrderNumber(warehouses[0].code);
+  /**
+   * Genera el siguiente número de pedido con numeración GLOBAL
+   * El correlativo es compartido entre TODOS los almacenes
+   */
+  const generateNextOrderNumber = async (warehouseCode?: string): Promise<string> => {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    const selectedWarehouseCode = warehouseCode || availableWarehouses[0]?.code || '';
+    const warehouseNumber = selectedWarehouseCode;
 
+    // Validación adicional
+    if (!warehouseNumber) {
+      console.error('No warehouse code available');
+      return '';
+    }
+
+    try {
+      // Consultar TODOS los pedidos del año para encontrar el máximo correlativo
+      // (compatible con formatos "141/25/1030" y "ALM141/25/1030")
+      const { data: yearOrders } = await supabase
+        .from('tbl_pedidos_rep')
+        .select('num_pedido')
+        .like('num_pedido', `%/${currentYear}/%`);
+
+      let maxSequential = 999;
+
+      if (yearOrders && yearOrders.length > 0) {
+        // Extraer todos los correlativos y encontrar el máximo
+        const sequentials = yearOrders.map(order => {
+          const parts = order.num_pedido.split('/');
+          return parseInt(parts[2] || '0');
+        }).filter(num => !isNaN(num));
+
+        if (sequentials.length > 0) {
+          maxSequential = Math.max(...sequentials);
+        }
+      }
+
+      const nextSequential = (maxSequential + 1).toString().padStart(4, '0');
+      return `${warehouseNumber}/${currentYear}/${nextSequential}`;
+    } catch (error) {
+      console.error('Error generating order number from DB:', error);
+
+      // Fallback a pedidos locales si falla la consulta DB
+      const yearOrders = orders.filter(order => {
+        const orderParts = order.orderNumber.split('/');
+        return orderParts[1] === currentYear;
+      });
+
+      let maxSequential = 999;
+      if (yearOrders.length > 0) {
+        const sequentials = yearOrders.map(order => {
+          const parts = order.orderNumber.split('/');
+          return parseInt(parts[2] || '0');
+        });
+        maxSequential = Math.max(...sequentials);
+      }
+
+      const nextSequential = (maxSequential + 1).toString().padStart(4, '0');
+      return `${warehouseNumber}/${currentYear}/${nextSequential}`;
+    }
+  };
+
+  const createEmptyOrder = async (): Promise<Order> => {
+    const firstWarehouse = availableWarehouses[0]?.code || '';
+    const nextOrderNumber = await generateNextOrderNumber(firstWarehouse);
     return {
       id: uuidv4(),
       orderNumber: nextOrderNumber,
-      warehouse: warehouses[0].code,
+      warehouse: firstWarehouse,
       supplierId: "",
       supplierName: "",
       vehicle: "",
@@ -150,21 +239,10 @@ export default function OrderList() {
   };
 
   const handleNewOrder = async () => {
-    try {
-      const emptyOrder = await createEmptyOrder();
-      setSelectedOrder(emptyOrder);
-      setIsEditing(false);
-      setShowForm(true);
-    } catch (error) {
-      console.error('Error creating new order:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al crear pedido",
-        description: error instanceof Error
-          ? error.message
-          : "No se pudo generar el número de pedido. Por favor, inténtelo de nuevo.",
-      });
-    }
+    const emptyOrder = await createEmptyOrder();
+    setSelectedOrder(emptyOrder);
+    setIsEditing(false);
+    setShowForm(true);
   };
 
   useEffect(() => {
@@ -383,10 +461,26 @@ export default function OrderList() {
       const action = isEditing ? "actualizado" : "creado";
 
       try {
-        // Primero recargar los pedidos
+        // Recargar los pedidos aplicando el filtro de almacenes del usuario
+        const userWarehouses = await getUserWarehouses();
+        const warehouseCodes = userWarehouses.map(w => w.code);
+
         const updatedOrders = await getOrders();
-        setOrders(updatedOrders);
-        setFilteredOrders(updatedOrders);
+
+        // Filtrar por almacenes del usuario (compatible con "140" y "ALM140")
+        const filteredByWarehouse = updatedOrders.filter(order => {
+          const normalizedWarehouse = order.warehouse.replace('ALM', '');
+          return warehouseCodes.includes(normalizedWarehouse) || warehouseCodes.includes(order.warehouse);
+        });
+
+        const sortedOrders = [...filteredByWarehouse].sort((a, b) => {
+          const seqA = parseInt(a.orderNumber.split('/')[2] || '0');
+          const seqB = parseInt(b.orderNumber.split('/')[2] || '0');
+          return seqB - seqA;
+        });
+
+        setOrders(sortedOrders);
+        setFilteredOrders(sortedOrders);
 
         // Luego cerrar el modal
         setShowForm(false);
@@ -995,7 +1089,7 @@ export default function OrderList() {
                       <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs ${
                         order.cancelado ? 'bg-red-100 border-red-300 line-through text-red-600' : 'bg-gray-50'
                       }`}>
-                        {order.warehouse}
+                        {order.warehouse.startsWith('ALM') ? order.warehouse : `ALM${order.warehouse}`}
                       </span>
                     </TableCell>
                     <TableCell

@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion } from "@/types";
+import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion, WarrantyHistoryInfo, WarrantyPreviousOrder } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -50,11 +50,88 @@ interface DbLastSupplierResponse {
   };
 }
 
-export const warehouses: Warehouse[] = [
-  { id: "1", code: "ALM141", name: "Almacén 141" },
-  { id: "2", code: "ALM140", name: "Almacén 140" },
-  { id: "3", code: "ALM148", name: "Almacén 148" },
-];
+/**
+ * Obtiene todos los almacenes desde la base de datos
+ * @returns Promise<Warehouse[]> Array de todos los almacenes activos
+ */
+export const getAllWarehouses = async (): Promise<Warehouse[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('tbl_almacenes')
+      .select('id, codigo_alm, nombre_alm')
+      .eq('activo', true)
+      .order('codigo_alm', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching warehouses:', error);
+      return [];
+    }
+
+    return (data || []).map(alm => ({
+      id: alm.id,
+      code: alm.codigo_alm,
+      name: alm.nombre_alm
+    }));
+  } catch (err) {
+    console.error('Error in getAllWarehouses:', err);
+    return [];
+  }
+};
+
+/**
+ * Obtiene los almacenes permitidos para el usuario actual según su ambito_almacenes
+ * @returns Promise<Warehouse[]> Array de almacenes del usuario o vacío si no hay usuario
+ */
+export const getUserWarehouses = async (): Promise<Warehouse[]> => {
+  try {
+    // 1. Obtener el usuario actual
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData.user) {
+      console.error('Error getting current user:', userError);
+      return [];
+    }
+
+    // 2. Obtener el perfil del usuario con su ambito_almacenes
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('ambito_almacenes')
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error getting user profile:', profileError);
+      return [];
+    }
+
+    if (!profileData || !profileData.ambito_almacenes || profileData.ambito_almacenes.length === 0) {
+      console.warn('User has no warehouses assigned');
+      return [];
+    }
+
+    // 3. Obtener los almacenes del usuario usando los IDs del ambito_almacenes
+    const { data: warehousesData, error: warehousesError } = await supabase
+      .from('tbl_almacenes')
+      .select('id, codigo_alm, nombre_alm')
+      .in('id', profileData.ambito_almacenes)
+      .eq('activo', true)
+      .order('codigo_alm', { ascending: true });
+
+    if (warehousesError) {
+      console.error('Error fetching user warehouses:', warehousesError);
+      return [];
+    }
+
+    return (warehousesData || []).map(alm => ({
+      id: alm.id,
+      code: alm.codigo_alm,
+      name: alm.nombre_alm
+    }));
+  } catch (err) {
+    console.error('Error in getUserWarehouses:', err);
+    return [];
+  }
+};
 
 export const getSuppliers = async () => {
   const { data: suppliers, error } = await supabase
@@ -463,92 +540,6 @@ export const getLastSupplierForMaterial = async (matricula: number) => {
 // Empty the sample orders array
 export const _sampleOrders: Order[] = [];
 
-/**
- * Obtiene un preview del próximo número de pedido SIN consumir el contador
- * Útil para mostrar al usuario antes de guardar
- *
- * IMPORTANTE: Este número es PROVISIONAL y puede cambiar si otros usuarios
- * guardan pedidos antes. El número definitivo se asigna al guardar.
- *
- * @param warehouseCode - Código del almacén (ej: 'ALM141', '140', 'ALM-142')
- * @returns Número preview en formato: PREV-141/25/1001
- * @throws Error si no se puede obtener el preview
- *
- * @example
- * const preview = await previewNextOrderNumber('ALM141');
- * console.log(preview); // "PREV-141/25/1036"
- */
-export const previewNextOrderNumber = async (warehouseCode: string): Promise<string> => {
-  try {
-    const { data, error } = await supabase.rpc('preview_next_correlativo', {
-      p_almacen_code: warehouseCode
-    });
-
-    if (error) {
-      console.error('[previewNextOrderNumber] Error de Supabase:', error);
-      throw new Error(`No se pudo obtener preview del número: ${error.message}`);
-    }
-
-    if (!data) {
-      console.error('[previewNextOrderNumber] No se recibió preview de la base de datos');
-      throw new Error('No se recibió preview de la base de datos');
-    }
-
-    console.log(`[previewNextOrderNumber] Preview obtenido: ${data}`);
-    return data;
-
-  } catch (error) {
-    console.error('[previewNextOrderNumber] Error inesperado:', error);
-    throw error;
-  }
-};
-
-/**
- * Genera el siguiente número de pedido de forma atómica
- * usando la función de base de datos
- *
- * IMPORTANTE: Esta función garantiza que NO habrá números duplicados
- * incluso cuando múltiples usuarios crean pedidos simultáneamente.
- *
- * El correlativo es ÚNICO GLOBALMENTE sin importar el almacén o año.
- *
- * @param warehouseCode - Código del almacén (ej: 'ALM141', '140', 'ALM-142')
- * @returns Número de pedido en formato: 141/25/1001
- * @throws Error si no se puede generar el número
- *
- * @example
- * const numero = await generateNextOrderNumber('ALM141');
- * console.log(numero); // "141/25/1035"
- */
-export const generateNextOrderNumber = async (warehouseCode: string): Promise<string> => {
-  const startTime = Date.now();
-  console.log(`[generateNextOrderNumber] Generando número para almacén: ${warehouseCode}`);
-
-  try {
-    const { data, error } = await supabase.rpc('generate_next_correlativo', {
-      p_almacen_code: warehouseCode
-    });
-
-    if (error) {
-      console.error('[generateNextOrderNumber] Error de Supabase:', error);
-      throw new Error(`No se pudo generar el número de pedido: ${error.message}`);
-    }
-
-    if (!data) {
-      console.error('[generateNextOrderNumber] No se recibió número de la base de datos');
-      throw new Error('No se recibió número de pedido de la base de datos');
-    }
-
-    const duration = Date.now() - startTime;
-    console.log(`[generateNextOrderNumber] Número generado exitosamente: ${data} (${duration}ms)`);
-    return data;
-
-  } catch (error) {
-    console.error('[generateNextOrderNumber] Error inesperado:', error);
-    throw error;
-  }
-};
-
 export const saveOrder = async (order: Order) => {
   // Get the current user
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -561,15 +552,69 @@ export const saveOrder = async (order: Order) => {
   
   const userId = userData.user.id;
 
-  // Si el número es un preview (empieza con PREV-), generar el número real
-  if (order.orderNumber.startsWith('PREV-')) {
-    console.log(`[saveOrder] Número preview detectado: ${order.orderNumber}`);
-    const realNumber = await generateNextOrderNumber(order.warehouse);
-    console.log(`[saveOrder] Número real generado: ${realNumber}`);
-    order.orderNumber = realNumber;
-  }
-
+  // FASE 2: Validar que el usuario tenga permisos para el almacén seleccionado
   try {
+    // 1. Obtener el perfil del usuario con su ambito_almacenes
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('ambito_almacenes')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      throw new Error('No se pudo verificar los permisos del usuario.');
+    }
+
+    if (!profileData || !profileData.ambito_almacenes || profileData.ambito_almacenes.length === 0) {
+      throw new Error('No tienes almacenes asignados. Contacta con el administrador.');
+    }
+
+    // 2. Obtener el ID del almacén seleccionado
+    const { data: warehouseData, error: warehouseError } = await supabase
+      .from('tbl_almacenes')
+      .select('id')
+      .eq('codigo_alm', order.warehouse)
+      .single();
+
+    if (warehouseError || !warehouseData) {
+      console.error('Error fetching warehouse:', warehouseError);
+      throw new Error(`El almacén ${order.warehouse} no existe.`);
+    }
+
+    // 3. Verificar que el almacén esté en el ambito del usuario
+    if (!profileData.ambito_almacenes.includes(warehouseData.id)) {
+      throw new Error(`No tienes permisos para crear/editar pedidos en el almacén ${order.warehouse}.`);
+    }
+
+    // FASE GARANTÍA: Validar que no haya envío pendiente de recepción
+    if (order.warranty && order.supplierId) {
+      console.log('[saveOrder] Validating warranty status for order with warranty=true');
+
+      // Obtener materiales del pedido
+      const materials = order.orderLines
+        .map(l => parseInt(l.registration))
+        .filter(reg => !isNaN(reg));
+
+      if (materials.length > 0) {
+        // Verificar estado de garantía
+        const warrantyStatus = await checkWarrantyStatus(materials, order.supplierId, order.id);
+
+        // Bloquear si algún material no puede enviarse con garantía
+        for (const materialStatus of warrantyStatus) {
+          if (!materialStatus.canSendWithWarranty) {
+            console.error(`[saveOrder] Warranty validation FAILED for material ${materialStatus.materialRegistration}`);
+            throw new Error(
+              `Material ${materialStatus.materialRegistration}: ${materialStatus.blockingReason}`
+            );
+          }
+        }
+
+        console.log('[saveOrder] Warranty validation PASSED - all materials OK');
+      }
+    }
+
+    // Continuar con el guardado si la validación pasó
     const { data: savedOrder, error: orderError } = await supabase
       .from('tbl_pedidos_rep')
       .upsert({
@@ -592,17 +637,6 @@ export const saveOrder = async (order: Order) => {
 
     if (orderError) {
       console.error("Error saving order:", orderError);
-
-      // Manejo específico para violación de constraint único (código 23505)
-      // Esto NO debería ocurrir con el nuevo sistema, pero lo manejamos por seguridad
-      if (orderError.code === '23505') {
-        throw new Error(
-          'El número de pedido ya existe en la base de datos. ' +
-          'Este error no debería ocurrir con el nuevo sistema. ' +
-          'Por favor, intente crear el pedido nuevamente o contacte a soporte técnico.'
-        );
-      }
-
       throw new Error(orderError.message);
     }
 
@@ -1274,6 +1308,9 @@ export interface DuplicateMaterialInfo {
  * @param currentOrderId - Current order ID (to exclude from duplicates check)
  * @returns Array of duplicate materials with their previous shipment details
  */
+/**
+ * @deprecated Use checkWarrantyStatus instead
+ */
 export const checkDuplicateMaterialsForWarranty = async (
   materials: string[],
   providerId: string,
@@ -1361,6 +1398,148 @@ export const checkDuplicateMaterialsForWarranty = async (
     return duplicates;
   } catch (error) {
     console.error('Error in checkDuplicateMaterialsForWarranty:', error);
+    return [];
+  }
+};
+
+/**
+ * Check warranty status for materials - NEW IMPLEMENTATION
+ *
+ * This function checks ALL previous warranty shipments for materials to:
+ * 1. Block sending if there's a pending reception (GLOBAL blocking across all warehouses)
+ * 2. Block sending if last reception was marked IRREPARABLE
+ * 3. Show complete history of previous warranty shipments
+ *
+ * @param materials - Array of material registrations (matricula_89) to check
+ * @param providerId - External provider ID
+ * @param currentOrderId - Current order ID (to exclude from check)
+ * @returns Array of warranty history info per material
+ */
+export const checkWarrantyStatus = async (
+  materials: number[],
+  providerId: string,
+  currentOrderId?: string
+): Promise<WarrantyHistoryInfo[]> => {
+  try {
+    // Query ALL previous warranty shipments (not just within 1 year)
+    const { data, error } = await supabase
+      .from('tbl_ln_pedidos_rep')
+      .select(`
+        matricula_89,
+        pedido_id,
+        tbl_pedidos_rep!inner (
+          id_pedido,
+          num_pedido,
+          alm_envia,
+          created_at,
+          proveedor_id,
+          garantia
+        )
+      `)
+      .in('matricula_89', materials)
+      .eq('tbl_pedidos_rep.proveedor_id', providerId)
+      .eq('tbl_pedidos_rep.garantia', true) // Only warranty orders
+      .order('created_at', { foreignTable: 'tbl_pedidos_rep', ascending: false });
+
+    if (error) {
+      console.error('Error checking warranty status:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get reception data for all orders found
+    const orderIds = [...new Set(data.map(item => {
+      const pedido = Array.isArray(item.tbl_pedidos_rep) ? item.tbl_pedidos_rep[0] : item.tbl_pedidos_rep;
+      return pedido.id_pedido;
+    }))].filter(id => id !== currentOrderId);
+
+    const { data: receptionsData, error: receptionsError } = await supabase
+      .from('tbl_recepciones')
+      .select('pedido_id, fecha_recepcion, garantia_aceptada_proveedor, motivo_rechazo_garantia, estado_recepcion')
+      .in('pedido_id', orderIds);
+
+    if (receptionsError) {
+      console.error('Error fetching receptions:', receptionsError);
+    }
+
+    // Build reception map
+    const receptionsMap = new Map<string, any>();
+    if (receptionsData) {
+      for (const rec of receptionsData) {
+        if (!receptionsMap.has(rec.pedido_id)) {
+          receptionsMap.set(rec.pedido_id, rec);
+        }
+      }
+    }
+
+    // Group by material
+    const materialGroups = new Map<number, any[]>();
+    for (const item of data) {
+      const pedido = Array.isArray(item.tbl_pedidos_rep) ? item.tbl_pedidos_rep[0] : item.tbl_pedidos_rep;
+
+      // Skip current order
+      if (currentOrderId && pedido.id_pedido === currentOrderId) {
+        continue;
+      }
+
+      if (!materialGroups.has(item.matricula_89)) {
+        materialGroups.set(item.matricula_89, []);
+      }
+      materialGroups.get(item.matricula_89)!.push({ ...item, pedido });
+    }
+
+    // Build warranty history info for each material
+    const result: WarrantyHistoryInfo[] = [];
+
+    for (const [materialReg, items] of materialGroups) {
+      const previousOrders: WarrantyPreviousOrder[] = [];
+      let canSend = true;
+      let blockingReason: string | null = null;
+
+      for (const item of items) {
+        const reception = receptionsMap.get(item.pedido.id_pedido);
+        const isPending = !reception;
+        const isIrreparable = reception?.estado_recepcion === 'IRREPARABLE';
+
+        previousOrders.push({
+          orderNumber: item.pedido.num_pedido,
+          warehouse: item.pedido.alm_envia,
+          sendDate: item.pedido.created_at,
+          receptionDate: reception?.fecha_recepcion || null,
+          warrantyAccepted: reception?.garantia_aceptada_proveedor ?? null,
+          rejectionReason: reception?.motivo_rechazo_garantia || null,
+          isIrreparable,
+          isPendingReception: isPending
+        });
+
+        // BLOCKING LOGIC
+        // 1. If ANY order is pending reception -> BLOCK
+        if (isPending) {
+          canSend = false;
+          blockingReason = `Material pendiente de recepción del pedido ${item.pedido.num_pedido}`;
+        }
+
+        // 2. If ANY reception is IRREPARABLE -> BLOCK
+        if (isIrreparable && canSend) {
+          canSend = false;
+          blockingReason = `Material marcado como IRREPARABLE en pedido ${item.pedido.num_pedido}`;
+        }
+      }
+
+      result.push({
+        materialRegistration: materialReg,
+        previousOrders,
+        canSendWithWarranty: canSend,
+        blockingReason
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error in checkWarrantyStatus:', error);
     return [];
   }
 };

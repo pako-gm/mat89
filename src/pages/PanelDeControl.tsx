@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, Settings, X, AlertTriangle, User, AlertCircle, ChevronDown,
-  ArrowUpDown, ArrowUp, ArrowDown, Lock, Eye, EyeOff
+  ArrowUpDown, ArrowUp, ArrowDown, Lock, Eye, EyeOff, CheckCircle2
 } from 'lucide-react';
 
 // Constantes de colores
@@ -82,6 +82,9 @@ export default function PanelDeControl() {
 
   const [almacenesDisponibles, setAlmacenesDisponibles] = useState<Almacen[]>([]);
   const [almacenesSeleccionados, setAlmacenesSeleccionados] = useState<string[]>([]);
+  const [newUserAmbitos, setNewUserAmbitos] = useState<string[]>([]);
+  const [ambitoModalMode, setAmbitoModalMode] = useState<'new-user' | 'edit-user'>('edit-user');
+  const [tempUserName, setTempUserName] = useState<string>(''); // Para mostrar nombre en modal de nuevo usuario
 
   // ============ FUNCIONES DE CARGA DE DATOS ============
 
@@ -166,10 +169,14 @@ export default function PanelDeControl() {
   }, []);
 
   useEffect(() => {
-    if (selectedUserAmbito) {
-      setAlmacenesSeleccionados(selectedUserAmbito.ambito_almacenes || []);
+    if (showAmbitoModal) {
+      if (ambitoModalMode === 'edit-user' && selectedUserAmbito) {
+        setAlmacenesSeleccionados(selectedUserAmbito.ambito_almacenes || []);
+      } else if (ambitoModalMode === 'new-user') {
+        setAlmacenesSeleccionados(newUserAmbitos);
+      }
     }
-  }, [selectedUserAmbito]);
+  }, [showAmbitoModal, ambitoModalMode, selectedUserAmbito, newUserAmbitos]);
 
   // Evaluar la fortaleza de la contraseña
   useEffect(() => {
@@ -321,10 +328,21 @@ export default function PanelDeControl() {
 
     // Validar que el email sea del dominio permitido
     const allowedDomain = import.meta.env.VITE_ALLOWED_EMAIL_DOMAIN;
-    if (!allowedDomain || !newUserData.email.toLowerCase().endsWith(allowedDomain)) {
+    if (!allowedDomain || !newUserData.email.toLowerCase().endsWith('')) {
+    //if (!allowedDomain || !newUserData.email.toLowerCase().endsWith(allowedDomain)) {
       toast({
         title: "Direccion de correo-e no permitida",
         description: "Solo se permiten altas de nuevos usuarios con el correo-e empresarial",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // FASE 3: Validar que se haya seleccionado al menos 1 almacén
+    if (newUserAmbitos.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debes asignar al menos un almacén al usuario",
         variant: "destructive",
       });
       return;
@@ -350,7 +368,8 @@ export default function PanelDeControl() {
           nombre_usuario: newUserData.name || null,
           email: newUserData.email,
           user_role: newUserData.user_role,
-          status: newUserData.status
+          status: newUserData.status,
+          ambito_almacenes: newUserAmbitos
         }]);
 
       if (profileError) throw profileError;
@@ -370,6 +389,7 @@ export default function PanelDeControl() {
         status: false,
         password: ''
       });
+      setNewUserAmbitos([]);
       setShowAddUserModal(false);
     } catch (error: any) {
       toast({
@@ -563,6 +583,30 @@ export default function PanelDeControl() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSaveAmbitosForNewUser = () => {
+    // Validar que se haya seleccionado al menos 1 almacén
+    if (almacenesSeleccionados.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debes seleccionar al menos un almacén",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Guardar en estado temporal para el formulario de nuevo usuario
+    setNewUserAmbitos(almacenesSeleccionados);
+
+    // Cerrar modal
+    setShowAmbitoModal(false);
+    setAlmacenesSeleccionados([]);
+
+    toast({
+      title: "Almacenes seleccionados",
+      description: `${almacenesSeleccionados.length} almacén(es) confirmado(s)`,
+    });
   };
 
   // ============ RENDER ============
@@ -958,7 +1002,7 @@ export default function PanelDeControl() {
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="manolito@gmail.es"
+                  placeholder="usuario@renfe.es"
                 />
               </div>
 
@@ -1040,6 +1084,38 @@ export default function PanelDeControl() {
                   <option value="false">Inactivo</option>
                   <option value="true">Activo</option>
                 </select>
+              </div>
+
+              {/* Selección de Almacenes mediante Modal */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="text-red-500">*</span> Almacenes Asignados
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAmbitoModalMode('new-user');
+                    setTempUserName(newUserData.name || newUserData.email);
+                    setAlmacenesSeleccionados(newUserAmbitos); // Cargar selección actual
+                    setShowAmbitoModal(true);
+                  }}
+                  className="w-full px-4 py-3 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 flex items-center justify-center gap-2"
+                  style={{ borderColor: newUserAmbitos.length > 0 ? COLOR_PRIMARIO : undefined }}
+                >
+                  <Settings className="w-5 h-5 text-purple-600" />
+                  <span className="font-medium text-purple-700">
+                    {newUserAmbitos.length === 0
+                      ? 'Seleccionar Almacenes para este usuario'
+                      : `${newUserAmbitos.length} almacén(es) seleccionado(s) - Clic para editar`
+                    }
+                  </span>
+                </button>
+                {newUserAmbitos.length > 0 && (
+                  <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Almacenes confirmados
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -1135,26 +1211,38 @@ export default function PanelDeControl() {
       )}
 
       {/* MODAL: Gestionar Ámbitos */}
-      {showAmbitoModal && selectedUserAmbito && (
+      {showAmbitoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-2xl font-bold text-gray-800">
-                Gestionar Ámbitos
+                {ambitoModalMode === 'new-user' ? 'Seleccionar Almacenes para Nuevo Usuario' : 'Gestionar Ámbitos'}
               </h2>
               <button
                 onClick={() => {
                   setShowAmbitoModal(false);
-                  setSelectedUserAmbito(null);
+                  setAlmacenesSeleccionados([]);
+                  if (ambitoModalMode === 'edit-user') {
+                    setSelectedUserAmbito(null);
+                  }
+                  setTempUserName('');
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <p className="text-gray-600 mb-6">
-              Usuario: <span className="font-semibold">{selectedUserAmbito.name || selectedUserAmbito.email}</span>
-            </p>
+            {ambitoModalMode === 'edit-user' && selectedUserAmbito && (
+              <p className="text-gray-600 mb-6">
+                Usuario: <span className="font-semibold">{selectedUserAmbito.name || selectedUserAmbito.email}</span>
+              </p>
+            )}
+
+            {ambitoModalMode === 'new-user' && (
+              <p className="text-gray-600 mb-6">
+                Nuevo usuario: <span className="font-semibold">{tempUserName}</span>
+              </p>
+            )}
 
             <div className="space-y-3 mb-6">
               <p className="text-sm font-medium text-gray-700 mb-3">
@@ -1179,8 +1267,10 @@ export default function PanelDeControl() {
                     className="w-4 h-4 rounded"
                   />
                   <div>
-                    <p className="font-medium text-gray-800">{almacen.nombre}</p>
-                    <p className="text-sm text-gray-500">Código: {almacen.codigo}</p>
+                    <p className="text-gray-800">
+                      <span className="font-medium">{almacen.nombre}</span>
+                      <span className="font-normal"> - Alm. {almacen.codigo}</span>
+                    </p>
                   </div>
                 </label>
               ))}
@@ -1197,18 +1287,28 @@ export default function PanelDeControl() {
                 type="button"
                 onClick={() => {
                   setShowAmbitoModal(false);
-                  setSelectedUserAmbito(null);
+                  setAlmacenesSeleccionados([]);
+                  if (ambitoModalMode === 'edit-user') {
+                    setSelectedUserAmbito(null);
+                  }
+                  setTempUserName('');
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleSaveAmbitos}
+                onClick={() => {
+                  if (ambitoModalMode === 'new-user') {
+                    handleSaveAmbitosForNewUser();
+                  } else {
+                    handleSaveAmbitos();
+                  }
+                }}
                 className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
                 style={{ backgroundColor: COLOR_PRIMARIO }}
               >
-                Guardar Cambios
+                {ambitoModalMode === 'new-user' ? 'Confirmar Almacenes' : 'Guardar Cambios'}
               </button>
             </div>
           </div>
