@@ -12,7 +12,9 @@
       "Bash(npx playwright:*)",
       "Bash(node -e:*)",
       "Bash(node cleanup-test-data.js:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git branch:*)"
     ],
     "deny": [],
     "ask": []
