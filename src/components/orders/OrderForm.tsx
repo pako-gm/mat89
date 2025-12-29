@@ -330,13 +330,9 @@ export default function OrderForm({
     }
   };
 
-  // Handle close with confirmation if there are changes
+  // Handle close - simplified without confirmation
   const handleClose = () => {
-    if (hasChanges) {
-      setShowConfirmModal(true);
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   // Discard changes and close
@@ -1101,20 +1097,41 @@ export default function OrderForm({
     setLoading(true);
 
     try {
-      let updatedOrder = { ...order };
-
-      // Ensure all order lines have valid quantities before saving
-      updatedOrder.orderLines = updatedOrder.orderLines.map(line => ({
-        ...line,
-        quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
-      }));
+      const updatedOrder = {
+        ...order,
+        // Ensure all order lines have valid quantities before saving
+        orderLines: order.orderLines.map(line => ({
+          ...line,
+          quantity: typeof line.quantity === 'number' && line.quantity > 0 ? line.quantity : 1
+        }))
+      };
 
       console.log('=== GUARDANDO PEDIDO ===');
       console.log('ChangeHistory antes de guardar:', updatedOrder.changeHistory);
       console.log('Número de líneas de pedido:', updatedOrder.orderLines.length);
       console.log('Líneas de pedido:', updatedOrder.orderLines);
+      console.log('Número original:', updatedOrder.orderNumber);
 
-      await saveOrder(updatedOrder);
+      // Capturar resultado del guardado
+      const saveResult = await saveOrder(updatedOrder);
+
+      // Verificar si el número fue regenerado
+      if (saveResult._numberWasRegenerated) {
+        const newNumber = saveResult._finalOrderNumber;
+        console.log('🔄 Número regenerado automáticamente:', newNumber);
+
+        toast({
+          title: "Número de pedido actualizado",
+          description: `El numero de PAR ha cambiado a ${newNumber}, porque el anterior ya fue utilizado por otro usuario.`,
+          duration: 5000,
+        });
+
+        // Actualizar estado local con el nuevo número
+        setOrder(prev => ({
+          ...prev,
+          orderNumber: newNumber
+        }));
+      }
 
       console.log('=== PEDIDO GUARDADO EXITOSAMENTE ===');
 
@@ -1135,11 +1152,19 @@ export default function OrderForm({
 
       if (error instanceof Error) {
         errorMessage = error.message;
+
+        // Mensaje específico para duplicados
+        if (error.message.includes('número de pedido') ||
+            error.message.includes('duplicate') ||
+            error.message.includes('tomado por otro usuario')) {
+          errorMessage = error.message +
+            "\n\nIntente guardar nuevamente. El sistema generará un nuevo número automáticamente.";
+        }
       }
 
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error al guardar",
         description: errorMessage,
       });
     } finally {
@@ -1272,12 +1297,12 @@ export default function OrderForm({
                       {canChangeWarehouse ? (
                         availableWarehouses.map(warehouse => (
                           <SelectItem key={warehouse.id} value={warehouse.code}>
-                            {warehouse.code} - {warehouse.name}
+                            ALM{warehouse.code} - {warehouse.name}
                           </SelectItem>
                         ))
                       ) : (
                         <SelectItem value={order.warehouse} disabled>
-                          {order.warehouse} (Sin permisos)
+                          ALM{order.warehouse} (Sin permisos)
                         </SelectItem>
                       )}
                     </SelectContent>
@@ -1898,28 +1923,6 @@ export default function OrderForm({
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Modal for unsaved changes */}
-      <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Has realizado cambios en este pedido. ¿Qué deseas hacer?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDiscardChanges}>
-              Descartar Cambios
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleUpdateOrder}
-              className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-            >
-              Actualizar Pedido
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

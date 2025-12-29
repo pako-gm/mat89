@@ -88,8 +88,12 @@ export default function ReceptionManagement() {
   ];
 
   // Initialize form to default state
-  const initializeForm = (line?: OrderLine) => {
+  const initializeForm = (line?: OrderLine, order?: Order) => {
     const currentLine = line || selectedLine;
+    const currentOrder = order || selectedOrder;
+    const defaultWarehouse = currentOrder?.warehouse || undefined;
+    console.log('[DEBUG] Initializing form with warehouse:', defaultWarehouse);
+    console.log('[DEBUG] Current order:', currentOrder);
     setNewReception({
       fechaRecepcion: new Date().toISOString().split('T')[0],
       estadoRecepcion: undefined,
@@ -97,7 +101,7 @@ export default function ReceptionManagement() {
       nsRec: currentLine?.serialNumber || '',
       observaciones: '',
       // FASE 5: Default almRecepciona to the warehouse that sent the order
-      almRecepciona: selectedOrder?.warehouse || undefined
+      almRecepciona: defaultWarehouse
     });
     setFormErrors({});
   };
@@ -114,11 +118,13 @@ export default function ReceptionManagement() {
       if (user) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('role')
+          .select('user_role')
           .eq('user_id', user.id)
           .single();
 
-        setUserRole(profile?.role || null);
+        console.log('[DEBUG] Profile data:', profile);
+        console.log('[DEBUG] User role:', profile?.user_role);
+        setUserRole(profile?.user_role || null);
       }
 
       // Fetch all warehouses for dropdown
@@ -186,13 +192,13 @@ export default function ReceptionManagement() {
   const handleReceptionClick = async (order: Order, line: OrderLine) => {
     setSelectedOrder(order);
     setSelectedLine(line);
-    
+
     try {
       const receptions = await getReceptionsByLineId(line.id);
       setLineReceptions(receptions);
       setShowReceptionDialog(true);
       // Initialize form when dialog opens
-      initializeForm(line);
+      initializeForm(line, order);
     } catch (error) {
       console.error('Error fetching receptions:', error);
       toast({
@@ -566,7 +572,7 @@ export default function ReceptionManagement() {
                   <TableCell>{order.supplierName}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center justify-center rounded-md border bg-gray-50 px-2 py-1 text-xs">
-                      {order.warehouse}
+                      {order.warehouse.startsWith('ALM') ? order.warehouse : `ALM${order.warehouse}`}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -775,12 +781,12 @@ export default function ReceptionManagement() {
                     <div>
                       <Label htmlFor="almRecepciona">
                         Almacén Recepciona <span className="text-red-500">*</span>
-                        {userRole !== 'admin' && ' (Solo lectura)'}
+                        {userRole !== 'ADMINISTRADOR' && ' (Solo lectura)'}
                       </Label>
                       <Select
                         value={newReception.almRecepciona || '__NONE__'}
                         onValueChange={(value) => handleInputChange('almRecepciona', value)}
-                        disabled={userRole !== 'admin'}
+                        disabled={userRole !== 'ADMINISTRADOR'}
                       >
                         <SelectTrigger className={`h-9 ${formErrors.almRecepciona ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Selecciona almacén" />
@@ -797,7 +803,7 @@ export default function ReceptionManagement() {
                       {formErrors.almRecepciona && (
                         <p className="text-xs text-red-500 mt-1">{formErrors.almRecepciona}</p>
                       )}
-                      {userRole !== 'admin' && (
+                      {userRole !== 'ADMINISTRADOR' && (
                         <p className="text-xs text-gray-500 mt-1">
                           Solo administradores pueden cambiar el almacén de recepción
                         </p>

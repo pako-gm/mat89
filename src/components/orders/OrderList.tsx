@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Order, Warehouse } from "@/types";
 import OrderForm from "./OrderForm";
-import { getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, getUserWarehouses } from "@/lib/data";
+import { getOrders, deleteOrder, cancelOrder, reactivateOrder, ENABLE_REAL_ORDER_DELETION, getUserWarehouses, generateUniqueOrderNumber } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -156,42 +156,20 @@ export default function OrderList() {
   const generateNextOrderNumber = async (warehouseCode?: string): Promise<string> => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
     const selectedWarehouseCode = warehouseCode || availableWarehouses[0]?.code || '';
-    const warehouseNumber = selectedWarehouseCode;
 
     // Validación adicional
-    if (!warehouseNumber) {
+    if (!selectedWarehouseCode) {
       console.error('No warehouse code available');
       return '';
     }
 
-    try {
-      // Consultar TODOS los pedidos del año para encontrar el máximo correlativo
-      // (compatible con formatos "141/25/1030" y "ALM141/25/1030")
-      const { data: yearOrders } = await supabase
-        .from('tbl_pedidos_rep')
-        .select('num_pedido')
-        .like('num_pedido', `%/${currentYear}/%`);
+    // Usar función centralizada con validación de unicidad
+    const uniqueNumber = await generateUniqueOrderNumber(selectedWarehouseCode);
 
-      let maxSequential = 999;
+    if (!uniqueNumber) {
+      // Fallback al método antiguo si falla la generación centralizada
+      console.warn('Fallback a generación local de número de pedido');
 
-      if (yearOrders && yearOrders.length > 0) {
-        // Extraer todos los correlativos y encontrar el máximo
-        const sequentials = yearOrders.map(order => {
-          const parts = order.num_pedido.split('/');
-          return parseInt(parts[2] || '0');
-        }).filter(num => !isNaN(num));
-
-        if (sequentials.length > 0) {
-          maxSequential = Math.max(...sequentials);
-        }
-      }
-
-      const nextSequential = (maxSequential + 1).toString().padStart(4, '0');
-      return `${warehouseNumber}/${currentYear}/${nextSequential}`;
-    } catch (error) {
-      console.error('Error generating order number from DB:', error);
-
-      // Fallback a pedidos locales si falla la consulta DB
       const yearOrders = orders.filter(order => {
         const orderParts = order.orderNumber.split('/');
         return orderParts[1] === currentYear;
@@ -207,8 +185,10 @@ export default function OrderList() {
       }
 
       const nextSequential = (maxSequential + 1).toString().padStart(4, '0');
-      return `${warehouseNumber}/${currentYear}/${nextSequential}`;
+      return `${selectedWarehouseCode}/${currentYear}/${nextSequential}`;
     }
+
+    return uniqueNumber;
   };
 
   const createEmptyOrder = async (): Promise<Order> => {

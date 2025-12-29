@@ -614,12 +614,51 @@ export const saveOrder = async (order: Order) => {
       }
     }
 
+    // ===== VALIDACIÓN Y RETRY DE NÚMERO DE PEDIDO =====
+    let finalOrderNumber = order.orderNumber;
+    let numberWasRegenerated = false;
+    const maxRetries = 5; // 5 reintentos según preferencia del usuario
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Verificar si el número actual ya existe
+      const exists = await checkOrderNumberExists(finalOrderNumber, order.id);
+
+      if (!exists) {
+        // Número disponible, continuar
+        break;
+      }
+
+      // Número ocupado, regenerar
+      console.warn(`⚠️ [saveOrder] Número ${finalOrderNumber} ocupado (intento ${attempt}/${maxRetries})`);
+
+      const newNumber = await generateUniqueOrderNumber(
+        order.warehouse,
+        order.id,
+        5
+      );
+
+      if (!newNumber) {
+        throw new Error(
+          `No se pudo generar un número de pedido único después de 5 intentos. ` +
+          `Por favor, intente nuevamente en unos segundos.`
+        );
+      }
+
+      finalOrderNumber = newNumber;
+      numberWasRegenerated = true;
+    }
+
+    if (numberWasRegenerated) {
+      console.log(`🔄 Número regenerado: ${order.orderNumber} → ${finalOrderNumber}`);
+    }
+    // ===== FIN VALIDACIÓN Y RETRY =====
+
     // Continuar con el guardado si la validación pasó
     const { data: savedOrder, error: orderError } = await supabase
       .from('tbl_pedidos_rep')
       .upsert({
         id: order.id,
-        num_pedido: order.orderNumber,
+        num_pedido: finalOrderNumber, // ← USAR NÚMERO VALIDADO
         alm_envia: order.warehouse,
         proveedor_id: order.supplierId,
         vehiculo: order.vehicle,
@@ -637,6 +676,15 @@ export const saveOrder = async (order: Order) => {
 
     if (orderError) {
       console.error("Error saving order:", orderError);
+
+      // Manejar error de UNIQUE constraint (fallback)
+      if (orderError.code === '23505' || orderError.message.includes('duplicate key')) {
+        throw new Error(
+          `El número de pedido ${finalOrderNumber} fue tomado por otro usuario. ` +
+          `Por favor, intente guardar nuevamente.`
+        );
+      }
+
       throw new Error(orderError.message);
     }
 
@@ -698,12 +746,111 @@ export const saveOrder = async (order: Order) => {
         throw new Error(historyError.message);
       }
     }
-    
-    return savedOrder;
+
+    // Retornar con información de regeneración
+    return {
+      ...savedOrder,
+      _numberWasRegenerated: numberWasRegenerated,
+      _finalOrderNumber: finalOrderNumber
+    };
   } catch (error) {
     console.error("Error in saveOrder:", error);
     throw error;
   }
+};
+
+/**
+ * Verifica si un número de pedido ya existe en la base de datos
+ * @param orderNumber - Número de pedido a verificar (ej: "141/25/1050")
+ * @param excludeOrderId - ID del pedido a excluir (para edición)
+ * @returns true si existe, false si está disponible
+ */
+export const checkOrderNumberExists = async (
+  orderNumber: string,
+  excludeOrderId?: string
+): Promise<boolean> => {
+  try {
+    let query = supabase
+      .from('tbl_pedidos_rep')
+      .select('id')
+      .eq('num_pedido', orderNumber);
+
+    if (excludeOrderId) {
+      query = query.neq('id', excludeOrderId);
+    }
+
+    const { data, error } = await query.limit(1);
+
+    if (error) {
+      console.error('Error checking order number existence:', error);
+      return false;
+    }
+
+    return data && data.length > 0;
+  } catch (error) {
+    console.error('Error in checkOrderNumberExists:', error);
+    return false;
+  }
+};
+
+/**
+ * Genera un número de pedido único con reintentos automáticos
+ * @param warehouseCode - Código del almacén (ej: "141")
+ * @param currentOrderId - ID del pedido actual (para edición)
+ * @param maxRetries - Máximo de intentos (default: 5)
+ * @returns Número único o null si falla
+ */
+export const generateUniqueOrderNumber = async (
+  warehouseCode: string,
+  currentOrderId?: string,
+  maxRetries: number = 5
+): Promise<string | null> => {
+  const currentYear = new Date().getFullYear().toString().slice(-2);
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Consultar último correlativo del año
+      const { data: yearOrders } = await supabase
+        .from('tbl_pedidos_rep')
+        .select('num_pedido')
+        .like('num_pedido', `%/${currentYear}/%`)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      let maxSequential = 999;
+
+      if (yearOrders && yearOrders.length > 0) {
+        const sequentials = yearOrders
+          .map(order => {
+            const parts = order.num_pedido.split('/');
+            return parseInt(parts[2] || '0');
+          })
+          .filter(num => !isNaN(num));
+
+        if (sequentials.length > 0) {
+          maxSequential = Math.max(...sequentials);
+        }
+      }
+
+      const nextSequential = (maxSequential + 1).toString().padStart(4, '0');
+      const candidateNumber = `${warehouseCode}/${currentYear}/${nextSequential}`;
+
+      // Verificar disponibilidad
+      const exists = await checkOrderNumberExists(candidateNumber, currentOrderId);
+
+      if (!exists) {
+        console.log(`✅ Número único generado: ${candidateNumber} (intento ${attempt})`);
+        return candidateNumber;
+      }
+
+      console.warn(`⚠️ Número ${candidateNumber} ocupado, reintentando...`);
+    } catch (error) {
+      console.error(`❌ Error en intento ${attempt}:`, error);
+    }
+  }
+
+  console.error('❌ Falló generación tras max intentos');
+  return null;
 };
 
 export const getOrders = async () => {

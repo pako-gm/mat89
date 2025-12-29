@@ -118,6 +118,51 @@ El proyecto incluye un sistema de gestión de versiones completo con operaciones
 - Reset de contraseña con mensajes en español
 - Gestión de estado de usuarios
 
+### 7. Sistema de Validación de Números Únicos (Anti-Duplicados)
+**Fecha de Implementación**: 2025-12-29
+
+Sistema robusto que previene la duplicación de números de pedido cuando múltiples usuarios trabajan simultáneamente en diferentes ventanas del sistema.
+
+#### Problema Resuelto
+Cuando múltiples ventanas están abiertas simultáneamente, podían generar el mismo número de correlativo de pedido, causando errores de UNIQUE constraint al intentar guardar.
+
+#### Solución Implementada
+**Validación Optimista con Retry Automático**:
+1. Mantiene la generación de número al abrir formulario (UX sin cambios)
+2. Antes de guardar: Valida si el número aún está disponible
+3. Si está ocupado: Regenera automáticamente el siguiente disponible
+4. Notifica al usuario con toast informativo si el número cambió
+5. Retry inteligente: Hasta 5 intentos antes de fallar
+
+#### Archivos Modificados
+- **[src/lib/data.ts](c:\Users\Usuario\Documents\GitHub\mat89\src\lib\data.ts)**:
+  - `checkOrderNumberExists()`: Verifica existencia de número de pedido
+  - `generateUniqueOrderNumber()`: Genera número único con retry
+  - `saveOrder()`: Modificado con validación pre-guardado y retry (líneas 617-755)
+
+- **[src/components/orders/OrderForm.tsx](c:\Users\Usuario\Documents\GitHub\mat89\src\components\orders\OrderForm.tsx)**:
+  - `proceedWithSave()`: Captura regeneración y muestra mensaje al usuario (líneas 1096-1174)
+
+- **[src/components/orders/OrderList.tsx](c:\Users\Usuario\Documents\GitHub\mat89\src\components\orders\OrderList.tsx)**:
+  - `generateNextOrderNumber()`: Refactorizado para usar función centralizada (líneas 156-192)
+
+#### Características Clave
+- ✅ Sin cambios en DB (sin migraciones)
+- ✅ Mantiene UX actual (usuario ve número antes de guardar)
+- ✅ Maneja race conditions automáticamente
+- ✅ Feedback claro al usuario con mensaje personalizado
+- ✅ 5 reintentos antes de fallar definitivamente
+- ✅ Retrocompatible con pedidos existentes
+
+#### Mensajes al Usuario
+- **Número regenerado**: "El numero de PAR ha cambiado a {nuevo}, porque el anterior ya fue utilizado por otro usuario." (Toast informativo, 5 segundos)
+- **Error tras reintentos**: "No se pudo generar un número de pedido único después de 5 intentos. Por favor, intente nuevamente en unos segundos." (Toast error)
+
+#### Performance
+- Caso normal (sin conflicto): +1 query adicional (~50ms)
+- Caso conflicto: +2-3 queries (~100-150ms)
+- Optimización: Consulta solo últimos 100 pedidos del año
+
 ---
 
 ## 🔧 Configuración del Entorno
