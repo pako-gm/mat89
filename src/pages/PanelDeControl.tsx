@@ -1213,103 +1213,168 @@ export default function PanelDeControl() {
       {/* MODAL: Gestionar Ámbitos */}
       {showAmbitoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-2xl font-bold text-gray-800">
-                {ambitoModalMode === 'new-user' ? 'Seleccionar Almacenes para Nuevo Usuario' : 'Gestionar Ámbitos'}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowAmbitoModal(false);
-                  setAlmacenesSeleccionados([]);
-                  if (ambitoModalMode === 'edit-user') {
-                    setSelectedUserAmbito(null);
-                  }
-                  setTempUserName('');
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            {ambitoModalMode === 'edit-user' && selectedUserAmbito && (
-              <p className="text-gray-600 mb-6">
-                Usuario: <span className="font-semibold">{selectedUserAmbito.name || selectedUserAmbito.email}</span>
-              </p>
-            )}
+          <div className="bg-white rounded-2xl max-w-lg w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col">
+            {/* Header fijo */}
+            <div className="p-8 pb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  {ambitoModalMode === 'new-user' ? 'Seleccionar Almacenes para Nuevo Usuario' : 'Gestionar Ámbitos'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowAmbitoModal(false);
+                    setAlmacenesSeleccionados([]);
+                    if (ambitoModalMode === 'edit-user') {
+                      setSelectedUserAmbito(null);
+                    }
+                    setTempUserName('');
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              {ambitoModalMode === 'edit-user' && selectedUserAmbito && (
+                <div className="mb-4">
+                  <p className="text-gray-600 mb-2">
+                    Usuario: <span className="font-semibold">{selectedUserAmbito.name || selectedUserAmbito.email}</span>
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer hover:text-purple-700 transition-colors">
+                      <input
+                        type="radio"
+                        name="almacenes-selection"
+                        checked={almacenesSeleccionados.length === almacenesDisponibles.length && almacenesDisponibles.length > 0}
+                        onChange={() => {
+                          setAlmacenesSeleccionados(almacenesDisponibles.map(a => a.id));
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Seleccionar Todos</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer hover:text-purple-700 transition-colors">
+                      <input
+                        type="radio"
+                        name="almacenes-selection"
+                        checked={almacenesSeleccionados.length === 0}
+                        onChange={() => {
+                          setAlmacenesSeleccionados([]);
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Borrar Todos</span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
-            {ambitoModalMode === 'new-user' && (
-              <p className="text-gray-600 mb-6">
-                Nuevo usuario: <span className="font-semibold">{tempUserName}</span>
-              </p>
-            )}
+              {ambitoModalMode === 'new-user' && (
+                <div className="mb-4">
+                  <p className="text-gray-600 mb-2">
+                    Nuevo usuario: <span className="font-semibold">{tempUserName}</span>
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer hover:text-purple-700 transition-colors">
+                      <input
+                        type="radio"
+                        name="almacenes-selection"
+                        checked={almacenesSeleccionados.length === almacenesDisponibles.length && almacenesDisponibles.length > 0}
+                        onChange={() => {
+                          setAlmacenesSeleccionados(almacenesDisponibles.map(a => a.id));
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Seleccionar Todos</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer hover:text-purple-700 transition-colors">
+                      <input
+                        type="radio"
+                        name="almacenes-selection"
+                        checked={almacenesSeleccionados.length === 0}
+                        onChange={() => {
+                          setAlmacenesSeleccionados([]);
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Borrar Todos</span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
-            <div className="space-y-3 mb-6">
-              <p className="text-sm font-medium text-gray-700 mb-3">
+              <p className="text-sm font-medium text-gray-700">
                 Selecciona los almacenes visibles para este usuario:
               </p>
-
-              {almacenesDisponibles.map(almacen => (
-                <label
-                  key={almacen.id}
-                  className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={almacenesSeleccionados.includes(almacen.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setAlmacenesSeleccionados([...almacenesSeleccionados, almacen.id]);
-                      } else {
-                        setAlmacenesSeleccionados(almacenesSeleccionados.filter(id => id !== almacen.id));
-                      }
-                    }}
-                    className="w-4 h-4 rounded"
-                  />
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium">{almacen.nombre}</span>
-                      <span className="font-normal"> - Alm. {almacen.codigo}</span>
-                    </p>
-                  </div>
-                </label>
-              ))}
-
-              {almacenesDisponibles.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No hay almacenes disponibles
-                </p>
-              )}
             </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAmbitoModal(false);
-                  setAlmacenesSeleccionados([]);
-                  if (ambitoModalMode === 'edit-user') {
-                    setSelectedUserAmbito(null);
-                  }
-                  setTempUserName('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  if (ambitoModalMode === 'new-user') {
-                    handleSaveAmbitosForNewUser();
-                  } else {
-                    handleSaveAmbitos();
-                  }
-                }}
-                className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
-                style={{ backgroundColor: COLOR_PRIMARIO }}
-              >
-                {ambitoModalMode === 'new-user' ? 'Confirmar Almacenes' : 'Guardar Cambios'}
-              </button>
+            {/* Body scrolleable */}
+            <div className="px-8 overflow-y-auto flex-1">
+              <div className="space-y-3">
+                {almacenesDisponibles.map(almacen => (
+                  <label
+                    key={almacen.id}
+                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={almacenesSeleccionados.includes(almacen.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAlmacenesSeleccionados([...almacenesSeleccionados, almacen.id]);
+                        } else {
+                          setAlmacenesSeleccionados(almacenesSeleccionados.filter(id => id !== almacen.id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium">{almacen.nombre}</span>
+                        <span className="font-normal"> - Alm. {almacen.codigo}</span>
+                      </p>
+                    </div>
+                  </label>
+                ))}
+
+                {almacenesDisponibles.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No hay almacenes disponibles
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer fijo */}
+            <div className="p-8 pt-4 border-t border-gray-200">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAmbitoModal(false);
+                    setAlmacenesSeleccionados([]);
+                    if (ambitoModalMode === 'edit-user') {
+                      setSelectedUserAmbito(null);
+                    }
+                    setTempUserName('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (ambitoModalMode === 'new-user') {
+                      handleSaveAmbitosForNewUser();
+                    } else {
+                      handleSaveAmbitos();
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
+                  style={{ backgroundColor: COLOR_PRIMARIO }}
+                >
+                  {ambitoModalMode === 'new-user' ? 'Confirmar Almacenes' : 'Guardar Cambios'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
