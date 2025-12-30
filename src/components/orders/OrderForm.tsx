@@ -95,7 +95,7 @@ export default function OrderForm({
     declaredDamage: false,
     serialNumber: false
   });
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -336,6 +336,7 @@ export default function OrderForm({
   };
 
   // Discard changes and close
+  /* COMMENTED OUT - Not currently used
   const handleDiscardChanges = () => {
     setShowConfirmModal(false);
     setHasChanges(false);
@@ -348,14 +349,17 @@ export default function OrderForm({
 
     onClose();
   };
+  */
 
   // Save changes and close
+  /* COMMENTED OUT - Not currently used
   const handleUpdateOrder = async () => {
     setShowConfirmModal(false);
     // Create a fake event to pass to handleSubmit
     const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
     await handleSubmit(fakeEvent);
   };
+  */
 
   // Determinar el título basado en el modo actual
   const getTitle = () => {
