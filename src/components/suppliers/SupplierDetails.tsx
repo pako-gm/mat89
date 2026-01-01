@@ -1,8 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Supplier } from "@/types";
 import { Edit2, X, Mail, Phone, MapPin, User, ExternalLink, Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface SupplierDetailsProps {
   supplier: Supplier;
@@ -12,13 +14,15 @@ interface SupplierDetailsProps {
   onDelete: () => void;
 }
 
-export default function SupplierDetails({ 
-  supplier, 
-  open, 
-  onClose, 
+export default function SupplierDetails({
+  supplier,
+  open,
+  onClose,
   onEdit,
   onDelete
 }: SupplierDetailsProps) {
+  const { isAdmin } = useUserProfile();
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "--";
     try {
@@ -34,27 +38,41 @@ export default function SupplierDetails({
         <DialogHeader className="flex flex-row items-center justify-between">
           <DialogTitle className="text-xl">Detalles del Proveedor</DialogTitle>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               className="h-8 w-8 rounded-full"
               onClick={onEdit}
             >
               <Edit2 className="h-4 w-4" />
               <span className="sr-only">Editar</span>
             </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={onDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Eliminar</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={onDelete}
+                      disabled={!isAdmin}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Eliminar</span>
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!isAdmin && (
+                  <TooltipContent>
+                    <p>Solo los Administradores pueden eliminar un Proveedor</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <Button
+              variant="outline"
+              size="icon"
               className="h-8 w-8 rounded-full"
               onClick={onClose}
             >

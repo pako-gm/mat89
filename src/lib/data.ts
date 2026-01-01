@@ -237,6 +237,22 @@ export const saveSupplier = async (supplier: Supplier) => {
 };
 
 export const deleteSupplier = async (id: string) => {
+  // Check if user is ADMINISTRADOR
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('No autenticado');
+  }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('user_role')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (profile?.user_role !== 'ADMINISTRADOR') {
+    throw new Error('No tienes permisos para eliminar proveedores. Solo los ADMINISTRADORES pueden realizar esta acción.');
+  }
+
   // First check if supplier has associated orders
   const { data: orders, error: checkError } = await supabase
     .from('tbl_pedidos_rep')
@@ -443,6 +459,22 @@ export const saveMaterial = async (material: Material): Promise<any> => {
 };
 
 export const deleteMaterial = async (id: string): Promise<boolean> => {
+  // Check if user is ADMINISTRADOR
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('No autenticado');
+  }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('user_role')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (profile?.user_role !== 'ADMINISTRADOR') {
+    throw new Error('No tienes permisos para eliminar materiales. Solo los ADMINISTRADORES pueden realizar esta acción.');
+  }
+
   // First, get the material's registration number
   const { data: material, error: materialError } = await supabase
     .from('tbl_materiales')
