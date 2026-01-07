@@ -37,8 +37,8 @@ export default function Layout() {
       <div className="w-64">
         <Sidebar />
       </div>
-      <div className="flex-1 overflow-auto">
-        <div className="flex justify-end items-center px-6 py-3 border-b bg-white">
+      <div className="flex-1 flex flex-col">
+        <div className="flex justify-end items-center px-6 py-3 border-b bg-white shrink-0">
           <div className="flex items-center gap-3 px-4 py-2">
             <div className="flex flex-col items-start">
               <span className="text-xs text-gray-600">Sesión iniciada como:</span>
@@ -53,8 +53,10 @@ export default function Layout() {
             </Button>
           </div>
         </div>
-        <div className="p-6 w-full">
-          <Outlet />
+        <div className="flex-1 w-full overflow-auto">
+          <div className="py-6 pl-6 pr-0">
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>
