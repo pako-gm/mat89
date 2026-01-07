@@ -170,18 +170,18 @@ export default function OrderList() {
       // Fallback al método antiguo si falla la generación centralizada
       console.warn('Fallback a generación local de número de pedido');
 
-      const yearOrders = orders.filter(order => {
-        const orderParts = order.orderNumber.split('/');
-        return orderParts[1] === currentYear;
-      });
-
+      // Buscar el máximo correlativo GLOBAL (sin filtrar por año)
+      // El correlativo NUNCA se reinicia, aunque cambie el año
       let maxSequential = 999;
-      if (yearOrders.length > 0) {
-        const sequentials = yearOrders.map(order => {
+      if (orders.length > 0) {
+        const sequentials = orders.map(order => {
           const parts = order.orderNumber.split('/');
           return parseInt(parts[2] || '0');
-        });
-        maxSequential = Math.max(...sequentials);
+        }).filter(num => !isNaN(num));
+
+        if (sequentials.length > 0) {
+          maxSequential = Math.max(...sequentials);
+        }
       }
 
       const nextSequential = (maxSequential + 1).toString().padStart(4, '0');

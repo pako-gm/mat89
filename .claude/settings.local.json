@@ -14,7 +14,12 @@
       "Bash(node cleanup-test-data.js:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(ls:*)",
+      "Bash(for file in \"c:\\\\Users\\\\Usuario\\\\Documents\\\\GitHub\\\\mat89\\\\supabase\\\\migrations\"/*.sql)",
+      "Bash(do grep -l \"tbl_materiales\" \"$file\")",
+      "Bash(done)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

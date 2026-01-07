@@ -11,6 +11,7 @@ import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PanelDeControl from "@/pages/PanelDeControl";
 import MaestroAlmacenes from "@/pages/MaestroAlmacenes";
+import MaestroPlantillas from "@/pages/MaestroPlantillas";
 import MaestroVehiculos from "@/pages/MaestroVehiculos";
 import VersionesPage from "@/pages/VersionesPage";
 import SecurityAuditPage from "@/pages/SecurityAuditPage";
@@ -256,6 +257,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMINISTRADOR">
                   <MaestroAlmacenes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="maestro-plantillas"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                  <MaestroPlantillas />
                 </ProtectedRoute>
               }
             />
