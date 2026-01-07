@@ -96,7 +96,7 @@ export default function ProveedoresPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-medium">Gestión de Proveedores</h1>
         <Button 

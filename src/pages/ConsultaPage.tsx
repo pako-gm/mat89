@@ -148,8 +148,9 @@ export default function ConsultaPage() {
   };
 
   const generateHTMLDocument = () => {
-    const currentRecords = filteredData.slice(indexOfFirstRecord, indexOfLastRecord);
-    
+    // Usar TODOS los registros filtrados, no solo los de la página actual
+    const recordsToExport = filteredData;
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -274,23 +275,23 @@ export default function ConsultaPage() {
           <h1>Mat89 - Sistema de Gestión de Reparación de Componentes</h1>
           <div class="subtitle">Consulta de Envíos y Recepciones</div>
         </div>
-        
+
         <div class="info-section">
           <div class="info-left">
-            <strong>Total de registros mostrados:</strong> ${currentRecords.length}
+            <strong>Total de registros mostrados:</strong> ${recordsToExport.length}
             ${searchQuery ? ` (filtrados de ${consultationData.length} registros totales)` : ''}
           </div>
           <div class="info-right">
-            Generado el: ${new Date().toLocaleDateString('es-ES', { 
-              year: 'numeric', 
-              month: 'long', 
+            Generado el: ${new Date().toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
               day: 'numeric',
               hour: '2-digit',
               minute: '2-digit'
             })}
           </div>
         </div>
-        
+
         <table>
           <thead>
             <tr>
@@ -312,7 +313,7 @@ export default function ConsultaPage() {
             </tr>
           </thead>
           <tbody>
-            ${currentRecords.map(record => `
+            ${recordsToExport.map(record => `
               <tr>
                 <td>${record.linea}</td>
                 <td>${record.almEnvia}</td>
@@ -333,14 +334,14 @@ export default function ConsultaPage() {
             `).join('')}
           </tbody>
         </table>
-        
+
         <div class="footer">
           <span style="color: #334155; font-weight: bold;">[© fgm-dev]</span> ${new Date().getFullYear() === 2024 ? '2024' : `2024-${new Date().getFullYear()}`} - Sistema de Gestión de Reparación de Componentes
         </div>
       </body>
       </html>
     `;
-    
+
     return html;
   };
 
