@@ -192,8 +192,10 @@ export default function OrderList() {
   };
 
   const createEmptyOrder = async (): Promise<Order> => {
+    // SIEMPRE seleccionar el primer almacén de los asignados al usuario
     const firstWarehouse = availableWarehouses[0]?.code || '';
     const nextOrderNumber = await generateNextOrderNumber(firstWarehouse);
+
     return {
       id: uuidv4(),
       orderNumber: nextOrderNumber,

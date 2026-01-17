@@ -1295,7 +1295,7 @@ export default function OrderForm({
                     disabled={warehousesLoading || availableWarehouses.length === 0 || !canChangeWarehouse}
                   >
                     <SelectTrigger className="h-9 border-[#4C4C4C]">
-                      <SelectValue placeholder={warehousesLoading ? "Cargando..." : "Selecciona almacén"} />
+                      <SelectValue placeholder={warehousesLoading ? "Cargando..." : "Escoge un almacén de la lista"} />
                     </SelectTrigger>
                     <SelectContent>
                       {canChangeWarehouse ? (
