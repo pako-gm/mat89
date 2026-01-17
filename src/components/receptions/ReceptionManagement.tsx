@@ -512,10 +512,6 @@ export default function ReceptionManagement() {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-medium">Recepción de Materiales</h1>
-      </div>
-
       <div className="flex gap-4 mb-6">
         <div className="relative flex-1 max-w-2xl">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -523,10 +519,10 @@ export default function ReceptionManagement() {
             placeholder="Buscar por num. Pedido, Proveedor, Almacen..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-9"
+            className="pl-10 h-9 border-black"
           />
         </div>
-        <Button variant="outline" className="h-9" onClick={clearFilter}>
+        <Button variant="outline" className="h-9 border-black hover:bg-gray-50 transition-colors duration-200" onClick={clearFilter}>
           Borrar Filtro
         </Button>
       </div>
@@ -536,7 +532,7 @@ export default function ReceptionManagement() {
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="font-medium">Num. Pedido</TableHead>
-              <TableHead className="font-medium">Razón Social</TableHead>
+              <TableHead className="font-medium">Proveedor</TableHead>
               <TableHead className="font-medium">Alm. Envía</TableHead>
               <TableHead className="font-medium">F. Envío</TableHead>
               <TableHead className="font-medium">F. Recepción</TableHead>

@@ -203,6 +203,11 @@ export function formatDateToDDMMYYYY(dateString: string | null | undefined): str
   }
 }
 
+// Alias for formatDateToDDMMYYYY
+export function formatDate(dateString: string | null | undefined): string {
+  return formatDateToDDMMYYYY(dateString);
+}
+
 // Función para formatear comentarios con formato: YYYY-MM-DD HH:mm:ss - usuario@email.com
 export function formatCommentTimestamp(dateString: string): string {
   try {

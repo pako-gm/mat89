@@ -224,11 +224,15 @@ export default function MaterialForm({
         errors.registration = "Esta matrícula ya existe";
       }
     }
-    
+
     if (!formData.description.trim()) {
       errors.description = "La descripción es obligatoria";
     }
-    
+
+    if (!formData.vehicleSeries || formData.vehicleSeries.trim() === "") {
+      errors.vehicleSeries = "La serie de vehículo es obligatoria";
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -279,11 +283,19 @@ export default function MaterialForm({
   const handleSelectChange = (name: string, value: string) => {
     // Convert the special "__none__" value back to empty string
     const actualValue = value === "__none__" ? "" : value;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: actualValue
     }));
+
+    // Clear error when field is being edited
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const checkUserAuthentication = async () => {
@@ -447,13 +459,13 @@ export default function MaterialForm({
             
             <div className="space-y-2">
               <Label htmlFor="vehicleSeries" className="text-sm font-medium">
-                Serie Vehículo
+                Serie Vehículo <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.vehicleSeries || "__none__"}
                 onValueChange={(value) => handleSelectChange("vehicleSeries", value)}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className={`h-9 ${formErrors.vehicleSeries ? 'border-red-500 focus:border-red-500' : ''}`}>
                   <SelectValue placeholder="Seleccione una serie" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[160px] overflow-y-auto">
@@ -469,6 +481,9 @@ export default function MaterialForm({
                   )}
                 </SelectContent>
               </Select>
+              {formErrors.vehicleSeries && (
+                <p className="text-xs text-red-500 mt-1">{formErrors.vehicleSeries}</p>
+              )}
             </div>
           </div>
           

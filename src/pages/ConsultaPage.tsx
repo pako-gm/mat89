@@ -9,11 +9,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   RefreshCw,
-  Download,
-  X
+  Download
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import PrintModal from "@/components/ui/print-modal";
+import LineDetailsAccordion from "@/components/consulta/LineDetailsAccordion";
 
 export default function ConsultaPage() {
   const [consultationData, setConsultationData] = useState<ConsultaRecord[]>([]);
@@ -33,6 +34,10 @@ export default function ConsultaPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [htmlContent, setHtmlContent] = useState("");
+
+  // Estado para el Accordion de línea
+  const [expandedLineKey, setExpandedLineKey] = useState<string | null>(null);
+
   const { toast } = useToast();
   const recordsPerPage = 10;
 
@@ -59,6 +64,17 @@ export default function ConsultaPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLineClick = (lineId: string, recepcionId: string | null) => {
+    const lineKey = `${lineId}-${recepcionId}`;
+
+    // Toggle: Si ya está expandido, colapsar
+    if (expandedLineKey === lineKey) {
+      setExpandedLineKey(null);
+    } else {
+      setExpandedLineKey(lineKey);
     }
   };
 
@@ -112,26 +128,24 @@ export default function ConsultaPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "--";
     try {
-      return new Date(dateString).toLocaleDateString('es-ES');
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch (error) {
       return dateString;
     }
   };
 
-  const getStatusColor = (status: string | null) => {
-    if (!status) return 'bg-gray-100 text-gray-500';
-    
-    switch (status) {
-      case 'UTIL':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'IRREPARABLE':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'SIN ACTUACION':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'OTROS':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-500';
+  const getReceptionStatusColor = (status: string | null) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+    switch (status.toUpperCase()) {
+      case 'UTIL': return 'bg-green-500 text-white';
+      case 'IRREPARABLE': return 'bg-red-500 text-white';
+      case 'SIN RECEPCIÓN': return 'bg-blue-100 text-blue-800';
+      case 'SIN ACTUACION': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -352,52 +366,57 @@ export default function ConsultaPage() {
   };
 
   return (
-    <div className="max-w-full mx-auto">
-      {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-medium">Consulta de Envíos y Recepciones</h1>
-        <div className="flex gap-3">
-          <Button
-            onClick={handleDownloadData}
-            disabled={isLoading}
-            className="flex items-center gap-2 bg-[#2BA6FF] hover:bg-[#2196F3] text-white h-9"
-          >
-            <Download className="h-4 w-4" />
-            Descargar Datos
-          </Button>
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            variant="outline"
-            className="flex items-center gap-2 h-9"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-slate-700">
+            Consulta de Envíos y Recepciones
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">
+            Seguimiento completo de los materiales enviados y recibidos
+          </p>
         </div>
       </div>
 
       {/* Search Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex gap-3 items-center">
-          <div className="relative flex-1">
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+        <div className="flex gap-4">
+          <div className="relative w-1/2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Buscar envíos por... cualquier dato de la tabla"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9"
+              className="pl-10 h-9 border-black"
             />
           </div>
           <Button
             variant="outline"
             onClick={() => setSearchQuery('')}
-            className="h-9 flex items-center gap-2"
-            disabled={!searchQuery}
+            className="h-9 border-black hover:bg-gray-50 transition-colors duration-200"
           >
-            <X className="h-4 w-4" />
             Borrar Filtro
           </Button>
+          <div className="flex gap-3 ml-auto">
+            <Button
+              onClick={handleDownloadData}
+              disabled={isLoading}
+              className="flex items-center gap-2 bg-[#2BA6FF] hover:bg-[#2196F3] text-white h-9"
+            >
+              <Download className="h-4 w-4" />
+              Descargar Datos
+            </Button>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              className="flex items-center gap-2 h-9"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
+          </div>
         </div>
 
         {filteredData.length !== consultationData.length && (
@@ -408,32 +427,26 @@ export default function ConsultaPage() {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
           <Table>
             <TableHeader className="sticky top-0 bg-gray-50 z-10">
               <TableRow>
-                <TableHead className="text-center font-medium min-w-[60px] border-r">Línea</TableHead>
-                <TableHead className="text-center font-medium min-w-[80px] border-r">Alm. Envía</TableHead>
                 <TableHead className="text-center font-medium min-w-[120px] border-r">Num. Pedido</TableHead>
-                <TableHead className="text-center font-medium min-w-[150px] border-r">Proveedor</TableHead>
+                <TableHead className="text-center font-medium min-w-[80px] border-r">Alm. Envía</TableHead>
                 <TableHead className="text-center font-medium min-w-[100px] border-r">Mat. 89</TableHead>
                 <TableHead className="text-center font-medium min-w-[200px] border-r">Descripción</TableHead>
+                <TableHead className="text-center font-medium min-w-[150px] border-r">Proveedor</TableHead>
                 <TableHead className="text-center font-medium min-w-[100px] border-r">Vehículo</TableHead>
                 <TableHead className="text-center font-medium min-w-[100px] border-r">F. Envío</TableHead>
-                <TableHead className="text-center font-medium min-w-[80px] border-r">Cant. Env.</TableHead>
-                <TableHead className="text-center font-medium min-w-[120px] border-r">Num. Serie Env.</TableHead>
-                <TableHead className="text-center font-medium min-w-[100px] border-r">F. Recepc.</TableHead>
-                <TableHead className="text-center font-medium min-w-[80px] border-r">Cant. Rec.</TableHead>
-                <TableHead className="text-center font-medium min-w-[120px] border-r">Num. Serie Rec.</TableHead>
-                <TableHead className="text-center font-medium min-w-[120px] border-r">Estado Recepc.</TableHead>
-                <TableHead className="text-center font-medium min-w-[200px]">Observaciones</TableHead>
+                <TableHead className="text-center font-medium min-w-[100px] border-r">F. Recepción</TableHead>
+                <TableHead className="text-center font-medium min-w-[120px]">Estado Recepc.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={15} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     <div className="flex justify-center items-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#91268F]"></div>
                       <span className="ml-2">Cargando datos...</span>
@@ -441,65 +454,74 @@ export default function ConsultaPage() {
                   </TableCell>
                 </TableRow>
               ) : currentRecords.length > 0 ? (
-                currentRecords.map((record, index) => (
-                  <TableRow 
-                    key={`${record.pedidoId}-${record.lineaId}-${record.recepcionId || 'no-reception'}-${index}`}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <TableCell className="text-center border-r font-medium text-sm">
-                      {record.linea}
-                    </TableCell>
-                    <TableCell className="text-center border-r text-sm">
-                      <span className="inline-flex items-center justify-center rounded-md border bg-gray-50 px-2 py-1 text-xs">
-                        {record.almEnvia}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center border-r font-medium text-sm">
-                      {record.numPedido}
-                    </TableCell>
-                    <TableCell className="border-r text-sm max-w-[150px] truncate" title={record.proveedor}>
-                      {record.proveedor}
-                    </TableCell>
-                    <TableCell className="text-center border-r font-mono text-sm">
-                      {record.mat89}
-                    </TableCell>
-                    <TableCell className="border-r text-sm max-w-[200px] truncate" title={record.descripcion}>
-                      {record.descripcion}
-                    </TableCell>
-                    <TableCell className="text-center border-r text-sm">
-                      {record.vehiculo}
-                    </TableCell>
-                    <TableCell className="text-center border-r text-sm">
-                      {formatDate(record.fechaEnvio)}
-                    </TableCell>
-                    <TableCell className="text-center border-r font-medium text-sm">
-                      {record.cantEnv}
-                    </TableCell>
-                    <TableCell className="text-center border-r font-mono text-sm">
-                      {record.numSerieEnv || "--"}
-                    </TableCell>
-                    <TableCell className="text-center border-r text-sm">
-                      {formatDate(record.fechaRecepc)}
-                    </TableCell>
-                    <TableCell className="text-center border-r font-medium text-sm">
-                      {record.cantRec !== null ? record.cantRec : "--"}
-                    </TableCell>
-                    <TableCell className="text-center border-r font-mono text-sm">
-                      {record.numSerieRec || "--"}
-                    </TableCell>
-                    <TableCell className="text-center border-r text-sm">
-                      <span className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs font-medium ${getStatusColor(record.estadoRecepc)}`}>
-                        {record.estadoRecepc || 'SIN RECEPCIÓN'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm max-w-[200px] truncate" title={record.observaciones || ''}>
-                      {record.observaciones || "--"}
-                    </TableCell>
-                  </TableRow>
-                ))
+                (() => {
+                  const rows: JSX.Element[] = [];
+
+                  currentRecords.forEach((record) => {
+                    const lineKey = `${record.lineaId}-${record.recepcionId}`;
+                    const isExpanded = expandedLineKey === lineKey;
+
+                    // Fila principal (clickable)
+                    rows.push(
+                      <TableRow
+                        key={`row-${lineKey}`}
+                        className="hover:bg-gray-100 cursor-pointer transition-colors"
+                        onClick={() => handleLineClick(record.lineaId, record.recepcionId)}
+                      >
+                        <TableCell className="border-r font-medium">
+                          {record.numPedido}
+                        </TableCell>
+                        <TableCell className="text-center border-r">
+                          <span className="inline-flex items-center justify-center rounded-md border bg-gray-50 px-2 py-1 text-xs font-medium">
+                            {record.almEnvia.toString().startsWith('ALM') ? record.almEnvia : `ALM${record.almEnvia}`}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center border-r font-mono text-xs">
+                          {record.mat89}
+                        </TableCell>
+                        <TableCell className="border-r text-sm max-w-[200px] truncate" title={record.descripcion}>
+                          {record.descripcion}
+                        </TableCell>
+                        <TableCell className="border-r text-sm max-w-[150px] truncate" title={record.proveedor}>
+                          {record.proveedor}
+                        </TableCell>
+                        <TableCell className="text-center border-r font-mono text-xs">
+                          {record.vehiculo}
+                        </TableCell>
+                        <TableCell className="text-center border-r text-sm">
+                          {formatDate(record.fechaEnvio)}
+                        </TableCell>
+                        <TableCell className="text-center border-r text-sm">
+                          {formatDate(record.fechaRecepc)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={getReceptionStatusColor(record.estadoRecepc)}>
+                            {record.estadoRecepc || 'SIN RECEPCIÓN'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+
+                    // Fila de acordeón (solo si está expandido)
+                    if (isExpanded) {
+                      rows.push(
+                        <TableRow key={`accordion-${lineKey}`}>
+                          <TableCell colSpan={9} className="p-0 border-0">
+                            <LineDetailsAccordion
+                              lineId={record.lineaId}
+                              allRecords={filteredData}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                  });
+
+                  return rows;
+                })()
               ) : (
                 <TableRow>
-                  <TableCell colSpan={15} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                     {searchQuery
                       ? "No se encontraron registros que coincidan con la búsqueda"
                       : "No hay datos disponibles"}

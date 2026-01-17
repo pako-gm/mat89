@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import { Material } from "@/types";
 import { getAllMaterials } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Search, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
-  ChevronsRight, 
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Plus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,13 +26,14 @@ import {
 
 interface MaterialListProps {
   onViewDetails: (material: Material) => void;
+  onAddNew: () => void;
   refreshTrigger: number;
 }
 
 type SortField = 'registration' | 'description';
 type SortOrder = 'asc' | 'desc' | null;
 
-export default function MaterialList({ onViewDetails, refreshTrigger }: MaterialListProps) {
+export default function MaterialList({ onViewDetails, onAddNew, refreshTrigger }: MaterialListProps) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,21 +158,27 @@ export default function MaterialList({ onViewDetails, refreshTrigger }: Material
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-4 border-b border-gray-200">
         <div className="flex gap-4">
-          <div className="relative flex-1">
+          <div className="relative w-1/2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Buscar por matrícula, descripción o serie..."
               value={searchQuery}
               onChange={handleSearch}
-              className="pl-10 h-9"
+              className="pl-10 h-9 border-black"
             />
           </div>
-          <Button 
-            variant="outline" 
-            className="h-9 hover:bg-gray-50 transition-colors duration-200" 
+          <Button
+            variant="outline"
+            className="h-9 border-black hover:bg-gray-50 transition-colors duration-200"
             onClick={clearFilter}
           >
             Borrar Filtro
+          </Button>
+          <Button
+            onClick={onAddNew}
+            className="bg-[#91268F] hover:bg-[#7A1F79] text-white h-9 ml-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Material
           </Button>
         </div>
       </div>

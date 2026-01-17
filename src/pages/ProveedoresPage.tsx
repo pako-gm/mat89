@@ -3,8 +3,6 @@ import SupplierList from "@/components/suppliers/SupplierList";
 import SupplierDetails from "@/components/suppliers/SupplierDetails";
 import SupplierForm from "@/components/suppliers/SupplierForm";
 import { Supplier } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { deleteSupplier } from "@/lib/data";
 import {
@@ -96,22 +94,27 @@ export default function ProveedoresPage() {
   };
 
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-medium">Gestión de Proveedores</h1>
-        <Button 
-          onClick={handleAddSupplier}
-          className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Proveedor
-        </Button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-slate-700">
+            Gestión de Proveedores
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">
+            Administración del Catálogo de Proveedores de reparación
+          </p>
+        </div>
       </div>
 
-      <SupplierList 
+      {/* Lista de proveedores */}
+      <SupplierList
         onViewDetails={handleViewDetails}
+        onAddNew={handleAddSupplier}
         refreshTrigger={refreshTrigger}
       />
 
+      {/* Modales (sin cambios) */}
       {showDetails && selectedSupplier && (
         <SupplierDetails
           supplier={selectedSupplier}
@@ -142,7 +145,7 @@ export default function ProveedoresPage() {
             <AlertDialogCancel className="bg-gray-200 text-gray-800 hover:bg-gray-300">
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-red-600 text-white hover:bg-red-700"
               onClick={handleConfirmDelete}
             >

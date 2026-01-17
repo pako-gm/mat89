@@ -1,4 +1,4 @@
-import { Order, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion, WarrantyHistoryInfo, WarrantyPreviousOrder } from "@/types";
+import { Order, OrderLine, ChangeHistoryItem, Warehouse, Supplier, Reception, Material, MaterialReception, ConsultaRecord, AppVersion, WarrantyHistoryInfo, WarrantyPreviousOrder } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from './supabase';
 
@@ -1138,6 +1138,108 @@ export const getOrdersForReception = async (): Promise<Order[]> => {
   } catch (error) {
     console.error('Error fetching orders for reception:', error);
     return [];
+  }
+};
+
+/**
+ * Obtiene un pedido completo por su ID, incluyendo líneas y recepciones
+ * Usado para mostrar el detalle completo en modo solo lectura
+ */
+export const getOrderById = async (orderId: string): Promise<Order | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('tbl_pedidos_rep')
+      .select(`
+        *,
+        tbl_proveedores!inner(nombre),
+        tbl_ln_pedidos_rep (
+          *,
+          tbl_recepciones (*)
+        ),
+        tbl_historico_cambios (*)
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching order by ID:', error);
+      throw error;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Mapear datos de Supabase al tipo Order
+    const orderData = data as any;
+
+    // Procesar líneas de pedido con sus recepciones
+    const orderLines: OrderLine[] = (orderData.tbl_ln_pedidos_rep || []).map((line: any) => {
+      const receptions: MaterialReception[] = (line.tbl_recepciones || []).map((rec: any) => ({
+        id: rec.id,
+        pedidoId: rec.pedido_id || orderData.id,
+        lineaPedidoId: rec.linea_pedido_id,
+        fechaRecepcion: rec.fecha_recepcion,
+        nRec: rec.n_rec || 0,
+        nsRec: rec.ns_rec || '',
+        estadoRecepcion: rec.estado_recepcion as 'UTIL' | 'IRREPARABLE' | 'SIN ACTUACION' | 'OTROS',
+        observaciones: rec.observaciones || '',
+        almRecepciona: rec.alm_recibe || ''
+      }));
+
+      // Calcular total recibido y última fecha de recepción
+      const totalReceived = receptions.reduce((sum, rec) => sum + rec.nRec, 0);
+      const lastReceptionDate = receptions.length > 0
+        ? receptions.sort((a, b) => new Date(b.fechaRecepcion).getTime() - new Date(a.fechaRecepcion).getTime())[0].fechaRecepcion
+        : undefined;
+
+      return {
+        id: line.id,
+        registration: line.matricula_89,
+        partDescription: line.descripcion,
+        quantity: line.nenv,
+        serialNumber: line.nsenv || '',
+        estadoCompletado: line.nenv === totalReceived,
+        totalReceived,
+        lastReceptionDate,
+        receptions
+      };
+    });
+
+    // Procesar historial de cambios
+    const changeHistory: ChangeHistoryItem[] = (orderData.tbl_historico_cambios || []).map((change: any) => ({
+      id: change.id,
+      date: change.fecha_cambio,
+      user: change.user_id,
+      description: `${change.campo_modificado}: ${change.valor_anterior} → ${change.valor_nuevo}`
+    }));
+
+    // Construir objeto Order
+    const order: Order = {
+      id: orderData.id,
+      orderNumber: orderData.num_pedido,
+      warehouse: orderData.alm_envia,
+      supplierId: orderData.proveedor_id,
+      supplierName: orderData.tbl_proveedores?.nombre || '',
+      vehicle: orderData.vehiculo,
+      warranty: orderData.garantia || false,
+      nonConformityReport: orderData.informacion_nc || '',
+      dismantleDate: orderData.fecha_desmonte,
+      shipmentDate: orderData.fecha_envio,
+      declaredDamage: orderData.averia_declarada || '',
+      shipmentDocumentation: orderData.documentacion || [],
+      changeHistory,
+      orderLines,
+      estadoPedido: orderData.estado_pedido || 'PENDIENTE',
+      deleted: orderData.deleted || false,
+      cancelado: orderData.cancelado || false,
+      enviadoSinGarantia: orderData.enviado_sin_garantia || false
+    };
+
+    return order;
+  } catch (error) {
+    console.error('Error in getOrderById:', error);
+    return null;
   }
 };
 

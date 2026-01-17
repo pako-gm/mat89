@@ -984,53 +984,52 @@ export default function OrderList() {
     };
 
     return (
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-medium">Gestión de Pedidos</h1>
-          <div className="flex gap-3">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex gap-4">
+            <div className="relative w-1/2">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por núm. pedido, proveedor, vehículo..."
+                value={searchQuery}
+                onChange={handleSearch}
+                className="pl-10 h-9 border-black"
+              />
+            </div>
             <Button
-              onClick={handleLanzarPAR}
-              className="bg-[#107C41] hover:bg-[#0D5B2F] text-white"
+              variant="outline"
+              className="h-9 border-black hover:bg-gray-50 transition-colors duration-200"
+              onClick={clearFilter}
             >
-              <Star className="mr-2 h-4 w-4" /> Lanzar PAR
+              Borrar Filtro
             </Button>
-            <Button
-              onClick={handleNewOrder}
-              className="bg-[#91268F] hover:bg-[#7A1F79] text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Nuevo Pedido
-            </Button>
+            <div className="flex gap-3 ml-auto">
+              <Button
+                onClick={handleLanzarPAR}
+                className="bg-[#107C41] hover:bg-[#0D5B2F] text-white h-9"
+              >
+                <Star className="mr-2 h-4 w-4" /> Lanzar PAR
+              </Button>
+              <Button
+                onClick={handleNewOrder}
+                className="bg-[#91268F] hover:bg-[#7A1F79] text-white h-9"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Nuevo Pedido
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1 max-w-2xl">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Buscar por núm. pedido, proveedor, vehículo..."
-              value={searchQuery}
-              onChange={handleSearch}
-              className="pl-10 h-9"
-            />
-          </div>
-          <Button
-            variant="outline"
-            className="h-9 hover:bg-gray-50 transition-colors duration-200"
-            onClick={clearFilter}
-          >
-            Borrar Filtro
-          </Button>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
                 <TableHead className="font-medium w-[15%]">Núm. Pedido</TableHead>
                 <TableHead className="font-medium w-[10%]">Almacén</TableHead>
-                <TableHead className="font-medium w-[55%]">Proveedor</TableHead>
+                <TableHead className="font-medium w-[50%]">Proveedor</TableHead>
                 <TableHead className="font-medium w-[10%]">Vehículo</TableHead>
                 <TableHead className="font-medium w-[10%]">Fecha Envío</TableHead>
+                <TableHead className="font-medium w-[5%]">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

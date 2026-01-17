@@ -57,7 +57,7 @@ export interface OrderLine {
   receptions?: MaterialReception[];
 }
 
-interface ChangeHistoryItem {
+export interface ChangeHistoryItem {
   id: string;
   date: string;
   user: string;
