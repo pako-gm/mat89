@@ -216,9 +216,9 @@ function App() {
     );
   }
 
-  // Si el modo mantenimiento está activo, el usuario tiene sesión, NO es administrador y NO está en modo recuperación
+  // Si el modo mantenimiento está activo, el usuario tiene sesión, NO es administrador/gestorapp y NO está en modo recuperación
   // mostrar la página de mantenimiento
-  if (maintenanceActive && session && !isRecoveryMode && userRole !== 'ADMINISTRADOR') {
+  if (maintenanceActive && session && !isRecoveryMode && userRole !== 'ADMINISTRADOR' && userRole !== 'GESTORAPP') {
     return <MaintenancePage />;
   }
 
@@ -243,10 +243,11 @@ function App() {
             <Route path="proveedores" element={<ProveedoresPage />} />
             <Route path="materiales" element={<MaterialesPage />} />
             <Route path="consultar" element={<ConsultaPage />} />
+            {/* Rutas para GESTORAPP y ADMINISTRADOR */}
             <Route
               path="panel-control"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP', 'ADMINISTRADOR']}>
                   <PanelDeControl />
                 </ProtectedRoute>
               }
@@ -254,7 +255,7 @@ function App() {
             <Route
               path="maestro-almacenes"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP', 'ADMINISTRADOR']}>
                   <MaestroAlmacenes />
                 </ProtectedRoute>
               }
@@ -262,15 +263,16 @@ function App() {
             <Route
               path="maestro-vehiculos"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP', 'ADMINISTRADOR']}>
                   <MaestroVehiculos />
                 </ProtectedRoute>
               }
             />
+            {/* Rutas SOLO para GESTORAPP */}
             <Route
               path="versiones"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP']}>
                   <VersionesPage />
                 </ProtectedRoute>
               }
@@ -278,7 +280,7 @@ function App() {
             <Route
               path="auditoria-seguridad"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP']}>
                   <SecurityAuditPage />
                 </ProtectedRoute>
               }
@@ -286,7 +288,7 @@ function App() {
             <Route
               path="backup-sistema"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP']}>
                   <BackupSistema />
                 </ProtectedRoute>
               }
@@ -294,7 +296,7 @@ function App() {
             <Route
               path="pruebas"
               element={
-                <ProtectedRoute requiredRole="ADMINISTRADOR">
+                <ProtectedRoute allowedRoles={['GESTORAPP']}>
                   <PaginaPruebas />
                 </ProtectedRoute>
               }

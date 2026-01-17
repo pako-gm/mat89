@@ -6,7 +6,7 @@ import { supabase } from './supabase';
  * @param role The required role to check
  * @returns Promise<boolean> True if the user has the specified role
  */
-export const _hasRole = async (role: 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS'): Promise<boolean> => {
+export const _hasRole = async (role: 'GESTORAPP' | 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS'): Promise<boolean> => {
   try {
     // First check if the user is authenticated
     const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
@@ -40,7 +40,7 @@ export const _hasRole = async (role: 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS'):
  * @param roles Array of roles to check
  * @returns Promise<boolean> True if the user has any of the specified roles
  */
-export const hasAnyRole = async (roles: ('ADMINISTRADOR' | 'EDICION' | 'CONSULTAS')[]): Promise<boolean> => {
+export const hasAnyRole = async (roles: ('GESTORAPP' | 'ADMINISTRADOR' | 'EDICION' | 'CONSULTAS')[]): Promise<boolean> => {
   try {
     // First check if the user is authenticated
     const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
@@ -141,6 +141,15 @@ export const checkUserStatus = async (): Promise<{ isActive: boolean; userEmail?
     console.error('Error checking user status:', error);
     return { isActive: false, error: 'Error al verificar el estado del usuario' };
   }
+};
+
+/**
+ * Checks if the current user is GESTORAPP (highest privilege)
+ * @returns Promise<boolean> True if the user has GESTORAPP role
+ */
+export const isGestorApp = async (): Promise<boolean> => {
+  const role = await getUserRole();
+  return role === 'GESTORAPP';
 };
 
 /**

@@ -162,7 +162,7 @@ export default function Sidebar() {
       
       <div className="px-3 py-2 flex-1">
         <div className="space-y-1">
-          {(userRole === "ADMINISTRADOR" || userRole === "EDICION") && (
+          {(userRole === "GESTORAPP" || userRole === "ADMINISTRADOR" || userRole === "EDICION") && (
             <>
               <SidebarItem 
                 icon={<ClipboardList className="h-4 w-4" />}
@@ -203,25 +203,29 @@ export default function Sidebar() {
             path="/consultar"
             active={currentPath === "/consultar"}
           />
-          {userRole === "ADMINISTRADOR" && (
+          {(userRole === "GESTORAPP" || userRole === "ADMINISTRADOR") && (
             <SidebarItemWithSubmenu
               icon={<Settings className="h-4 w-4" />}
               label="Panel de Control"
               isOpen={panelControlOpen}
               onToggle={() => setPanelControlOpen(!panelControlOpen)}
               submenuItems={[
-                {
-                  label: "Auditoría de Seguridad",
-                  path: "/auditoria-seguridad",
-                  active: currentPath === "/auditoria-seguridad",
-                  icon: <Shield className="h-4 w-4" />
-                },
-                {
-                  label: "Backup Datos Sistema",
-                  path: "/backup-sistema",
-                  active: currentPath === "/backup-sistema",
-                  icon: <Database className="h-4 w-4" />
-                },
+                // Solo GESTORAPP ve estas opciones
+                ...(userRole === "GESTORAPP" ? [
+                  {
+                    label: "Auditoría de Seguridad",
+                    path: "/auditoria-seguridad",
+                    active: currentPath === "/auditoria-seguridad",
+                    icon: <Shield className="h-4 w-4" />
+                  },
+                  {
+                    label: "Backup Datos Sistema",
+                    path: "/backup-sistema",
+                    active: currentPath === "/backup-sistema",
+                    icon: <Database className="h-4 w-4" />
+                  },
+                ] : []),
+                // GESTORAPP y ADMINISTRADOR ven estas opciones
                 {
                   label: "Gestión de Usuarios",
                   path: "/panel-control",
@@ -240,18 +244,21 @@ export default function Sidebar() {
                   active: currentPath === "/maestro-vehiculos",
                   icon: <Train className="h-4 w-4" />
                 },
-                {
-                  label: "Mantenimiento Sistema",
-                  path: "/pruebas",
-                  active: currentPath === "/pruebas",
-                  icon: <Wrench className="h-4 w-4" />
-                },
-                {
-                  label: "Versiones APP",
-                  path: "/versiones",
-                  active: currentPath === "/versiones",
-                  icon: <GitBranch className="h-4 w-4" />
-                }
+                // Solo GESTORAPP ve estas opciones
+                ...(userRole === "GESTORAPP" ? [
+                  {
+                    label: "Mantenimiento Sistema",
+                    path: "/pruebas",
+                    active: currentPath === "/pruebas",
+                    icon: <Wrench className="h-4 w-4" />
+                  },
+                  {
+                    label: "Versiones APP",
+                    path: "/versiones",
+                    active: currentPath === "/versiones",
+                    icon: <GitBranch className="h-4 w-4" />
+                  }
+                ] : [])
               ]}
             />
           )}

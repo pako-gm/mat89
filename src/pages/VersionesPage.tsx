@@ -167,16 +167,28 @@ export default function VersionesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#91268F]"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Gestión de Versiones APP</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-slate-700">
+            Gestión de Versiones APP
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">
+            Historial de versiones y cambios de la aplicación
+          </p>
+        </div>
+      </div>
+
+      {/* Action Button */}
+      <div className="flex justify-end mb-6">
         {!editingVersion && (
           <Button onClick={handleNewVersion} className="bg-[#91268F] hover:bg-[#7a1f79]">
             <Plus className="h-4 w-4 mr-2" />

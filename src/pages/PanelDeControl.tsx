@@ -226,6 +226,11 @@ export default function PanelDeControl() {
   // ============ FUNCIONES DE FILTRADO ============
 
   const filteredUsers = users.filter(user => {
+    // ADMINISTRADOR no puede ver usuarios GESTORAPP (solo GESTORAPP puede verse a sí mismo)
+    if (currentUserProfile?.user_role === 'ADMINISTRADOR' && user.user_role === 'GESTORAPP') {
+      return false;
+    }
+
     const matchSearch =
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -443,6 +448,27 @@ export default function PanelDeControl() {
       return;
     }
 
+    // Prevenir que ADMINISTRADOR elimine usuarios GESTORAPP
+    const userToModify = users.find(u => u.user_id === userId);
+    if (currentUserProfile?.user_role === 'ADMINISTRADOR' && userToModify?.user_role === 'GESTORAPP') {
+      toast({
+        title: "Acción no permitida",
+        description: "No tienes permisos para eliminar este usuario",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevenir eliminación de GESTORAPP (solo puede desactivarse desde BD)
+    if (userToModify?.user_role === 'GESTORAPP') {
+      toast({
+        title: "Acción no permitida",
+        description: "El usuario GESTORAPP no puede ser eliminado desde la interfaz",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Mostrar modal de confirmación
     setUserToDelete({ userId, userName });
     setShowDeleteModal(true);
@@ -489,6 +515,17 @@ export default function PanelDeControl() {
   };
 
   const handleChangeStatus = async (userId: string, newStatus: boolean) => {
+    // Prevenir que ADMINISTRADOR modifique usuarios GESTORAPP
+    const userToModify = users.find(u => u.user_id === userId);
+    if (currentUserProfile?.user_role === 'ADMINISTRADOR' && userToModify?.user_role === 'GESTORAPP') {
+      toast({
+        title: "Acción no permitida",
+        description: "No tienes permisos para modificar este usuario",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('user_profiles')
@@ -513,7 +550,38 @@ export default function PanelDeControl() {
   };
 
   const handleChangeRole = async (userId: string, newRole: string) => {
-    if (userId === currentUserProfile?.user_id && newRole !== 'ADMINISTRADOR') {
+    // Prevenir asignación de rol GESTORAPP desde UI
+    if (newRole === 'GESTORAPP') {
+      toast({
+        title: "Acción no permitida",
+        description: "El rol GESTORAPP solo puede asignarse desde la base de datos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevenir que ADMINISTRADOR modifique usuarios GESTORAPP
+    const userToModify = users.find(u => u.user_id === userId);
+    if (currentUserProfile?.user_role === 'ADMINISTRADOR' && userToModify?.user_role === 'GESTORAPP') {
+      toast({
+        title: "Acción no permitida",
+        description: "No tienes permisos para modificar este usuario",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevenir que GESTORAPP se quite su propio rol
+    if (userId === currentUserProfile?.user_id && currentUserProfile?.user_role === 'GESTORAPP' && newRole !== 'GESTORAPP') {
+      toast({
+        title: "Acción no permitida",
+        description: "No puedes quitarte el rol de GESTORAPP a ti mismo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (userId === currentUserProfile?.user_id && newRole !== 'ADMINISTRADOR' && currentUserProfile?.user_role === 'ADMINISTRADOR') {
       toast({
         title: "Acción no permitida",
         description: "No puedes quitarte el rol de administrador a ti mismo",
@@ -662,6 +730,9 @@ export default function PanelDeControl() {
               style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
             >
               <option value="">Roles</option>
+              {currentUserProfile?.user_role === 'GESTORAPP' && (
+                <option value="GESTORAPP">GestorApp</option>
+              )}
               <option value="ADMINISTRADOR">Administrador</option>
               <option value="EDICION">Edición</option>
               <option value="CONSULTAS">Consultas</option>
@@ -791,7 +862,8 @@ export default function PanelDeControl() {
                         <select
                           value={user.status ? 'true' : 'false'}
                           onChange={(e) => handleChangeStatus(user.user_id, e.target.value === 'true')}
-                          className={`${getStatusColor(user.status)} text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer border-none outline-none`}
+                          className={`${getStatusColor(user.status)} text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer border-none outline-none disabled:opacity-70 disabled:cursor-not-allowed`}
+                          disabled={user.user_role === 'GESTORAPP'}
                         >
                           <option value="true" className="bg-white text-gray-800">Activo</option>
                           <option value="false" className="bg-white text-gray-800">Inactivo</option>
@@ -803,8 +875,12 @@ export default function PanelDeControl() {
                         <select
                           value={user.user_role || 'CONSULTAS'}
                           onChange={(e) => handleChangeRole(user.user_id, e.target.value)}
-                          className="px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-700 cursor-pointer"
+                          className="px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={user.user_role === 'GESTORAPP'}
                         >
+                          {user.user_role === 'GESTORAPP' && (
+                            <option value="GESTORAPP">GestorApp</option>
+                          )}
                           <option value="ADMINISTRADOR">Administrador</option>
                           <option value="EDICION">Edición</option>
                           <option value="CONSULTAS">Consultas</option>

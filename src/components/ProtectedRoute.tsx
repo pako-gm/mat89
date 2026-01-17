@@ -7,9 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string;
+  allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, requiredRole, allowedRoles }: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
@@ -34,13 +35,23 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
         setIsAuthenticated(true);
 
-        // Si se requiere un rol específico, verificarlo
-        if (requiredRole) {
+        // Si se requiere un rol específico o roles permitidos, verificarlo
+        if (requiredRole || allowedRoles) {
           const userRole = await getUserRole();
 
-          if (userRole === requiredRole) {
+          // GESTORAPP siempre tiene acceso a todo
+          if (userRole === 'GESTORAPP') {
             setHasPermission(true);
-          } else {
+          }
+          // Verificar si el rol está en la lista de roles permitidos
+          else if (allowedRoles && userRole && allowedRoles.includes(userRole)) {
+            setHasPermission(true);
+          }
+          // Legacy: verificar rol específico requerido
+          else if (requiredRole && userRole === requiredRole) {
+            setHasPermission(true);
+          }
+          else {
             setHasPermission(false);
             toast({
               title: "Acceso denegado",
@@ -62,7 +73,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
     };
 
     checkAuth();
-  }, [requiredRole, toast]);
+  }, [requiredRole, allowedRoles, toast]);
 
   // Mostrar loading mientras verifica
   if (loading) {

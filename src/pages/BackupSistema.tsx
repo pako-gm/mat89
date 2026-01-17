@@ -208,52 +208,48 @@ export default function BackupSistema() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="w-full">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate('/panel-control')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver al Panel de Control
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate('/panel-control')}
+        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Volver al Panel de Control
+      </button>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Database className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Backup del Sistema
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  Gestión de backups y restauración de la base de datos
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={loadBackups}
-                disabled={loading || isGenerating}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Actualizar
-              </button>
-
-              <button
-                onClick={handleGenerateBackup}
-                disabled={isGenerating}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-              >
-                <Download className="w-4 h-4" />
-                {isGenerating ? 'Generando...' : 'Generar Backup'}
-              </button>
-            </div>
-          </div>
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-slate-700">
+            Backup del Sistema
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">
+            Gestión de backups y restauración de la base de datos
+          </p>
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3 mb-6">
+        <button
+          onClick={loadBackups}
+          disabled={loading || isGenerating}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Actualizar
+        </button>
+
+        <button
+          onClick={handleGenerateBackup}
+          disabled={isGenerating}
+          className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+        >
+          <Download className="w-4 h-4" />
+          {isGenerating ? 'Generando...' : 'Generar Backup'}
+        </button>
+      </div>
 
         {/* Progress Bar */}
         {isGenerating && progress && (
@@ -432,12 +428,11 @@ export default function BackupSistema() {
           </div>
         </div>
 
-        {/* Footer Info */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>
-            Los archivos de backup se descargan en formato SQL y pueden ser ejecutados en Supabase SQL Editor
-          </p>
-        </div>
+      {/* Footer Info */}
+      <div className="mt-6 text-center text-sm text-gray-500">
+        <p>
+          Los archivos de backup se descargan en formato SQL y pueden ser ejecutados en Supabase SQL Editor
+        </p>
       </div>
     </div>
   );

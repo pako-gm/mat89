@@ -343,18 +343,13 @@ export default function SecurityAuditPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-[#91268F] bg-opacity-10 rounded-xl">
-            <Shield className="w-8 h-8 text-[#91268F]" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold text-slate-700">
-              Auditoría de Seguridad
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Herramienta de pruebas de seguridad para políticas RLS y control de acceso
-            </p>
-          </div>
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-slate-700">
+            Auditoría de Seguridad
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">
+            Herramienta de pruebas de seguridad para políticas RLS y control de acceso
+          </p>
         </div>
       </div>
 
