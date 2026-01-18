@@ -73,14 +73,15 @@ CREATE POLICY plantillas_update_admin ON tbl_plantillas FOR UPDATE
     )
   );
 
--- DELETE: Solo el creador puede eliminar su plantilla (GESTORAPP o ADMINISTRADOR)
+-- DELETE: Solo GESTORAPP puede eliminar plantillas (y solo si es el creador)
+-- NOTA: ADMINISTRADOR NO puede eliminar plantillas, solo modificarlas
 CREATE POLICY plantillas_delete_own ON tbl_plantillas FOR DELETE
   USING (
     usuario_creador_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM user_profiles
       WHERE user_id = auth.uid()
-      AND user_role IN ('GESTORAPP', 'ADMINISTRADOR')
+      AND user_role = 'GESTORAPP'
     )
   );
 

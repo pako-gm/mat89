@@ -1143,8 +1143,10 @@ export default function MaestroPlantillas() {
             ) : (
               plantillasFiltradas.map((plantilla) => {
                 const isSelected = plantillaSeleccionada?.id === plantilla.id;
-                const canModify = isSelected && plantilla.usuarioCreadorId === userProfile?.user_id;
-                const canDelete = isSelected && plantilla.usuarioCreadorId === userProfile?.user_id;
+                // GESTORAPP y ADMINISTRADOR pueden modificar nombres de cualquier plantilla
+                const canModify = isSelected && (userProfile?.user_role === 'GESTORAPP' || userProfile?.user_role === 'ADMINISTRADOR');
+                // Solo GESTORAPP puede eliminar (y debe ser el creador según RLS)
+                const canDelete = isSelected && userProfile?.user_role === 'GESTORAPP' && plantilla.usuarioCreadorId === userProfile?.user_id;
 
                 return (
                   <div
