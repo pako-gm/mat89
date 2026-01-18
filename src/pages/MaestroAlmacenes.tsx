@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, X, AlertTriangle, Warehouse,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ChevronsLeft, ChevronsRight, X, Warehouse,
+  ArrowUpDown, ArrowUp, ArrowDown, Ban, CheckCircle
 } from 'lucide-react';
 
 // Constantes de colores
@@ -15,12 +16,14 @@ interface Almacen {
   id: string;
   codigo_alm: string;
   nombre_alm: string;
+  activo: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
 export default function MaestroAlmacenes() {
   const { toast } = useToast();
+  const { isAdmin } = useUserProfile();
 
   // Estados principales
   const [almacenes, setAlmacenes] = useState<Almacen[]>([]);
@@ -41,10 +44,8 @@ export default function MaestroAlmacenes() {
   // Estados de modales
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [editingAlmacen, setEditingAlmacen] = useState<Almacen | null>(null);
-  const [almacenToDelete, setAlmacenToDelete] = useState<{ id: string; nombre: string } | null>(null);
 
   // Estados de formularios
   const [newAlmacenData, setNewAlmacenData] = useState({
@@ -187,7 +188,8 @@ export default function MaestroAlmacenes() {
         .from('tbl_almacenes')
         .insert([{
           codigo_alm: newAlmacenData.codigo_alm.toUpperCase(),
-          nombre_alm: newAlmacenData.nombre_alm
+          nombre_alm: newAlmacenData.nombre_alm,
+          activo: true
         }]);
 
       if (error) throw error;
@@ -256,35 +258,37 @@ export default function MaestroAlmacenes() {
     }
   };
 
-  const handleDeleteAlmacen = (id: string, nombre: string) => {
-    setAlmacenToDelete({ id, nombre });
-    setShowDeleteModal(true);
-  };
-
-  const confirmDeleteAlmacen = async () => {
-    if (!almacenToDelete) return;
+  const toggleActivoAlmacen = async (almacen: Almacen) => {
+    if (!isAdmin) {
+      toast({
+        title: "Sin permisos",
+        description: "Solo los administradores pueden habilitar/deshabilitar almacenes",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      const nuevoEstado = !almacen.activo;
       const { error } = await supabase
         .from('tbl_almacenes')
-        .delete()
-        .eq('id', almacenToDelete.id);
+        .update({ activo: nuevoEstado })
+        .eq('id', almacen.id);
 
       if (error) throw error;
 
       await fetchAlmacenes();
 
       toast({
-        title: "Almacén eliminado",
-        description: `${almacenToDelete.nombre} ha sido eliminado correctamente`,
+        title: nuevoEstado ? "Almacén habilitado" : "Almacén deshabilitado",
+        description: nuevoEstado
+          ? `${almacen.codigo_alm} ahora aparecerá en el selector de pedidos`
+          : `${almacen.codigo_alm} ya no aparecerá en el selector de nuevos pedidos`,
       });
-
-      setShowDeleteModal(false);
-      setAlmacenToDelete(null);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo eliminar el almacén",
+        description: error.message || "No se pudo cambiar el estado del almacén",
         variant: "destructive",
       });
     }
@@ -400,7 +404,7 @@ export default function MaestroAlmacenes() {
                   .map((almacen) => (
                     <tr
                       key={almacen.id}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${!almacen.activo ? 'bg-gray-100 opacity-60' : ''}`}
                     >
                       {/* Checkbox */}
                       <td className="py-4 px-6">
@@ -415,17 +419,24 @@ export default function MaestroAlmacenes() {
                       {/* Código con icono */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white text-sm font-semibold">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold ${almacen.activo ? 'bg-slate-700' : 'bg-gray-400'}`}>
                             <Warehouse className="w-5 h-5" />
                           </div>
-                          <span className="font-medium text-gray-800">
-                            {almacen.codigo_alm}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className={`font-medium ${almacen.activo ? 'text-gray-800' : 'text-gray-500'}`}>
+                              {almacen.codigo_alm}
+                            </span>
+                            {!almacen.activo && (
+                              <span className="text-xs text-red-500 font-medium">
+                                (Deshabilitado)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
                       {/* Nombre */}
-                      <td className="py-4 px-6 text-gray-600">
+                      <td className={`py-4 px-6 ${almacen.activo ? 'text-gray-600' : 'text-gray-400'}`}>
                         {almacen.nombre_alm}
                       </td>
 
@@ -442,13 +453,19 @@ export default function MaestroAlmacenes() {
                           >
                             <Edit2 className="w-4 h-4 text-gray-600" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteAlmacen(almacen.id, almacen.nombre_alm)}
-                            className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar almacén"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => toggleActivoAlmacen(almacen)}
+                              className={`p-2 rounded-lg transition-colors ${almacen.activo ? 'hover:bg-orange-50' : 'hover:bg-green-50'}`}
+                              title={almacen.activo ? 'Deshabilitar almacén' : 'Habilitar almacén'}
+                            >
+                              {almacen.activo ? (
+                                <Ban className="w-4 h-4 text-orange-500" />
+                              ) : (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              )}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -684,55 +701,6 @@ export default function MaestroAlmacenes() {
         </div>
       )}
 
-      {/* MODAL: Confirmación de Eliminación */}
-      {showDeleteModal && almacenToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <div className="flex flex-col items-center text-center">
-              {/* Icono de advertencia */}
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-
-              {/* Título */}
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                ¿Eliminar Almacén?
-              </h2>
-
-              {/* Mensaje */}
-              <p className="text-gray-600 mb-2">
-                ¿Estás seguro de que deseas eliminar el almacén
-              </p>
-              <p className="font-semibold text-gray-800 mb-4">
-                {almacenToDelete.nombre}?
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                Esta acción no se puede deshacer. El almacén será eliminado permanentemente del sistema.
-              </p>
-
-              {/* Botones */}
-              <div className="flex gap-3 w-full">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setAlmacenToDelete(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDeleteAlmacen}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
