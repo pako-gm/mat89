@@ -201,6 +201,7 @@ CREATE POLICY tipos_revision_delete ON tbl_tipos_revision FOR DELETE
 
 -- ============================================================
 -- PASO 9: Actualizar políticas RLS para tbl_backups_registro
+-- NOTA: Esta tabla es de acceso EXCLUSIVO para GESTORAPP
 -- ============================================================
 
 -- Eliminar políticas existentes
@@ -209,51 +210,51 @@ DROP POLICY IF EXISTS "Administradores pueden crear backups" ON tbl_backups_regi
 DROP POLICY IF EXISTS "Administradores pueden eliminar backups" ON tbl_backups_registro;
 DROP POLICY IF EXISTS "Administradores pueden actualizar backups" ON tbl_backups_registro;
 
--- SELECT: GESTORAPP y ADMINISTRADOR pueden ver backups
-CREATE POLICY "Administradores pueden ver backups"
+-- SELECT: Solo GESTORAPP puede ver backups
+CREATE POLICY "GESTORAPP puede ver backups"
   ON tbl_backups_registro
   FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE user_profiles.id = auth.uid()
-      AND user_profiles.user_role IN ('GESTORAPP', 'ADMINISTRADOR')
+      AND user_profiles.user_role = 'GESTORAPP'
     )
   );
 
--- INSERT: GESTORAPP y ADMINISTRADOR pueden crear backups
-CREATE POLICY "Administradores pueden crear backups"
+-- INSERT: Solo GESTORAPP puede crear backups
+CREATE POLICY "GESTORAPP puede crear backups"
   ON tbl_backups_registro
   FOR INSERT
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE user_profiles.id = auth.uid()
-      AND user_profiles.user_role IN ('GESTORAPP', 'ADMINISTRADOR')
+      AND user_profiles.user_role = 'GESTORAPP'
     )
   );
 
--- DELETE: GESTORAPP y ADMINISTRADOR pueden eliminar backups
-CREATE POLICY "Administradores pueden eliminar backups"
+-- DELETE: Solo GESTORAPP puede eliminar backups
+CREATE POLICY "GESTORAPP puede eliminar backups"
   ON tbl_backups_registro
   FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE user_profiles.id = auth.uid()
-      AND user_profiles.user_role IN ('GESTORAPP', 'ADMINISTRADOR')
+      AND user_profiles.user_role = 'GESTORAPP'
     )
   );
 
--- UPDATE: GESTORAPP y ADMINISTRADOR pueden actualizar backups
-CREATE POLICY "Administradores pueden actualizar backups"
+-- UPDATE: Solo GESTORAPP puede actualizar backups
+CREATE POLICY "GESTORAPP puede actualizar backups"
   ON tbl_backups_registro
   FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE user_profiles.id = auth.uid()
-      AND user_profiles.user_role IN ('GESTORAPP', 'ADMINISTRADOR')
+      AND user_profiles.user_role = 'GESTORAPP'
     )
   );
 
