@@ -15,7 +15,8 @@ import {
   Database,
   History,
   Train,
-  Wrench
+  Wrench,
+  Layers
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getUserRole } from "@/lib/auth";
@@ -145,8 +146,8 @@ export default function Sidebar() {
   useEffect(() => {
     if (currentPath === "/versiones" || currentPath === "/auditoria-seguridad" ||
         currentPath === "/panel-control" || currentPath === "/maestro-almacenes" ||
-        currentPath === "/maestro-vehiculos" || currentPath === "/backup-sistema" ||
-        currentPath === "/pruebas") {
+        currentPath === "/maestro-plantillas" || currentPath === "/maestro-vehiculos" ||
+        currentPath === "/backup-sistema" || currentPath === "/pruebas") {
       setPanelControlOpen(true);
     }
   }, [currentPath]);
@@ -237,6 +238,12 @@ export default function Sidebar() {
                   path: "/maestro-almacenes",
                   active: currentPath === "/maestro-almacenes",
                   icon: <Warehouse className="h-4 w-4" />
+                },
+                {
+                  label: "Maestro de Plantillas",
+                  path: "/maestro-plantillas",
+                  active: currentPath === "/maestro-plantillas",
+                  icon: <Layers className="h-4 w-4" />
                 },
                 {
                   label: "Maestro de Vehículos",

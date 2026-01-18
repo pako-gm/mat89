@@ -166,3 +166,65 @@ export interface WarrantyHistoryInfo {
   canSendWithWarranty: boolean;
   blockingReason: string | null;
 }
+
+// ============================================================
+// TEMPLATE MASTER INTERFACES
+// ============================================================
+
+export interface TipoRevision {
+  id: string;
+  codigo: string;
+  descripcion: string;
+  esPredeterminado: boolean;
+  activo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PlantillaMaterial {
+  id: string;
+  plantillaId: string;
+  materialId: string;
+  cantidad: number;
+  tipoRevisionId: string;
+  createdAt?: string;
+  // Campos calculados del material
+  matricula?: number;
+  descripcion?: string;
+  serieVehiculo?: string;
+  // Campo calculado del tipo
+  tipoRevisionCodigo?: string;
+}
+
+export interface PlantillaHistorial {
+  id: string;
+  plantillaId: string;
+  usuarioId: string;
+  accion: string;
+  fecha: string;
+  createdAt?: string;
+  // Campos calculados
+  usuarioNombre?: string;
+}
+
+export interface Plantilla {
+  id: string;
+  nombre: string;
+  serieVehiculo: string;
+  usuarioCreadorId: string;
+  fechaCreacion: string;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  // Campos calculados
+  usuarioCreadorNombre?: string;
+  totalMateriales?: number;
+}
+
+export interface PlantillaWithMaterials extends Plantilla {
+  materiales: PlantillaMaterial[];
+}
+
+export interface PlantillaComplete extends PlantillaWithMaterials {
+  historial: PlantillaHistorial[];
+}

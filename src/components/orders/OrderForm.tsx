@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
-import { Order, OrderLine, Warehouse, WarrantyHistoryInfo } from "@/types";
-import { getSuppliers, saveOrder, DuplicateMaterialInfo, getUserWarehouses, checkWarrantyStatus } from "@/lib/data";
+import { Order, OrderLine, Warehouse, WarrantyHistoryInfo, PlantillaWithMaterials } from "@/types";
+import { getSuppliers, saveOrder, DuplicateMaterialInfo, getUserWarehouses, checkWarrantyStatus, getAllPlantillas } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { hasAnyRole } from "@/lib/auth";
 import {
@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Trash2, Check, MessageCircle, Send, Info } from "lucide-react";
+import { PlusCircle, Trash2, Check, MessageCircle, Send, Info, Package, User, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { GuardarDocumentacionPedido } from "./GuardarDocumentacionPedido";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface OrderFormProps {
   order: Order;
@@ -112,6 +114,12 @@ export default function OrderForm({
   const [showWarrantyHistoryModal, setShowWarrantyHistoryModal] = useState(false);
   const [warrantyHistory, setWarrantyHistory] = useState<WarrantyHistoryInfo[]>([]);
   const [canProceedWithWarranty, setCanProceedWithWarranty] = useState(true);
+
+  // Template loading modal state
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState<PlantillaWithMaterials[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   // Ref to prevent multiple executions of warranty decline
   const isProcessingWarrantyDecline = useRef(false);
@@ -445,12 +453,14 @@ export default function OrderForm({
     const warehouseNum = warehouseCode;
 
     try {
-      // Buscar TODOS los pedidos del año para encontrar el máximo correlativo
+      // Buscar TODOS los pedidos para encontrar el máximo correlativo GLOBAL
+      // El correlativo NUNCA se reinicia, aunque cambie el año
       // (compatible con formatos "141/25/1030" y "ALM141/25/1030")
       const { data: yearOrders } = await supabase
         .from('tbl_pedidos_rep')
         .select('num_pedido')
-        .like('num_pedido', `%/${currentYear}/%`);
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       let maxSequential = 999;
 
@@ -472,6 +482,57 @@ export default function OrderForm({
       console.error('Error generating order number:', error);
       // Fallback: usar 1000 como secuencial predeterminado
       return `${warehouseNum}/${currentYear}/1000`;
+    }
+  };
+
+  // ============================================================================
+  // TEMPLATE FUNCTIONS
+  // ============================================================================
+
+  /**
+   * Extrae la serie del vehículo (primeros 3 dígitos antes del guión)
+   * @param vehicle - Formato "252-058" o "252058"
+   * @returns Serie del vehículo ("252") o null si inválido
+   */
+  const extractVehicleSeries = (vehicle: string): string | null => {
+    if (!vehicle || vehicle.trim() === "") return null;
+    const parts = vehicle.split('-');
+    if (parts.length >= 1) {
+      const serie = parts[0].trim();
+      if (/^\d{3}$/.test(serie)) {
+        return serie;
+      }
+    }
+    return null;
+  };
+
+  /**
+   * Convierte materiales de plantilla a OrderLines
+   * @param materiales - Array de PlantillaMaterial
+   * @returns Array de OrderLine con IDs únicos
+   */
+  const convertPlantillaToOrderLines = (materiales: any[]): OrderLine[] => {
+    return materiales.map(material => ({
+      id: uuidv4(),
+      registration: String(material.matricula || ""),
+      partDescription: material.descripcion || "",
+      quantity: material.cantidad || 1,
+      serialNumber: ""
+    }));
+  };
+
+  /**
+   * Carga plantillas filtradas por serie de vehículo
+   * @param vehicleSerie - Serie del vehículo (ej: "252")
+   * @returns Array de PlantillaWithMaterials filtradas
+   */
+  const loadPlantillasForVehicle = async (vehicleSerie: string): Promise<PlantillaWithMaterials[]> => {
+    try {
+      const todasLasPlantillas = await getAllPlantillas();
+      return todasLasPlantillas.filter(p => p.serieVehiculo === vehicleSerie);
+    } catch (error) {
+      console.error("Error cargando plantillas:", error);
+      return [];
     }
   };
 
@@ -685,6 +746,126 @@ export default function OrderForm({
     } else {
       console.log('Cannot delete - only one line remaining');
     }
+  };
+
+  /**
+   * Abre el modal de selección de plantillas
+   * Valida que el campo vehículo tenga valor
+   */
+  const handleOpenTemplateModal = async () => {
+    // Validar que el campo vehículo no esté vacío
+    if (!order.vehicle || order.vehicle.trim() === "") {
+      toast({
+        variant: "destructive",
+        title: "Campo requerido",
+        description: "Debe ingresar el vehículo antes de cargar una plantilla.",
+      });
+      return;
+    }
+
+    // Extraer serie del vehículo
+    const serie = extractVehicleSeries(order.vehicle);
+    if (!serie) {
+      toast({
+        variant: "destructive",
+        title: "Formato inválido",
+        description: "El vehículo debe tener formato XXX-XXX (ej: 252-058).",
+      });
+      return;
+    }
+
+    // Cargar plantillas filtradas por serie
+    setLoadingTemplates(true);
+    try {
+      const plantillas = await loadPlantillasForVehicle(serie);
+
+      if (plantillas.length === 0) {
+        toast({
+          title: "Sin plantillas",
+          description: `No hay plantillas disponibles para la serie ${serie}.`,
+          duration: 4000,
+        });
+        setLoadingTemplates(false);
+        return;
+      }
+
+      setAvailableTemplates(plantillas);
+      setSelectedTemplateId(null);
+      setShowTemplateModal(true);
+    } catch (error) {
+      console.error("Error cargando plantillas:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar las plantillas. Intente nuevamente.",
+      });
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  /**
+   * Carga la plantilla seleccionada en el pedido
+   * Valida restricción de proveedor externo
+   */
+  const handleLoadTemplate = () => {
+    if (!selectedTemplateId) {
+      toast({
+        variant: "destructive",
+        title: "Selección requerida",
+        description: "Debe seleccionar una plantilla para cargar.",
+      });
+      return;
+    }
+
+    const plantilla = availableTemplates.find(p => p.id === selectedTemplateId);
+    if (!plantilla) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se encontró la plantilla seleccionada.",
+      });
+      return;
+    }
+
+    // VALIDACIÓN: Proveedor externo con >1 material
+    if (isExternalSupplier && plantilla.materiales.length > 1) {
+      toast({
+        variant: "destructive",
+        title: "Restricción de proveedor externo",
+        description: `Los proveedores externos solo pueden tener 1 línea de pedido. Esta plantilla contiene ${plantilla.materiales.length} materiales.`,
+        duration: 6000,
+      });
+      return;
+    }
+
+    // Convertir materiales de plantilla a OrderLines
+    const nuevasLineas = convertPlantillaToOrderLines(plantilla.materiales);
+
+    // Filtrar líneas vacías (sin matrícula o matrícula vacía) antes de añadir las nuevas
+    const lineasNoVacias = order.orderLines.filter(line =>
+      line.registration && line.registration.trim() !== "" && line.registration !== "89xxxxxx"
+    );
+
+    // Añadir las nuevas líneas DEBAJO de las existentes (sin líneas vacías)
+    setOrder(prev => ({
+      ...prev,
+      orderLines: [...lineasNoVacias, ...nuevasLineas]
+    }));
+
+    // Marcar como cambio realizado
+    markAsChanged();
+
+    // Cerrar modal
+    setShowTemplateModal(false);
+    setSelectedTemplateId(null);
+
+    // Notificación de éxito
+    toast({
+      title: "Plantilla cargada",
+      description: `Se han añadido ${nuevasLineas.length} línea(s) de la plantilla "${plantilla.nombre}".`,
+      duration: 4000,
+    });
   };
 
   const addOrderLine = () => {
@@ -1673,15 +1854,39 @@ export default function OrderForm({
                   )}
                 </h2>
                 {!isReadOnly && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addOrderLine}
-                    disabled={isExternalSupplier && order.orderLines.length >= 1}
-                    className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#91268F]"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
-                  </Button>
+                  <div className="flex gap-2">
+                    {/* Botón Cargar Plantilla - Solo visible si NO es proveedor externo */}
+                    {!isExternalSupplier && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleOpenTemplateModal}
+                        disabled={loadingTemplates || !order.supplierId || !order.vehicle || !order.vehicle.trim()}
+                        className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#91268F]"
+                      >
+                        {loadingTemplates ? (
+                          <>
+                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-[#91268F] border-t-transparent"></div>
+                            Cargando...
+                          </>
+                        ) : (
+                          <>
+                            <Package className="h-4 w-4 mr-1" />
+                            Cargar Plantilla Materiales
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addOrderLine}
+                      disabled={isExternalSupplier && order.orderLines.length >= 1}
+                      className="text-[#91268F] border-[#91268F] hover:bg-[#91268F] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#91268F]"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-1" /> Añadir Línea
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -1806,7 +2011,7 @@ export default function OrderForm({
                               setErrors(prev => ({ ...prev, serialNumber: false }));
                             }
                           }}
-                          placeholder="ST/3145874"
+                          placeholder="Inserta Num. Serie"
                           className={`h-9 placeholder:text-gray-300 border-[#4C4C4C] focus:border-[#91268F] ${errors.serialNumber && isExternalSupplier && !String(line.serialNumber).trim() ? 'border-red-500' : ''}`}
                         />
                       )}
@@ -1922,6 +2127,129 @@ export default function OrderForm({
               className="w-full bg-[#91268F] hover:bg-[#7A1F79] text-white"
             >
               Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Selección de Plantillas */}
+      <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-[#91268F]" />
+              Seleccionar Plantilla de Materiales
+            </DialogTitle>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-2">
+              <div className="flex items-start gap-2">
+                <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-amber-900 mb-2">Información importante sobre plantillas:</h4>
+                  <ul className="space-y-1.5 text-sm text-amber-800">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-0.5">•</span>
+                      <span>Solo serán visibles las plantillas coincidentes con la serie del vehículo</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-0.5">•</span>
+                      <span>Una vez cargada la plantilla en el pedido, podrás añadir, modificar o eliminar materiales</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-0.5">•</span>
+                      <span>Los materiales incluidos en la plantilla no pueden modificarse (solo Administradores)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-0.5">•</span>
+                      <span>Puedes cargar múltiples plantillas en el mismo pedido</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {availableTemplates.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>No hay plantillas disponibles para esta serie de vehículo</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {availableTemplates.map((plantilla) => {
+                  const isSelected = selectedTemplateId === plantilla.id;
+                  return (
+                    <div
+                      key={plantilla.id}
+                      onClick={() => setSelectedTemplateId(plantilla.id)}
+                      className={`
+                        border rounded-lg p-4 cursor-pointer transition-all
+                        ${isSelected
+                          ? 'border-[#91268F] bg-[#91268F]/5 shadow-md'
+                          : 'border-gray-200 hover:border-[#91268F]/50 hover:bg-gray-50'
+                        }
+                      `}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-base mb-2 text-gray-900">
+                            {plantilla.nombre}
+                          </h3>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-600">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium">Serie:</span>
+                              <span>{plantilla.serieVehiculo}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium">Materiales:</span>
+                              <span>{plantilla.materiales.length}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3.5 w-3.5" />
+                              <span className="text-xs">{plantilla.usuarioCreadorNombre || 'Desconocido'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5" />
+                              <span className="text-xs">
+                                {plantilla.fechaCreacion
+                                  ? format(new Date(plantilla.fechaCreacion), 'dd/MM/yyyy', { locale: es })
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <div className="ml-3 flex-shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-[#91268F] flex items-center justify-center">
+                              <Check className="h-4 w-4 text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTemplateModal(false);
+                setSelectedTemplateId(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleLoadTemplate}
+              disabled={!selectedTemplateId}
+              className="bg-[#91268F] hover:bg-[#7A1F79] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cargar Plantilla
             </Button>
           </DialogFooter>
         </DialogContent>
