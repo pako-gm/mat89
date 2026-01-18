@@ -591,12 +591,22 @@ export default function PanelDeControl() {
     }
 
     try {
-      const { error } = await supabase
+      console.log('🔵 Actualizando rol:', { userId, newRole });
+
+      const { data, error } = await supabase
         .from('user_profiles')
         .update({ user_role: newRole })
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('user_id, user_role');
+
+      console.log('🟢 Respuesta UPDATE rol:', { data, error });
 
       if (error) throw error;
+
+      // Verificar si realmente se actualizó
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo actualizar el rol. Verifica los permisos de la base de datos.');
+      }
 
       await fetchUsers();
 
@@ -605,9 +615,10 @@ export default function PanelDeControl() {
         description: `El rol se cambió a ${newRole}`,
       });
     } catch (error: any) {
+      console.error('🔴 Error actualizando rol:', error);
       toast({
         title: "Error",
-        description: "No se pudo actualizar el rol",
+        description: error.message || "No se pudo actualizar el rol",
         variant: "destructive",
       });
     }
@@ -685,7 +696,7 @@ export default function PanelDeControl() {
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
         <div className="text-center">
           <h1 className="text-5xl font-bold text-slate-700">
-            Panel de Control de Usuarios
+            Panel de Gestion de Usuarios
           </h1>
           <p className="text-gray-600 text-lg mt-2">
             Gestión de los usuarios de la aplicación, control de acceso,
