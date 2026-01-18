@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import {
   Search, Edit2, Trash2, Plus, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, X, Warehouse,
+  ChevronsLeft, ChevronsRight, X, Warehouse, User, ArrowLeft,
   ArrowUpDown, ArrowUp, ArrowDown, Ban, CheckCircle
 } from 'lucide-react';
 
@@ -24,6 +25,12 @@ interface Almacen {
 export default function MaestroAlmacenes() {
   const { toast } = useToast();
   const { isAdmin } = useUserProfile();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Parámetros de URL para gestión de ámbitos de usuario
+  const userIdFromUrl = searchParams.get('userId');
+  const userNameFromUrl = searchParams.get('userName');
 
   // Estados principales
   const [almacenes, setAlmacenes] = useState<Almacen[]>([]);
@@ -44,8 +51,13 @@ export default function MaestroAlmacenes() {
   // Estados de modales
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAmbitoModal, setShowAmbitoModal] = useState(false);
 
   const [editingAlmacen, setEditingAlmacen] = useState<Almacen | null>(null);
+
+  // Estados para gestión de ámbitos de usuario
+  const [userAmbitosSeleccionados, setUserAmbitosSeleccionados] = useState<string[]>([]);
+  const [loadingUserAmbitos, setLoadingUserAmbitos] = useState(false);
 
   // Estados de formularios
   const [newAlmacenData, setNewAlmacenData] = useState({
@@ -80,6 +92,96 @@ export default function MaestroAlmacenes() {
   useEffect(() => {
     fetchAlmacenes();
   }, []);
+
+  // Cargar ámbitos del usuario cuando viene desde Panel de Control
+  useEffect(() => {
+    const loadUserAmbitos = async () => {
+      if (userIdFromUrl) {
+        setLoadingUserAmbitos(true);
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('ambito_almacenes')
+            .eq('user_id', userIdFromUrl)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          const ambitos = Array.isArray(data?.ambito_almacenes)
+            ? data.ambito_almacenes
+            : [];
+          setUserAmbitosSeleccionados(ambitos);
+          setShowAmbitoModal(true);
+        } catch (error: any) {
+          console.error('Error cargando ámbitos del usuario:', error);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los almacenes del usuario",
+            variant: "destructive",
+          });
+        } finally {
+          setLoadingUserAmbitos(false);
+        }
+      }
+    };
+
+    loadUserAmbitos();
+  }, [userIdFromUrl]);
+
+  // ============ FUNCIONES DE GESTIÓN DE ÁMBITOS DE USUARIO ============
+
+  const handleSaveUserAmbitos = async () => {
+    if (!userIdFromUrl) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ ambito_almacenes: userAmbitosSeleccionados })
+        .eq('user_id', userIdFromUrl);
+
+      if (error) throw error;
+
+      toast({
+        title: "Ámbitos actualizados",
+        description: `${userAmbitosSeleccionados.length} almacenes asignados a ${userNameFromUrl}`,
+      });
+
+      // Cerrar modal y volver al panel de control
+      setShowAmbitoModal(false);
+      navigate('/panel-control');
+    } catch (error: any) {
+      console.error('Error guardando ámbitos:', error);
+      toast({
+        title: "Error al guardar",
+        description: error.message || "No se pudieron guardar los almacenes asignados",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelUserAmbitos = () => {
+    setShowAmbitoModal(false);
+    setUserAmbitosSeleccionados([]);
+    navigate('/panel-control');
+  };
+
+  const toggleUserAmbitoSelection = (almacenId: string) => {
+    setUserAmbitosSeleccionados(prev =>
+      prev.includes(almacenId)
+        ? prev.filter(id => id !== almacenId)
+        : [...prev, almacenId]
+    );
+  };
+
+  const selectAllAmbitos = () => {
+    // Solo seleccionar almacenes activos
+    const activeAlmacenIds = almacenes.filter(a => a.activo).map(a => a.id);
+    setUserAmbitosSeleccionados(activeAlmacenIds);
+  };
+
+  const clearAllAmbitos = () => {
+    setUserAmbitosSeleccionados([]);
+  };
 
   // ============ FUNCIONES DE SELECCIÓN ============
 
@@ -589,10 +691,16 @@ export default function MaestroAlmacenes() {
                 <input
                   type="text"
                   required
+                  maxLength={3}
+                  pattern="[0-9]{1,3}"
+                  inputMode="numeric"
                   value={newAlmacenData.codigo_alm}
-                  onChange={(e) => setNewAlmacenData({ ...newAlmacenData, codigo_alm: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 3);
+                    setNewAlmacenData({ ...newAlmacenData, codigo_alm: value });
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  placeholder="Ej: ALM001"
+                  placeholder="Ej: 141"
                 />
               </div>
 
@@ -697,6 +805,157 @@ export default function MaestroAlmacenes() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Gestionar Ámbitos de Usuario */}
+      {showAmbitoModal && userIdFromUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full mx-4 shadow-2xl max-h-[85vh] flex flex-col">
+            {/* Header fijo */}
+            <div className="p-6 pb-4 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                    style={{ backgroundColor: COLOR_PRIMARIO }}
+                  >
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">
+                      Gestionar Almacenes
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      {userNameFromUrl}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCancelUserAmbitos}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Opciones de selección rápida */}
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer hover:text-purple-700 transition-colors">
+                  <input
+                    type="radio"
+                    name="ambitos-selection"
+                    checked={userAmbitosSeleccionados.length === almacenes.filter(a => a.activo).length && almacenes.filter(a => a.activo).length > 0}
+                    onChange={selectAllAmbitos}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Seleccionar Todos (activos)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer hover:text-purple-700 transition-colors">
+                  <input
+                    type="radio"
+                    name="ambitos-selection"
+                    checked={userAmbitosSeleccionados.length === 0}
+                    onChange={clearAllAmbitos}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Borrar Todos</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Body scrolleable */}
+            <div className="px-6 py-4 overflow-y-auto flex-1">
+              {loadingUserAmbitos ? (
+                <div className="flex justify-center items-center py-8">
+                  <div
+                    className="animate-spin rounded-full h-8 w-8 border-b-2"
+                    style={{ borderColor: COLOR_PRIMARIO }}
+                  ></div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {almacenes.map(almacen => (
+                    <label
+                      key={almacen.id}
+                      className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                        !almacen.activo
+                          ? 'bg-gray-50 border-gray-200 opacity-60'
+                          : userAmbitosSeleccionados.includes(almacen.id)
+                            ? 'border-purple-400 bg-purple-50'
+                            : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={userAmbitosSeleccionados.includes(almacen.id)}
+                        onChange={() => toggleUserAmbitoSelection(almacen.id)}
+                        disabled={!almacen.activo}
+                        className="w-4 h-4 rounded cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${almacen.activo ? 'bg-slate-700' : 'bg-gray-400'}`}>
+                        <Warehouse className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium ${almacen.activo ? 'text-gray-800' : 'text-gray-500'}`}>
+                            {almacen.nombre_alm}
+                          </span>
+                          <span className={`text-sm ${almacen.activo ? 'text-gray-500' : 'text-gray-400'}`}>
+                            - Alm. {almacen.codigo_alm}
+                          </span>
+                        </div>
+                        {!almacen.activo && (
+                          <span className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5">
+                            <Ban className="w-3 h-3" />
+                            Deshabilitado - No disponible para nuevos pedidos
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+
+                  {almacenes.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">
+                      No hay almacenes disponibles
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer fijo con información y botones */}
+            <div className="p-6 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-gray-600">
+                  {userAmbitosSeleccionados.length} de {almacenes.filter(a => a.activo).length} almacenes activos seleccionados
+                </span>
+                <button
+                  onClick={() => navigate('/panel-control')}
+                  className="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver sin guardar
+                </button>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelUserAmbitos}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveUserAmbitos}
+                  className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
+                  style={{ backgroundColor: COLOR_PRIMARIO }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

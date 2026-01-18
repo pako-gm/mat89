@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -30,6 +31,7 @@ interface Almacen {
 
 export default function PanelDeControl() {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Estados principales
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -138,6 +140,7 @@ export default function PanelDeControl() {
       const { data, error } = await supabase
         .from('tbl_almacenes')
         .select('id, codigo_alm, nombre_alm')
+        .eq('activo', true) // Solo cargar almacenes activos para nuevo usuario
         .order('codigo_alm');
 
       if (error) throw error;
@@ -916,8 +919,12 @@ export default function PanelDeControl() {
                       <td className="py-4 px-6">
                         <button
                           onClick={() => {
-                            setSelectedUserAmbito(user);
-                            setShowAmbitoModal(true);
+                            // Navegar a MaestroAlmacenes con contexto del usuario
+                            const params = new URLSearchParams({
+                              userId: user.user_id,
+                              userName: user.name || user.email
+                            });
+                            navigate(`/maestro-almacenes?${params.toString()}`);
                           }}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors text-sm"
                           style={{ borderWidth: '1px', borderColor: COLOR_PRIMARIO }}
